@@ -1,6 +1,8 @@
 package utils;
 
 /**
+ * Holds all of the String constants used by varioius parts in this system
+ *
  * Created by Colin Graber on 3/6/16.
  */
 public class Consts {

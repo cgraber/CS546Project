@@ -1,5 +1,6 @@
 package experiments;
 
+import data.ACEAnnotation;
 import data.DataUtils;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.TextAnnotation;
 
@@ -16,6 +17,6 @@ public class Baseline {
             System.exit(1);
         }
 
-        List<List<TextAnnotation>> splits = DataUtils.loadDataSplits(argv[0]);
+        List<List<ACEAnnotation>> splits = DataUtils.loadDataSplits(argv[0]);
     }
 }
