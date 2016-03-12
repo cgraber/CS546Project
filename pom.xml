@@ -28,7 +28,7 @@
             <exclusions>
                 <exclusion>
                     <groupId>edu.illinois.cs.cogcomp</groupId>
-                    <artifactId>illinois-core-utilitiesrelation</artifactId>
+                    <artifactId>illinois-core-utilities</artifactId>
                 </exclusion>
             </exclusions>
         </dependency>
