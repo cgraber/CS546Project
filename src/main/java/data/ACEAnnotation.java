@@ -8,9 +8,9 @@ import edu.illinois.cs.cogcomp.reader.ace2005.annotationStructure.ACEDocument;
 import edu.illinois.cs.cogcomp.reader.ace2005.annotationStructure.ACEEntity;
 import edu.illinois.cs.cogcomp.reader.ace2005.annotationStructure.ACERelation;
 import edu.illinois.cs.cogcomp.reader.ace2005.documentReader.AceFileProcessor;
-import edu.illinois.cs.cogcomp.reader.commondatastructure.AnnotatedText;
 import edu.illinois.cs.cogcomp.reader.util.EventConstants;
 import utils.Consts;
+import utils.Pipeline;
 
 import java.util.*;
 
@@ -53,6 +53,7 @@ public class ACEAnnotation {
         // Since there may be multiple text annotations, each holding multiple sentences, we make accessing sentences
         // easier
         for (TextAnnotation ta: taList) {
+            Pipeline.addAllViews(ta);
             for (Sentence sentence: ta.sentences()) {
                 sentenceTokens.add(Arrays.asList(sentence.getTokens()));
             }
