@@ -1,5 +1,6 @@
 package data;
 
+import edu.illinois.cs.cogcomp.core.datastructures.ViewNames;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.Constituent;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.Sentence;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.TextAnnotation;
@@ -165,6 +166,21 @@ public class ACEAnnotation {
         return BIOencoding;
     }
 
+    public List<List<String>> getPOSTags() {
+        List<List<String>> result = new ArrayList<List<String>>();
+        for (TextAnnotation ta: taList) {
+            for (Sentence sentence: ta.sentences()) {
+                List<String> posList = new ArrayList<>();
+                result.add(posList);
+                View posView = ta.getView(ViewNames.POS);
+                for (int i = 0; i < sentence.getTokens().length; i++) {
+                    posList.add(posView.getLabelsCoveringToken(i).get(0));
+                }
+            }
+        }
+
+        return result;
+    }
 
     public static Set<String> getRelationTypes() {
         return relationTypes;
