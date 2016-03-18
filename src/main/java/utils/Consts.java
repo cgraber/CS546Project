@@ -25,6 +25,8 @@ public class Consts {
     public static final String ARG_2 = "Arg-2";
     public static final String[] ARGS = {ARG_1, ARG_2};
 
+    public static final String NO_REL = "NO_REL";
+
     public static final String BIO_B = "B_";
     public static final String BIO_I = "I_";
     public static final String BIO_O = "O";
