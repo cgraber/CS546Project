@@ -25,7 +25,7 @@ public class Pipeline {
     public static AnnotatorService buildPipeline() {
         Properties props = new Properties();
         props.setProperty(PipelineConfigurator.USE_POS.key, Configurator.TRUE);
-        props.setProperty(PipelineConfigurator.USE_LEMMA.key, Configurator.FALSE);
+        props.setProperty(PipelineConfigurator.USE_LEMMA.key, Configurator.TRUE);
         props.setProperty(PipelineConfigurator.USE_SHALLOW_PARSE.key, Configurator.FALSE);
         props.setProperty(PipelineConfigurator.USE_NER_CONLL.key, Configurator.FALSE);
         props.setProperty(PipelineConfigurator.USE_NER_ONTONOTES.key, Configurator.FALSE);
@@ -46,6 +46,7 @@ public class Pipeline {
     public static void addAllViews(TextAnnotation ta) {
         try {
             pipeline.addView(ta, ViewNames.POS);
+            pipeline.addView(ta, ViewNames.LEMMA);
         } catch (AnnotatorException e) {
             System.err.println("PIPELINE PROBLEM - THIS SHOULDN'T HAPPEN");
             System.exit(1);

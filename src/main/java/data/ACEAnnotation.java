@@ -71,7 +71,6 @@ public class ACEAnnotation {
         for (ACERelation relation: relationList) {
             relationTypes.add(relation.type);
         }
-        System.out.println(sentenceTokens);
         for (ACEEntity entity: doc.aceAnnotation.entityList) {
             entityTypes.add(entity.type);
             entitySubtypes.add(entity.subtype);
@@ -130,7 +129,6 @@ public class ACEAnnotation {
         }
 
         BIOencoding = new ArrayList<List<String>>();
-        System.out.println(sentenceTokens);
         for (TextAnnotation ta: taList) {
             System.out.println(ta);
             if (!ta.hasView(EventConstants.NER_ACE_COARSE)) {
@@ -189,12 +187,35 @@ public class ACEAnnotation {
     public List<List<String>> getPOSTags() {
         List<List<String>> result = new ArrayList<List<String>>();
         for (TextAnnotation ta: taList) {
+            int tokenInd = 0;
             for (Sentence sentence: ta.sentences()) {
                 List<String> posList = new ArrayList<>();
                 result.add(posList);
                 View posView = ta.getView(ViewNames.POS);
                 for (int i = 0; i < sentence.getTokens().length; i++) {
-                    posList.add(posView.getLabelsCoveringToken(i).get(0));
+                    posList.add(posView.getLabelsCoveringToken(tokenInd++).get(0));
+                }
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     *
+     * @return A list of lists - each of these representing a sentence - of lemmas (representing the lemma per
+     *         word in the given sentence)
+     */
+    public List<List<String>> getLemmas() {
+        List<List<String>> result = new ArrayList<>();
+        for (TextAnnotation ta: taList) {
+            int tokenInd = 0;
+            for (Sentence sentence: ta.sentences()) {
+                List<String> lemmaList = new ArrayList<>();
+                result.add(lemmaList);
+                View lemmaView = ta.getView(ViewNames.LEMMA);
+                for (int i = 0; i < sentence.getTokens().length; i++) {
+                    lemmaList.add(lemmaView.getLabelsCoveringToken(tokenInd++).get(0));
                 }
             }
         }
