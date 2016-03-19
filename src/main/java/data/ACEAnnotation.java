@@ -1,15 +1,13 @@
 package data;
 
 import edu.illinois.cs.cogcomp.core.datastructures.IntPair;
+import edu.illinois.cs.cogcomp.core.datastructures.Pair;
 import edu.illinois.cs.cogcomp.core.datastructures.ViewNames;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.Constituent;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.Sentence;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.TextAnnotation;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.View;
-import edu.illinois.cs.cogcomp.reader.ace2005.annotationStructure.ACEDocument;
-import edu.illinois.cs.cogcomp.reader.ace2005.annotationStructure.ACEEntity;
-import edu.illinois.cs.cogcomp.reader.ace2005.annotationStructure.ACEEntityMention;
-import edu.illinois.cs.cogcomp.reader.ace2005.annotationStructure.ACERelation;
+import edu.illinois.cs.cogcomp.reader.ace2005.annotationStructure.*;
 import edu.illinois.cs.cogcomp.reader.ace2005.documentReader.AceFileProcessor;
 import edu.illinois.cs.cogcomp.reader.util.EventConstants;
 import utils.Consts;
@@ -44,7 +42,15 @@ public class ACEAnnotation {
 
     // Each sentence is represented as a List of tokens - this is a list of those lists
     private List<List<String>> sentenceTokens = new ArrayList<>();
-    private List<EntityMention> goldEntities = new ArrayList<>();
+    private List<EntityMention> goldEntityMentions = new ArrayList<>();
+    private Map<String,EntityMention> goldEntityMentionsByID = new HashMap<>();
+    private List<EntityMention> testEntityMentions = new ArrayList<>();
+    private List<Relation> goldRelations = new ArrayList<>();
+    private Map<Pair<EntityMention,EntityMention>,Relation> goldRelationsByArgs = new HashMap<>();
+    private List<Relation> testRelations = new ArrayList<>();
+    private List<CoreferenceEdge> goldCoreferenceEdges = new ArrayList<>();
+    private Map<Pair<EntityMention,EntityMention>,CoreferenceEdge> goldCoreferenceEdgesByEdges = new HashMap<>();
+    private List<CoreferenceEdge> testCoreferenceEdges = new ArrayList<>();
     private List<ACERelation> relationList;
 
     // Annotation info
@@ -68,26 +74,59 @@ public class ACEAnnotation {
         // And now we pull all of the gold data out of the ACEDocumentAnnotation wrapper
         relationList = doc.aceAnnotation.relationList;
 
-        for (ACERelation relation: relationList) {
-            relationTypes.add(relation.type);
-        }
+
         for (ACEEntity entity: doc.aceAnnotation.entityList) {
+            System.out.println("MENTION: " + entity.id + ", " + entity.type);
             entityTypes.add(entity.type);
             entitySubtypes.add(entity.subtype);
+            List<EntityMention> coreferentEntities = new ArrayList<>();
             for (ACEEntityMention mention: entity.entityMentionList) {
-                goldEntities.add(makeEntityMention(mention));
+                EntityMention e = makeEntityMention(mention, entity.type);
+                goldEntityMentions.add(e);
+                coreferentEntities.add(e);
+                goldEntityMentionsByID.put(mention.id, e);
+                //System.out.println("\t"+mention.id+", "+mention.extent+", "+mention.type+", "+mention.ldcType);
+            }
+            // Add all pairs of coreference edges
+            for (int i = 0; i < coreferentEntities.size(); i++) {
+                for (int j = i+1; j < coreferentEntities.size(); j++) {
+                    EntityMention e1 = coreferentEntities.get(i);
+                    EntityMention e2 = coreferentEntities.get(j);
+                    CoreferenceEdge edge = new CoreferenceEdge(e1, e2);
+                    goldCoreferenceEdges.add(edge);
+                    goldCoreferenceEdgesByEdges.put(new Pair<>(e1, e2), edge);
+                }
             }
         }
 
-        //TODO: figure out how best to organize coreference/relation information
-
+        for (ACERelation relation: relationList) {
+            relationTypes.add(relation.type);
+            System.out.println("RELATION: "+relation.id+", "+relation.type);
+            for (ACERelationMention rm : relation.relationMentionList) {
+                System.out.println("\trelation mention: "+rm.id);
+                EntityMention e1 = null;
+                EntityMention e2 = null;
+                for (ACERelationArgumentMention ram: rm.relationArgumentMentionList) {
+                    if (ram.role.equals(Consts.ARG_1)) {
+                        //System.out.println("\t\tArg_1: "+ram.id+", "+ram.argStr);
+                        e1 = goldEntityMentionsByID.get(ram.id);
+                    } else if (ram.role.equals(Consts.ARG_2)) {
+                        //System.out.println("\t\tArg_2: "+ram.id+", "+ram.argStr);
+                        e2 = goldEntityMentionsByID.get(ram.id);
+                    }
+                }
+                Relation rel = new Relation(relation.type, e1, e2);
+                goldRelations.add(rel);
+                goldRelationsByArgs.put(new Pair<>(e1, e2), rel);
+            }
+        }
     }
 
     //NOTE: because of the (incorrect) tokenization, this introduces a bit of inaccuracy into the gold labels -
     // for the time being, we can't get around this.
-    private EntityMention makeEntityMention(ACEEntityMention mention) {
+    private EntityMention makeEntityMention(ACEEntityMention mention, String type) {
         IntPair offsets = findTokenOffsets(mention.extentStart, mention.extentEnd);
-        return new EntityMention(mention.type, offsets.getFirst(), offsets.getSecond(), this);
+        return new EntityMention(type, offsets.getFirst(), offsets.getSecond(), this);
     }
 
     public int getNumberOfSentences() {
@@ -224,34 +263,103 @@ public class ACEAnnotation {
     }
 
     /**
-     * This is the function that should be called by the NER system to add an entity to the test labels
+     * This is the function that should be called by the NER system to add an entity mention to the test labels
      *
-     * @param label The label of the entity
+     * @param type The type of the entity
      * @param startOffset The index of the first token of the span containing the entity
      * @param endOffset The index of the last token + 1 (e.g. if the last token is #3, the value here should be 4)
      */
-    public void addEntity(String label, int startOffset, int endOffset) {
-        //TODO: Implement this!
+    public void addEntityMention(String type, int startOffset, int endOffset) {
+        testEntityMentions.add(new EntityMention(type, startOffset, endOffset, this));
     }
 
-    public void addRelation(String label, EntityMention e1, EntityMention e2) {
-        //TODO: Implement this!
+    /**
+     * This is the function that should be called by the relation extraction system to add a relation to the test labels
+     * @param type The type of the relation
+     * @param e1 The entity mention that takes the role of ARG-1 in the relation
+     * @param e2 The entity mention that takes the role of ARG-2 in the relation
+     */
+    public void addRelation(String type, EntityMention e1, EntityMention e2) {
+        testRelations.add(new Relation(type, e1, e2));
     }
 
     public void addCoreferenceEdge(EntityMention e1, EntityMention e2) {
-        //TODO: Implement this!
+        testCoreferenceEdges.add(new CoreferenceEdge(e1, e2));
     }
 
-    public void getGoldEntities() {
-        //TODO: Implement this!
+    public List<EntityMention> getGoldEntityMentions() {
+        return goldEntityMentions;
     }
 
-    public void getGoldRelations() {
-        //TODO: Implement this!
+    public List<EntityMention> getTestEntityMentions() {
+        return testEntityMentions;
     }
 
-    public void getGoldCoreferenceEdges() {
-        //TODO: Implement this!
+    /**
+     * This method returns all of the relations that are explicitly specified within the gold data
+     * @return The list of relations
+     */
+    public List<Relation> getGoldRelations() {
+        return goldRelations;
+    }
+
+    public Map<Pair<EntityMention,EntityMention>,Relation> getGoldRelationsByArgs() {
+        return goldRelationsByArgs;
+    }
+
+    /**
+     * This method returns a relation for each pair of entity mentions, including NO_REL relation
+     *
+     * Note: Coreference "relations" are not included in this!
+     * @return The a pair of lists of relations; the first list contains the explicit relations, and the second
+     *         list contains the "no relation" relations.
+     */
+    public Pair<List<Relation>,List<Relation>> getAllPairsGoldRelations() {
+        List<Relation> result1 = new ArrayList<>(goldRelations);
+        List<Relation> result2 = new ArrayList<Relation>(goldRelations);
+        for (int e1Ind = 0; e1Ind < goldEntityMentions.size(); e1Ind++) {
+            for (int e2Ind = e1Ind + 1; e2Ind < goldEntityMentions.size(); e2Ind++) {
+                EntityMention e1 = goldEntityMentions.get(e1Ind);
+                EntityMention e2 = goldEntityMentions.get(e2Ind);
+                if (!goldRelationsByArgs.containsKey(new Pair<>(e1, e2)) &&
+                        !goldRelationsByArgs.containsKey(new Pair<>(e2, e1))) {
+                    result2.add(new Relation(Consts.NO_REL, e1, e2));
+                }
+            }
+        }
+        return new Pair<>(result1, result2);
+    }
+
+    /**
+     * This method returns a coreference edge for each pair of entity mentions
+     * @return
+     */
+    public Pair<List<CoreferenceEdge>, List<CoreferenceEdge>> getAllPairsGoldCoreferenceEdges() {
+        List<CoreferenceEdge> result1 = new ArrayList<>(goldCoreferenceEdges);
+        List<CoreferenceEdge> result2 = new ArrayList<>(goldCoreferenceEdges);
+        for (int e1Ind = 0; e1Ind < goldEntityMentions.size(); e1Ind++) {
+            for (int e2Ind = e1Ind + 1; e2Ind < goldEntityMentions.size(); e2Ind++) {
+                EntityMention e1 = goldEntityMentions.get(e1Ind);
+                EntityMention e2 = goldEntityMentions.get(e2Ind);
+                if (!goldCoreferenceEdgesByEdges.containsKey(new Pair<>(e1, e2)) &&
+                        !goldCoreferenceEdgesByEdges.containsKey(new Pair<>(e2, e1))) {
+                    result2.add(new CoreferenceEdge(e1, e2, false));
+                }
+            }
+        }
+        return new Pair<>(result1, result2);
+    }
+
+    public List<CoreferenceEdge> getGoldCoreferenceEdges() {
+        return goldCoreferenceEdges;
+    }
+
+    public Map<Pair<EntityMention,EntityMention>, CoreferenceEdge> getGoldCoreferenceEdgesByEdges() {
+        return goldCoreferenceEdgesByEdges;
+    }
+
+    public List<CoreferenceEdge> getTestCoreferenceEdges() {
+        return testCoreferenceEdges;
     }
 
     public List<String> getExtent(int start, int end) {

@@ -8,10 +8,20 @@ import edu.illinois.cs.cogcomp.core.datastructures.Pair;
 public class CoreferenceEdge {
     private EntityMention e1;
     private EntityMention e2;
+    private boolean isCoreferent;
 
     public CoreferenceEdge(EntityMention e1, EntityMention e2) {
+        this(e1, e2, true);
+    }
+
+    public CoreferenceEdge(EntityMention e1, EntityMention e2, boolean isCoreferent) {
         this.e1 = e1;
         this.e2 = e2;
+        this.isCoreferent = isCoreferent;
+    }
+
+    public boolean isCoreferent() {
+        return isCoreferent;
     }
 
     public Pair<EntityMention, EntityMention> getEntityMentions() {
