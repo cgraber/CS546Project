@@ -13,7 +13,7 @@ public class EntityMention {
     private int endOffset;
     private ACEAnnotation annotation;
 
-    public EntityMention(String type, int startOffset, int endOffset, ACEAnnotation annotation) {
+    protected EntityMention(String type, int startOffset, int endOffset, ACEAnnotation annotation) {
         this.type = type;
         this.startOffset = startOffset;
         this.endOffset = endOffset;

@@ -311,7 +311,7 @@ public class ACEAnnotation {
      * This method returns a relation for each pair of entity mentions, including NO_REL relation
      *
      * Note: Coreference "relations" are not included in this!
-     * @return The a pair of lists of relations; the first list contains the explicit relations, and the second
+     * @return The pair of lists of relations; the first list contains the explicit relations, and the second
      *         list contains the "no relation" relations.
      */
     public Pair<List<Relation>,List<Relation>> getAllPairsGoldRelations() {
@@ -332,7 +332,8 @@ public class ACEAnnotation {
 
     /**
      * This method returns a coreference edge for each pair of entity mentions
-     * @return
+     * @return A Pair of lists of edges; the first list contains the "true" edges, and the second
+     *         list contains the "false" edges.
      */
     public Pair<List<CoreferenceEdge>, List<CoreferenceEdge>> getAllPairsGoldCoreferenceEdges() {
         List<CoreferenceEdge> result1 = new ArrayList<>(goldCoreferenceEdges);
