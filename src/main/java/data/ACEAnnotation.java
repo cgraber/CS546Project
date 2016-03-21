@@ -42,6 +42,9 @@ public class ACEAnnotation {
 
     // Each sentence is represented as a List of tokens - this is a list of those lists
     private List<List<String>> sentenceTokens = new ArrayList<>();
+
+    //This list simply contains all of the tokens in a flat list - useful when you don't care about sentence boundaries
+    private List<String> tokens = new ArrayList<>();
     private List<EntityMention> goldEntityMentions = new ArrayList<>();
     private Map<String,EntityMention> goldEntityMentionsByID = new HashMap<>();
     private List<EntityMention> testEntityMentions = new ArrayList<>();
@@ -49,7 +52,7 @@ public class ACEAnnotation {
     private Map<Pair<EntityMention,EntityMention>,Relation> goldRelationsByArgs = new HashMap<>();
     private List<Relation> testRelations = new ArrayList<>();
     private List<CoreferenceEdge> goldCoreferenceEdges = new ArrayList<>();
-    private Map<Pair<EntityMention,EntityMention>,CoreferenceEdge> goldCoreferenceEdgesByEdges = new HashMap<>();
+    private Map<Pair<EntityMention,EntityMention>,CoreferenceEdge> goldCoreferenceEdgesByEntities = new HashMap<>();
     private List<CoreferenceEdge> testCoreferenceEdges = new ArrayList<>();
     private List<ACERelation> relationList;
 
@@ -67,6 +70,7 @@ public class ACEAnnotation {
             Pipeline.addAllViews(ta);
             for (Sentence sentence: ta.sentences()) {
                 sentenceTokens.add(Arrays.asList(sentence.getTokens()));
+                tokens.addAll(Arrays.asList(sentence.getTokens()));
             }
         }
 
@@ -94,7 +98,7 @@ public class ACEAnnotation {
                     EntityMention e2 = coreferentEntities.get(j);
                     CoreferenceEdge edge = new CoreferenceEdge(e1, e2);
                     goldCoreferenceEdges.add(edge);
-                    goldCoreferenceEdgesByEdges.put(new Pair<>(e1, e2), edge);
+                    goldCoreferenceEdgesByEntities.put(new Pair<>(e1, e2), edge);
                 }
             }
         }
@@ -146,6 +150,14 @@ public class ACEAnnotation {
         return sentenceTokens;
     }
 
+    public List<String> getTokens() {
+        List<String> result = new ArrayList<>();
+        for (List<String> sentence: sentenceTokens) {
+            result.addAll(sentence);
+        }
+        return result;
+    }
+
     /**
      * @param ind The sentence number within the document
      * @return The list of tokens for the given sentence, or null if the index is invalid
@@ -155,6 +167,18 @@ public class ACEAnnotation {
             return null;
         } else {
             return sentenceTokens.get(ind);
+        }
+    }
+
+    /**
+     * @param ind The token number within the document
+     * @return The requested token, or null if the index is invalid
+     */
+    public String getToken(int ind) {
+        if (ind >= tokens.size() || ind < 0) {
+            return null;
+        } else {
+            return tokens.get(ind);
         }
     }
 
@@ -223,7 +247,7 @@ public class ACEAnnotation {
      * @return A list of lists - each of these representing a sentence - of POS tags (representing the tag per
      *         word in the given sentence)
      */
-    public List<List<String>> getPOSTags() {
+    public List<List<String>> getPOSTagsBySentence() {
         List<List<String>> result = new ArrayList<List<String>>();
         for (TextAnnotation ta: taList) {
             int tokenInd = 0;
@@ -240,12 +264,26 @@ public class ACEAnnotation {
         return result;
     }
 
+    public List<String> getPOSTags() {
+        List<String> result = new ArrayList<>();
+        for (TextAnnotation ta: taList) {
+            int tokenInd = 0;
+            for (Sentence sentence: ta.sentences()) {
+                View posView = ta.getView(ViewNames.POS);
+                for (int i = 0; i < sentence.getTokens().length; i++) {
+                    result.add(posView.getLabelsCoveringToken(tokenInd++).get(0));
+                }
+            }
+        }
+        return result;
+    }
+
     /**
      *
      * @return A list of lists - each of these representing a sentence - of lemmas (representing the lemma per
      *         word in the given sentence)
      */
-    public List<List<String>> getLemmas() {
+    public List<List<String>> getLemmasBySentence() {
         List<List<String>> result = new ArrayList<>();
         for (TextAnnotation ta: taList) {
             int tokenInd = 0;
@@ -259,6 +297,20 @@ public class ACEAnnotation {
             }
         }
 
+        return result;
+    }
+
+    public List<String> getLemmas() {
+        List<String> result = new ArrayList<>();
+        for (TextAnnotation ta: taList) {
+            int tokenInd = 0;
+            for (Sentence sentence: ta.sentences()) {
+                View posView = ta.getView(ViewNames.LEMMA);
+                for (int i = 0; i < sentence.getTokens().length; i++) {
+                    result.add(posView.getLabelsCoveringToken(tokenInd++).get(0));
+                }
+            }
+        }
         return result;
     }
 
@@ -342,8 +394,8 @@ public class ACEAnnotation {
             for (int e2Ind = e1Ind + 1; e2Ind < goldEntityMentions.size(); e2Ind++) {
                 EntityMention e1 = goldEntityMentions.get(e1Ind);
                 EntityMention e2 = goldEntityMentions.get(e2Ind);
-                if (!goldCoreferenceEdgesByEdges.containsKey(new Pair<>(e1, e2)) &&
-                        !goldCoreferenceEdgesByEdges.containsKey(new Pair<>(e2, e1))) {
+                if (!goldCoreferenceEdgesByEntities.containsKey(new Pair<>(e1, e2)) &&
+                        !goldCoreferenceEdgesByEntities.containsKey(new Pair<>(e2, e1))) {
                     result2.add(new CoreferenceEdge(e1, e2, false));
                 }
             }
@@ -355,8 +407,8 @@ public class ACEAnnotation {
         return goldCoreferenceEdges;
     }
 
-    public Map<Pair<EntityMention,EntityMention>, CoreferenceEdge> getGoldCoreferenceEdgesByEdges() {
-        return goldCoreferenceEdgesByEdges;
+    public Map<Pair<EntityMention,EntityMention>, CoreferenceEdge> getGoldCoreferenceEdgesByEntities() {
+        return goldCoreferenceEdgesByEntities;
     }
 
     public List<CoreferenceEdge> getTestCoreferenceEdges() {

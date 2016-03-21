@@ -30,4 +30,7 @@ public class Consts {
     public static final String BIO_B = "B_";
     public static final String BIO_I = "I_";
     public static final String BIO_O = "O";
+
+    //Features
+    public static final String POS_FEATURE = "POS_";
 }
