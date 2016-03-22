@@ -24,6 +24,8 @@ import java.util.*;
  */
 public class ACEAnnotation implements Serializable {
 
+    private static final long serialVersionUID = 6529685098267757690L;
+
     // The following two lists hold all of the relation types/subtypes seen
     private static Set<String> relationTypes;
     private static Set<String> entityTypes;
@@ -383,6 +385,7 @@ public class ACEAnnotation implements Serializable {
      * @return The pair of lists of relations; the first list contains the explicit relations, and the second
      *         list contains the "no relation" relations.
      */
+
     public Pair<List<Relation>,List<Relation>> getAllPairsGoldRelations() {
         List<Relation> result1 = new ArrayList<>(goldRelations);
         List<Relation> result2 = new ArrayList<Relation>(goldRelations);
@@ -457,14 +460,19 @@ public class ACEAnnotation implements Serializable {
         return result;
     }
 
-    public void writeToFile(String file) throws IOException {
-        File fout = new File(file);
-        fout.getParentFile().mkdirs();
-        ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(fout));
-        oos.writeObject(this);
-        oos.close();
-    }
+    public ArrayList<List<EntityMention>> splitMentionBySentence(List<EntityMention> list){
 
+        int sentenceNum= sentenceIndex.size()-1;
+        ArrayList<List<EntityMention>> output=new ArrayList<>();
+        for(int i=0;i<sentenceNum;i++){
+            output.add(new ArrayList<EntityMention>());
+        }
+
+        for(EntityMention e: list){
+            output.get(e.getSentenceOffset()).add(e);
+        }
+        return output;
+    }
 
     /**
      * Searches through all of the text annotations to find the token offsets for a given mention
@@ -504,6 +512,16 @@ public class ACEAnnotation implements Serializable {
         return null;
     }
 
+
+
+
+
+
+
+
+
+
+
     // Static methods - these are used to access global information relating to the dataset
 
     public static Set<String> getRelationTypes() {
@@ -533,6 +551,21 @@ public class ACEAnnotation implements Serializable {
         return bioLabels;
     }
 
+
+
+
+
+
+    //reading & writing in local machine
+
+    public void writeToFile(String file) throws IOException {
+        File fout = new File(file);
+        fout.getParentFile().mkdirs();
+        ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(fout));
+        oos.writeObject(this);
+        oos.close();
+    }
+
     public static ACEAnnotation readFromFile(String file) throws IOException {
         ObjectInputStream ois = new ObjectInputStream(new FileInputStream(new File(file)));
         ACEAnnotation result = null;
@@ -545,21 +578,11 @@ public class ACEAnnotation implements Serializable {
         return result;
     }
 
-
-
-
-
-
-
-
-
-
-
-
-
+    public static ACEAnnotation readFileByID( int id ) throws IOException{
+        return ACEAnnotation.readFromFile("documents/file_" + id);
+    }
 
     //read and write on all 325 files(5 folders, 65 files each)
-    //bug (could be cause by readFromFile and writeToFile )
 
     public static void writeAlltoFile(List<List<ACEAnnotation>> splits) throws IOException{
 
@@ -567,7 +590,7 @@ public class ACEAnnotation implements Serializable {
         for(List<ACEAnnotation> i: splits ){
             System.out.println(i.size());
             for(ACEAnnotation j: i) {
-                j.writeToFile("data/file_" + count);
+                j.writeToFile("documents/file_" + count);
                 System.out.println("#"+count+" save successfully");
                 count++;
             }
@@ -582,7 +605,7 @@ public class ACEAnnotation implements Serializable {
         for(int i=0;i<5;i++){
             List<ACEAnnotation> annotations = new ArrayList<>();
             for(int j=0;j<65;j++){
-                annotations.add(ACEAnnotation.readFromFile("data/file_" + count));
+                annotations.add(ACEAnnotation.readFromFile("documents/file_" + count));
                 System.out.println("#"+count+" load successfully");
                 count++;
             }
@@ -591,12 +614,6 @@ public class ACEAnnotation implements Serializable {
         }
 
         return data;
-    }
-
-    public static ACEAnnotation readFileByID( int id ) throws IOException{
-
-        return ACEAnnotation.readFromFile("data/file_" + id);
-
     }
 
 }
