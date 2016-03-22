@@ -13,6 +13,7 @@ import edu.illinois.cs.cogcomp.reader.util.EventConstants;
 import utils.Consts;
 import utils.Pipeline;
 
+import java.io.*;
 import java.util.*;
 
 /**
@@ -21,7 +22,7 @@ import java.util.*;
  *
  * Created by Colin Graber on 3/11/16.
  */
-public class ACEAnnotation {
+public class ACEAnnotation implements Serializable {
 
     // The following two lists hold all of the relation types/subtypes seen
     private static Set<String> relationTypes;
@@ -80,7 +81,6 @@ public class ACEAnnotation {
 
 
         for (ACEEntity entity: doc.aceAnnotation.entityList) {
-            System.out.println("MENTION: " + entity.id + ", " + entity.type);
             entityTypes.add(entity.type);
             entitySubtypes.add(entity.subtype);
             List<EntityMention> coreferentEntities = new ArrayList<>();
@@ -105,9 +105,7 @@ public class ACEAnnotation {
 
         for (ACERelation relation: relationList) {
             relationTypes.add(relation.type);
-            System.out.println("RELATION: "+relation.id+", "+relation.type);
             for (ACERelationMention rm : relation.relationMentionList) {
-                System.out.println("\trelation mention: "+rm.id);
                 EntityMention e1 = null;
                 EntityMention e2 = null;
                 for (ACERelationArgumentMention ram: rm.relationArgumentMentionList) {
@@ -193,7 +191,6 @@ public class ACEAnnotation {
 
         BIOencoding = new ArrayList<List<String>>();
         for (TextAnnotation ta: taList) {
-            System.out.println(ta);
             if (!ta.hasView(EventConstants.NER_ACE_COARSE)) {
                 for (Sentence sentence: ta.sentences()) {
                     List<String> labelList = new ArrayList<>();
@@ -208,7 +205,6 @@ public class ACEAnnotation {
                 int tokenInd = 0;
 
                 List<Constituent> labels = nerView.getConstituents();
-                System.out.println(labels);
                 Iterator<Constituent> labelItr = labels.iterator();
                 Constituent currentLabel = labelItr.next();
                 for (Sentence sentence : ta.sentences()) {
@@ -238,7 +234,6 @@ public class ACEAnnotation {
                 }
             }
         }
-        System.out.println(BIOencoding);
         return BIOencoding;
     }
 
@@ -440,6 +435,15 @@ public class ACEAnnotation {
         return result;
     }
 
+    public void writeToFile(String file) throws IOException {
+        File fout = new File(file);
+        fout.getParentFile().mkdirs();
+        ObjectOutputStream oos = new ObjectOutputStream(new FileOutputStream(fout));
+        oos.writeObject(this);
+        oos.close();
+    }
+
+
     /**
      * Searches through all of the text annotations to find the token offsets for a given mention
      * NOTE: due to incorrect tokenization, the mention boundaries may lie within a token; in that case, we "round"
@@ -507,6 +511,17 @@ public class ACEAnnotation {
         return bioLabels;
     }
 
+    public static ACEAnnotation readFromFile(String file) throws IOException {
+        ObjectInputStream ois = new ObjectInputStream(new FileInputStream(new File(file)));
+        ACEAnnotation result = null;
+        try {
+            result = (ACEAnnotation) ois.readObject();
+        } catch (ClassNotFoundException e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+        return result;
+    }
 
 
 }
