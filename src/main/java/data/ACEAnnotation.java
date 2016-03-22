@@ -56,6 +56,7 @@ public class ACEAnnotation implements Serializable {
     private Map<Pair<EntityMention,EntityMention>,CoreferenceEdge> goldCoreferenceEdgesByEntities = new HashMap<>();
     private List<CoreferenceEdge> testCoreferenceEdges = new ArrayList<>();
     private List<ACERelation> relationList;
+    private List<Integer> sentenceIndex = new ArrayList<>();
 
     // Annotation info
     private List<List<String>> BIOencoding = null;
@@ -67,13 +68,18 @@ public class ACEAnnotation implements Serializable {
 
         // Since there may be multiple text annotations, each holding multiple sentences, we make accessing sentences
         // easier
+        int count=0;
         for (TextAnnotation ta: taList) {
             Pipeline.addAllViews(ta);
             for (Sentence sentence: ta.sentences()) {
-                sentenceTokens.add(Arrays.asList(sentence.getTokens()));
-                tokens.addAll(Arrays.asList(sentence.getTokens()));
+                List<String> sentenceArray=Arrays.asList(sentence.getTokens());
+                sentenceTokens.add(sentenceArray);
+                tokens.addAll(sentenceArray);
+                sentenceIndex.add(count);
+                count+=sentenceArray.size();
             }
         }
+        sentenceIndex.add(count);
 
 
         // And now we pull all of the gold data out of the ACEDocumentAnnotation wrapper
@@ -124,11 +130,25 @@ public class ACEAnnotation implements Serializable {
         }
     }
 
+    private int FindSentenceIndex(int start){
+
+        for(int i=0;i<sentenceIndex.size()-1;i++){
+            int index=sentenceIndex.get(i);
+            int index2=sentenceIndex.get(i+1);
+            if(index<=start && start<index2)
+                return i;
+        }
+        return -1;
+
+    }
+
+
     //NOTE: because of the (incorrect) tokenization, this introduces a bit of inaccuracy into the gold labels -
     // for the time being, we can't get around this.
     private EntityMention makeEntityMention(ACEEntityMention mention, String type) {
         IntPair offsets = findTokenOffsets(mention.extentStart, mention.extentEnd);
-        return new EntityMention(type, offsets.getFirst(), offsets.getSecond(), this);
+        int sentenceOffset=FindSentenceIndex(offsets.getFirst());
+        return new EntityMention(type, offsets.getFirst(), offsets.getSecond(), sentenceOffset, this);
     }
 
     public int getNumberOfSentences() {
@@ -147,6 +167,8 @@ public class ACEAnnotation implements Serializable {
     public List<List<String>> getSentences() {
         return sentenceTokens;
     }
+
+
 
     public List<String> getTokens() {
         List<String> result = new ArrayList<>();
@@ -191,7 +213,7 @@ public class ACEAnnotation implements Serializable {
 
         BIOencoding = new ArrayList<List<String>>();
         for (TextAnnotation ta: taList) {
-            if (!ta.hasView(EventConstants.NER_ACE_COARSE)) {
+            if (!ta.hasView("NER_ACE_COARSE")) {
                 for (Sentence sentence: ta.sentences()) {
                     List<String> labelList = new ArrayList<>();
                     BIOencoding.add(labelList);
@@ -201,7 +223,7 @@ public class ACEAnnotation implements Serializable {
                 }
             }
             else {
-                View nerView = ta.getView(EventConstants.NER_ACE_COARSE);
+                View nerView = ta.getView("NER_ACE_COARSE");
                 int tokenInd = 0;
 
                 List<Constituent> labels = nerView.getConstituents();
@@ -317,7 +339,7 @@ public class ACEAnnotation implements Serializable {
      * @param endOffset The index of the last token + 1 (e.g. if the last token is #3, the value here should be 4)
      */
     public void addEntityMention(String type, int startOffset, int endOffset) {
-        testEntityMentions.add(new EntityMention(type, startOffset, endOffset, this));
+        testEntityMentions.add(new EntityMention(type, startOffset, endOffset, FindSentenceIndex(startOffset), this));
     }
 
     /**
@@ -523,5 +545,58 @@ public class ACEAnnotation implements Serializable {
         return result;
     }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+    //read and write on all 325 files(5 folders, 65 files each)
+    //bug (could be cause by readFromFile and writeToFile )
+
+    public static void writeAlltoFile(List<List<ACEAnnotation>> splits) throws IOException{
+
+        int count=0;
+        for(List<ACEAnnotation> i: splits ){
+            System.out.println(i.size());
+            for(ACEAnnotation j: i) {
+                j.writeToFile("data/file_" + count);
+                System.out.println("#"+count+" save successfully");
+                count++;
+            }
+        }
+
+    }
+
+    public static List<List<ACEAnnotation>> readAllFromFile() throws IOException{
+
+        List<List<ACEAnnotation>> data = new ArrayList<>();
+        int count=0;
+        for(int i=0;i<5;i++){
+            List<ACEAnnotation> annotations = new ArrayList<>();
+            for(int j=0;j<65;j++){
+                annotations.add(ACEAnnotation.readFromFile("data/file_" + count));
+                System.out.println("#"+count+" load successfully");
+                count++;
+            }
+
+            data.add(annotations);
+        }
+
+        return data;
+    }
+
+    public static ACEAnnotation readFileByID( int id ) throws IOException{
+
+        return ACEAnnotation.readFromFile("data/file_" + id);
+
+    }
 
 }

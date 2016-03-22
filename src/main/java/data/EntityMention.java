@@ -12,12 +12,14 @@ public class EntityMention implements Serializable {
     private String type;
     private int startOffset;
     private int endOffset;
+    private int sentenceOffset;
     private ACEAnnotation annotation;
 
-    protected EntityMention(String type, int startOffset, int endOffset, ACEAnnotation annotation) {
+    protected EntityMention(String type, int startOffset, int endOffset, int sentenceOffset, ACEAnnotation annotation) {
         this.type = type;
         this.startOffset = startOffset;
         this.endOffset = endOffset;
+        this.sentenceOffset=sentenceOffset;
         this.annotation = annotation;
     }
 
@@ -28,6 +30,8 @@ public class EntityMention implements Serializable {
     public int getStartOffset() {
         return startOffset;
     }
+
+    public int getSentenceOffset() {return sentenceOffset; }
 
     //NOTE THAT THIS RETURNS THE INDEX OF THE END TOKEN + 1
     public int getEndOffset() {
