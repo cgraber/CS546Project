@@ -2,12 +2,13 @@ package data;
 
 import edu.illinois.cs.cogcomp.reader.ace2005.annotationStructure.ACEEntityMention;
 
+import java.io.Serializable;
 import java.util.List;
 
 /**
  * Created by Colin Graber on 3/18/16.
  */
-public class EntityMention {
+public class EntityMention implements Serializable {
     private String type;
     private int startOffset;
     private int endOffset;

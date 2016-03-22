@@ -2,10 +2,12 @@ package data;
 
 import utils.Consts;
 
+import java.io.Serializable;
+
 /**
  * Created by Colin Graber on 3/18/16.
  */
-public class Relation {
+public class Relation implements Serializable {
     private EntityMention e1;
     private EntityMention e2;
     private String type;

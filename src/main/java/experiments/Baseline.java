@@ -4,6 +4,7 @@ import data.ACEAnnotation;
 import data.DataUtils;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.TextAnnotation;
 
+import java.io.IOException;
 import java.util.List;
 
 /**
