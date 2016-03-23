@@ -102,7 +102,22 @@ public class ACEAnnotation implements Serializable {
                 }
             }
         }
-
+        Collections.sort(goldEntityMentions, new Comparator<EntityMention>() {
+            @Override
+            public int compare(EntityMention e1, EntityMention e2) {
+                if (e1.getStartOffset() < e2.getStartOffset()) {
+                    return -1;
+                } else if (e2.getStartOffset() < e1.getStartOffset()) {
+                    return 1;
+                } else if (e1.getEndOffset() < e2.getEndOffset()) {
+                    return -1;
+                } else if (e2.getEndOffset() < e1.getEndOffset()) {
+                    return 1;
+                } else {
+                    return 0;
+                }
+            }
+        });
         for (ACERelation relation: relationList) {
             relationTypes.add(relation.type);
             for (ACERelationMention rm : relation.relationMentionList) {
@@ -128,7 +143,7 @@ public class ACEAnnotation implements Serializable {
     // for the time being, we can't get around this.
     private EntityMention makeEntityMention(ACEEntityMention mention, String type) {
         IntPair offsets = findTokenOffsets(mention.extentStart, mention.extentEnd);
-        return new EntityMention(type, offsets.getFirst(), offsets.getSecond(), this);
+        return new EntityMention(type, mention.type, offsets.getFirst(), offsets.getSecond(), this);
     }
 
     public int getNumberOfSentences() {
@@ -317,7 +332,7 @@ public class ACEAnnotation implements Serializable {
      * @param endOffset The index of the last token + 1 (e.g. if the last token is #3, the value here should be 4)
      */
     public void addEntityMention(String type, int startOffset, int endOffset) {
-        testEntityMentions.add(new EntityMention(type, startOffset, endOffset, this));
+        testEntityMentions.add(new EntityMention(type, null, startOffset, endOffset, this));
     }
 
     /**
@@ -383,19 +398,29 @@ public class ACEAnnotation implements Serializable {
      *         list contains the "false" edges.
      */
     public Pair<List<CoreferenceEdge>, List<CoreferenceEdge>> getAllPairsGoldCoreferenceEdges() {
-        List<CoreferenceEdge> result1 = new ArrayList<>(goldCoreferenceEdges);
-        List<CoreferenceEdge> result2 = new ArrayList<>(goldCoreferenceEdges);
-        for (int e1Ind = 0; e1Ind < goldEntityMentions.size(); e1Ind++) {
-            for (int e2Ind = e1Ind + 1; e2Ind < goldEntityMentions.size(); e2Ind++) {
+        List<CoreferenceEdge> posEdges = new ArrayList<>();
+        List<CoreferenceEdge> negEdges = new ArrayList<>();
+        for (int e1Ind = goldEntityMentions.size()-1; e1Ind >= 0; e1Ind--) {
+            boolean foundCoref = false;
+            for (int e2Ind = e1Ind - 1; e2Ind >= 0; e2Ind--) {
                 EntityMention e1 = goldEntityMentions.get(e1Ind);
                 EntityMention e2 = goldEntityMentions.get(e2Ind);
-                if (!goldCoreferenceEdgesByEntities.containsKey(new Pair<>(e1, e2)) &&
-                        !goldCoreferenceEdgesByEntities.containsKey(new Pair<>(e2, e1))) {
-                    result2.add(new CoreferenceEdge(e1, e2, false));
+                if (goldCoreferenceEdgesByEntities.containsKey(new Pair<>(e1,e2)) ||
+                        goldCoreferenceEdgesByEntities.containsKey(new Pair<>(e2,e1))) {
+                    if (!foundCoref) {
+                        foundCoref = true;
+                        if (goldCoreferenceEdgesByEntities.containsKey(new Pair<>(e1,e2))) {
+                            posEdges.add(goldCoreferenceEdgesByEntities.get(new Pair<>(e1,e2)));
+                        } else {
+                            posEdges.add(goldCoreferenceEdgesByEntities.get(new Pair<>(e2,e1)));
+                        }
+                    }
+                } else if (!(e2.getMentionType().equals(Consts.PRONOUN) && !e1.getMentionType().equals(Consts.PRONOUN))){
+                    negEdges.add(new CoreferenceEdge(e2, e1));
                 }
             }
         }
-        return new Pair<>(result1, result2);
+        return new Pair<>(posEdges, negEdges);
     }
 
     public List<CoreferenceEdge> getGoldCoreferenceEdges() {
