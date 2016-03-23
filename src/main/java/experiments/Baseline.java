@@ -5,6 +5,9 @@ import data.DataUtils;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.TextAnnotation;
 
 import java.io.IOException;
+import learn.FeatureVector;
+
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -12,12 +15,29 @@ import java.util.List;
  */
 public class Baseline {
 
-    public static void main(String [] argv) {
-        if (argv.length != 1) {
-            System.err.println("Missing arg: directory containing ACE2005 data");
-            System.exit(1);
+    public static void main(String [] argv) throws IOException{
+
+        //List<List<ACEAnnotation>> splits = DataUtils.loadDataSplits("./ACE05_English");
+        //ACEAnnotation.writeAlltoFile(splits);
+
+        List<FeatureVector> data=new ArrayList<>();
+        for(int i=0;i<5;i++){
+
+            FeatureVector vec=new FeatureVector();
+            vec.addBinaryFeature("555"+i);
+
+            vec.addlabelCount("label"+i);
+
+            data.add(vec);
         }
 
-        List<List<ACEAnnotation>> splits = DataUtils.loadDataSplits(argv[0]);
+        for(int i=0;i<5;i++){
+
+            System.out.println(data.get(i).getFeatures());
+            System.out.println(data.get(i).getLabel());
+
+        }
+
+
     }
 }

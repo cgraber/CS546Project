@@ -169,7 +169,7 @@ public class ACEAnnotation implements Serializable {
     public List<List<String>> getSentences() {
         return sentenceTokens;
     }
-
+    public int getSentenceIndex(int offset){ return sentenceIndex.get(offset); }
 
 
     public List<String> getTokens() {
@@ -366,11 +366,23 @@ public class ACEAnnotation implements Serializable {
         return testEntityMentions;
     }
 
+
+
     public static List<Pair<EntityMention,EntityMention>> getPossibleMentionPair(List<List<EntityMention>> MentionsBySentence){
 
         List<Pair<EntityMention, EntityMention>> possible_pair=new ArrayList<>();
         for(int i=0;i<MentionsBySentence.size();i++){
             List<EntityMention> mention_in_sentence=MentionsBySentence.get(i);
+
+            //sort the entity in each sentence by start offset
+            Collections.sort(mention_in_sentence, new Comparator<EntityMention>() {
+                @Override
+                public int compare(EntityMention o1, EntityMention o2) {
+                    return o1.getStartOffset()-o2.getStartOffset();
+                }
+            });
+
+            //make all possible combination without duplication
             int length=mention_in_sentence.size();
             for(int j=0;j<length-1;j++){
                 for(int k=j+1;k<length;k++) {
@@ -630,6 +642,20 @@ public class ACEAnnotation implements Serializable {
             data.add(annotations);
         }
 
+        return data;
+    }
+
+    public static List<ACEAnnotation> readAllFromFileFlat() throws IOException{
+
+        List<ACEAnnotation> data = new ArrayList<>();
+        int count=0;
+        for(int i=0;i<5;i++){
+            for(int j=0;j<65;j++){
+                data.add(ACEAnnotation.readFromFile("documents/file_" + count));
+                System.out.println("#"+count+" load successfully");
+                count++;
+            }
+        }
         return data;
     }
 
