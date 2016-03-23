@@ -1,7 +1,5 @@
 package data;
 
-import edu.illinois.cs.cogcomp.reader.ace2005.annotationStructure.ACEEntityMention;
-
 import java.io.Serializable;
 import java.util.List;
 
@@ -9,22 +7,28 @@ import java.util.List;
  * Created by Colin Graber on 3/18/16.
  */
 public class EntityMention implements Serializable {
-    private String type;
+    private String entityType;
     private int startOffset;
     private int endOffset;
     private int sentenceOffset;
     private ACEAnnotation annotation;
+    private String mentionType;
 
-    protected EntityMention(String type, int startOffset, int endOffset, int sentenceOffset, ACEAnnotation annotation) {
-        this.type = type;
+    protected EntityMention(String entityType, String mentionType, int startOffset, int endOffset, int sentenceOffset, ACEAnnotation annotation) {
+        this.entityType = entityType;
+        this.mentionType = mentionType;
         this.startOffset = startOffset;
         this.endOffset = endOffset;
-        this.sentenceOffset=sentenceOffset;
+        this.sentenceOffset = sentenceOffset;
         this.annotation = annotation;
     }
 
-    public String getType() {
-        return type;
+    public String getEntityType() {
+        return entityType;
+    }
+
+    public String getMentionType() {
+        return mentionType;
     }
 
     public int getStartOffset() {
@@ -43,7 +47,7 @@ public class EntityMention implements Serializable {
     }
 
     public boolean equals(EntityMention other) {
-        if (this.type.equals(other.type) &&
+        if (this.entityType.equals(other.entityType) &&
                 this.startOffset == other.startOffset &&
                 this.endOffset == other.endOffset &&
                 this.annotation == other.annotation) {

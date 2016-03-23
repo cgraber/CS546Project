@@ -2,6 +2,7 @@ package experiments;
 
 import data.ACEAnnotation;
 import data.DataUtils;
+import data.EntityMention;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.TextAnnotation;
 
 import java.io.IOException;
@@ -17,7 +18,5 @@ public class Baseline {
             System.err.println("Missing arg: directory containing ACE2005 data");
             System.exit(1);
         }
-
-        List<List<ACEAnnotation>> splits = DataUtils.loadDataSplits(argv[0]);
     }
 }
