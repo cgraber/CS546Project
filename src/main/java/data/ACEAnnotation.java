@@ -366,6 +366,37 @@ public class ACEAnnotation implements Serializable {
         return testEntityMentions;
     }
 
+    public static List<Pair<EntityMention,EntityMention>> getPossibleMentionPair(List<List<EntityMention>> MentionsBySentence){
+
+        List<Pair<EntityMention, EntityMention>> possible_pair=new ArrayList<>();
+        for(int i=0;i<MentionsBySentence.size();i++){
+            List<EntityMention> mention_in_sentence=MentionsBySentence.get(i);
+            int length=mention_in_sentence.size();
+            for(int j=0;j<length-1;j++){
+                for(int k=j+1;k<length;k++) {
+                    possible_pair.add(new Pair<>(mention_in_sentence.get(j),mention_in_sentence.get(k)));
+                }
+            }
+        }
+
+        return possible_pair;
+
+    }
+
+    public ArrayList<List<EntityMention>> splitMentionBySentence(List<EntityMention> list){
+
+        int sentenceNum= sentenceIndex.size()-1;
+        ArrayList<List<EntityMention>> output=new ArrayList<>();
+        for(int i=0;i<sentenceNum;i++){
+            output.add(new ArrayList<EntityMention>());
+        }
+
+        for(EntityMention e: list){
+            output.get(e.getSentenceOffset()).add(e);
+        }
+        return output;
+    }
+
     /**
      * This method returns all of the relations that are explicitly specified within the gold data
      * @return The list of relations
@@ -460,19 +491,6 @@ public class ACEAnnotation implements Serializable {
         return result;
     }
 
-    public ArrayList<List<EntityMention>> splitMentionBySentence(List<EntityMention> list){
-
-        int sentenceNum= sentenceIndex.size()-1;
-        ArrayList<List<EntityMention>> output=new ArrayList<>();
-        for(int i=0;i<sentenceNum;i++){
-            output.add(new ArrayList<EntityMention>());
-        }
-
-        for(EntityMention e: list){
-            output.get(e.getSentenceOffset()).add(e);
-        }
-        return output;
-    }
 
     /**
      * Searches through all of the text annotations to find the token offsets for a given mention
@@ -588,7 +606,6 @@ public class ACEAnnotation implements Serializable {
 
         int count=0;
         for(List<ACEAnnotation> i: splits ){
-            System.out.println(i.size());
             for(ACEAnnotation j: i) {
                 j.writeToFile("documents/file_" + count);
                 System.out.println("#"+count+" save successfully");
