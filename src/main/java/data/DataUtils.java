@@ -29,7 +29,7 @@ public class DataUtils {
     private static AceFileProcessor processor;
 
     static {
-        ReadACEAnnotation.is2004mode = false;
+        //ReadACEAnnotation.is2004mode = false;
         processor = new AceFileProcessor(new CcgTextAnnotationBuilder(new IllinoisTokenizer()));
 
     }

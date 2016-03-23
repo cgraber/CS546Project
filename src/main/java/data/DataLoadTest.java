@@ -20,7 +20,7 @@ public class DataLoadTest {
     public static final String RELATION_VIEW = "RELATION";
 
     public static void main(String [] argv) {
-        ReadACEAnnotation.is2004mode = false;
+        //ReadACEAnnotation.is2004mode = false;
         AceFileProcessor processor = new AceFileProcessor(new CcgTextAnnotationBuilder(new IllinoisTokenizer()));
 
         String aceCorpusDir = "/home/cgraber/Documents/Illinois/Classes/CS546/project/ACE05_English";
