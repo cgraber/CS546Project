@@ -31,6 +31,8 @@ public class Consts {
     public static final String BIO_I = "I_";
     public static final String BIO_O = "O";
 
+    public static final String PRONOUN = "PRO";
+
     //Features
     public static final String POS_FEATURE = "POS_";
 }

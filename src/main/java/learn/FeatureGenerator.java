@@ -31,32 +31,70 @@ public class FeatureGenerator {
     private static Attribute classLabel;	
     private static FastVector zeroOne;
     private static FastVector labels;
-    private static final boolean LOCATIONFEATURES=true;
-
-    public static final int NUM_CHARS_PER_NAME = 5;
+    public static List<String> testLabels;
+    private static final boolean LOCATIONFEATURES=false;
+    private static final boolean MENTIONFEATURES=true;
+    private static final boolean STRINGFEATURES=false;
+    private static final boolean SEMANTICFEATURES=false;
+    ///public static final int NUM_CHARS_PER_NAME = 5;
 
     static {
+    	testLabels = new ArrayList<String>();
     	// used for binary features ( when constructing new attributes: new Attribute(featureName, zeroOne);)
     	zeroOne = new FastVector(2);
-		zeroOne.addElement("1");
-		zeroOne.addElement("0");
-	
+		zeroOne.addElement("1"); // yes
+		zeroOne.addElement("0"); // no
+		
 		labels = new FastVector(2);
 		labels.addElement("-1");
 		labels.addElement("1");
 	
 		//Create one-hot features for the first five characters in both first and last name.
 		attributes = new FastVector();	
+		String attribute_name;
+		Attribute a;
 		
-		//generic feature construction
-		if(LOCATIONFEATURES){
-			String attribute_name = "mentionDistances";
-			//String FeatureType = "numeric";
-			Attribute a = new Attribute(attribute_name);
+		if(MENTIONFEATURES){
+			attribute_name = "mentionType";
+			a = new Attribute(attribute_name, zeroOne);
 			attribute_dict.put(attribute_name, a);
 			attributes.addElement(a);
 		}
 		
+		if (STRINGFEATURES){
+			// same extents
+			attribute_name = "extentMatch";
+			a = new Attribute(attribute_name, zeroOne);
+			attribute_dict.put(attribute_name, a);
+			attributes.addElement(a);
+			
+			// one extent substring of another
+			attribute_name = "extentSubstring";
+			a = new Attribute(attribute_name, zeroOne);
+			attribute_dict.put(attribute_name, a);
+			attributes.addElement(a);
+		}
+		
+		if (SEMANTICFEATURES){
+			// need to set before?
+			System.setProperty("wordnet.database.dir", "/usr/local/WordNet-3.0/dict/");
+			// gender
+			// number match
+			// wordnet features
+			// modifiers match
+			// both mentions speak
+		}
+		
+		//generic feature construction
+		if(LOCATIONFEATURES){
+			attribute_name = "mentionDistances";
+			//String FeatureType = "numeric";
+			a = new Attribute(attribute_name);
+			attribute_dict.put(attribute_name, a);
+			attributes.addElement(a);
+			
+			// a position?
+		}
 		
 		//Leave the class as the last attribute, though not strictly neccessary.
 		classLabel = new Attribute("Class", labels);
@@ -65,13 +103,17 @@ public class FeatureGenerator {
 
     }
     
-    public static Instances readData(ArrayList<ACEAnnotation> train, Boolean labeled){
+    public static Instances readData(ArrayList<ACEAnnotation> data, Boolean labeled){
     	Instances instances = initializeAttributes();
-    	for (ACEAnnotation entry : train){
+    	for (ACEAnnotation entry : data){
 			ArrayList<Instance> Docinstances = getDocInstance(instances, entry, labeled);
 			for (Instance i : Docinstances){
+				if (i.classIsMissing()){
+					System.out.println("testing instance with attribute:" + i.stringValue(attribute_dict.get("mentionType")));
+				}
 				instances.add(i);
 			}
+			break;
     	}
     	System.out.println("Finished making instances");
 		return instances;
@@ -107,29 +149,51 @@ public class FeatureGenerator {
 		Instance instance = new Instance(instances.numAttributes());
 		instance.setDataset(instances);
 
+		// here we can encode the one-hot features
+		if(MENTIONFEATURES){
+			instance.setValue(attribute_dict.get("mentionType"), "0");
+			
+		}
+		if (STRINGFEATURES){
+			instance.setValue(attribute_dict.get("extentMatch"),"0");
+			instance.setValue(attribute_dict.get("extentSubstring"),"0");
+		}
+		if (SEMANTICFEATURES){
+			
+		}
+		
 		// dont need to do anything for numeric type features
 		if(LOCATIONFEATURES){
 			
 		}
-		// here we can encode the one-hot features
 		
 		return instance;
     }
-
     
     private static ArrayList<Instance> getDocInstance(Instances instances, ACEAnnotation entry, Boolean labeled){
     	ArrayList<Instance> ret = new ArrayList<Instance>();
+    	
+    	//if (labeled){
+    	// only for training
     	Pair<List<CoreferenceEdge>, List<CoreferenceEdge>> myLabels = entry.getAllPairsGoldCoreferenceEdges();
+    	// testing
+    	//}else{
+    	//Pair<List<CoreferenceEdge>, List<CoreferenceEdge>> myLabels = entry.getAllPairsTestCoreferenceEdges();
+    	//}
+    	
+    	
     	// Positive Labels only
     	ArrayList< CoreferenceEdge > temp = new ArrayList< CoreferenceEdge >();
-    	System.out.println("Number of positive examples:" + myLabels.getFirst().size());
-    	System.out.println("Number of negative examples:" + myLabels.getSecond().size());
+    	//System.out.println("Number of positive examples:" + myLabels.getFirst().size());
+    	//System.out.println("Number of negative examples:" + myLabels.getSecond().size());
     	temp.addAll(myLabels.getFirst());
     	temp.addAll(myLabels.getSecond());
     	
+    	List<String> document_tokens = entry.getTokens();
     	for (CoreferenceEdge ce : temp ){
     		Instance instance = create_empty_instance(instances);
     		
+    		// Adding label to instance
     		if (labeled){
 	    		if (ce.isCoreferent()){
 	    			instance.setClassValue("1");
@@ -137,15 +201,26 @@ public class FeatureGenerator {
 	    		else{
 	    			instance.setClassValue("-1");
 	    		}
+    		}else{
+    			testLabels.add(ce.isCoreferent() ? "1": "-1");
     		}
-    		//else{
-    		//	instance.setClassValue("?");
-    		//}
+    		
+    		Pair<EntityMention, EntityMention> somePair = ce.getEntityMentions();
+    		EntityMention e1 = somePair.getFirst();
+    		EntityMention e2 = somePair.getSecond();
+    		String key;
+    		// Adding features to instance
+    		if(MENTIONFEATURES){
+	    		key = "mentionType";
+	    		instance.setValue(attribute_dict.get(key), e1.getMentionType() == e2.getMentionType() ? "1" : "0");
+    		}
+    		
     		if(LOCATIONFEATURES){
-    			String key = "mentionDistances"; 
-    			Pair<EntityMention, EntityMention> somePair = ce.getEntityMentions();
+    			key = "mentionDistances"; 
+    			//Pair<EntityMention, EntityMention> somePair = ce.getEntityMentions();
     			instance.setValue(attribute_dict.get(key), distanceFeature(somePair.getFirst(), somePair.getSecond()) );
     		}
+    		
     		
     		ret.add(instance);
     	}	
