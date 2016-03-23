@@ -105,15 +105,21 @@ public class CorefBaseline implements PipelineStage{
 		
 	// Predicting with Weka
 	private void predict() throws Exception{
-		Instances testInstances = FeatureGenerator.readData(this.test, true); // assuming we have ground truth label?
-		testInstances.setClassIndex(testInstances.numAttributes() - 1);
+		Instances testInstances = FeatureGenerator.readData(this.test, false); // assuming we have ground truth label?
+		int classIndex = testInstances.numAttributes() - 1;
+		testInstances.setClassIndex(classIndex);
 		System.out.println("number of testing instances:" + testInstances.numInstances());
 		for (int i = 0; i < testInstances.numInstances(); i++){
 			double predClass = classifier.classifyInstance(testInstances.instance(i));
 			//i.classValue(); // gives the index of the class index 0 = -1 (False) , index 1 = 1(True)
-			int pred = Integer.parseInt(testInstances.instance(i).attribute(testInstances.instance(i).numAttributes()-1).value((int)predClass));
-			if (pred > 0)
-				System.out.println("predicted class: " + pred + " actual class (need to get?): ");
+			//int pred = Integer.parseInt(testInstances.instance(i).attribute(testInstances.instance(i).numAttributes()-1).value((int)predClass));
+			int pred = Integer.parseInt(testInstances.instance(i).attribute(classIndex).value((int)predClass));
+			int actual = Integer.parseInt( FeatureGenerator.testLabels.get(i));
+			if (pred != actual)
+				System.out.println("predicted class: " + pred + " actual class: " + actual);
+			
+			// TODO: remove
+			break;
 		}
 	}
 	
@@ -138,7 +144,6 @@ public class CorefBaseline implements PipelineStage{
 		try {
 			cb.predict();
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
