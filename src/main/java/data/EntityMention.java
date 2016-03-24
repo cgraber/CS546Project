@@ -7,6 +7,9 @@ import java.util.List;
  * Created by Colin Graber on 3/18/16.
  */
 public class EntityMention implements Serializable {
+
+    private static final long serialVersionUID = 3L;
+
     private String entityType;
     private int startOffset;
     private int endOffset;

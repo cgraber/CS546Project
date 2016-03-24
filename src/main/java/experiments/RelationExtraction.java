@@ -2,13 +2,17 @@ package experiments;
 
 import data.ACEAnnotation;
 import data.EntityMention;
-import data.DataUtils;
 import data.Relation;
+import data.EntityMention;
 import edu.illinois.cs.cogcomp.core.datastructures.Pair;
 import learn.FeatureVector;
 import org.apache.commons.lang.math.NumberUtils;
 
+import weka.core.Instances;
+import weka.classifiers.functions.Logistic;
+
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.*;
 import java.lang.*;
 
@@ -19,8 +23,6 @@ public class RelationExtraction {
 
     public static void main(String [] argv) throws IOException {
 
-        //List<List<ACEAnnotation>> splits = DataUtils.loadDataSplits("./ACE05_English");
-        //ACEAnnotation.writeAlltoFile(splits);
 
         List<ACEAnnotation> collection = ACEAnnotation.readAllFromFileFlat();
 
@@ -59,11 +61,11 @@ public class RelationExtraction {
                 //System.out.println(left.getExtent());
                 //System.out.println(right.getExtent());
 
-                fea_vec.addBinaryFeature("E1_type:" + left.getType());
-                fea_vec.addBinaryFeature("E2_type:" + right.getType());
+                fea_vec.addBinaryFeature("E1_type:" + left.getEntityType());
+                fea_vec.addBinaryFeature("E2_type:" + right.getEntityType());
                 fea_vec.addBinaryFeature("E1_head:" + lemmas.get(left.getEndOffset() - 1));
                 fea_vec.addBinaryFeature("E2_head:" + lemmas.get(right.getEndOffset() - 1));
-                fea_vec.addBinaryFeature("type_concat:" + left.getType() + right.getType());
+                fea_vec.addBinaryFeature("type_concat:" + left.getEntityType() + right.getEntityType());
 
                 //Word based features
                 int sen_offset = left.getSentenceOffset();
@@ -108,18 +110,47 @@ public class RelationExtraction {
                 }
 
                 fea_vec.addlabelCount(relation);
+                extracted_data.add(fea_vec);
 
             }
 
-            extracted_data.add(fea_vec);
-            System.out.println("Extraction complete");
-
         }
 
-        System.out.println("Extract "+extracted_data.size()+ " documents");
+        System.out.println("Extract "+extracted_data.size()+ "instances");
 
 
 
+
+
+
+
+
+
+        //output binary features and labels
+
+        PrintWriter writer=new PrintWriter("RE_data");
+
+        int features_count=extracted_data.get(0).getFeatureCount();
+
+        //information on the data
+        //features count
+        writer.print(features_count+",");
+        //trainning set size
+        writer.print((extracted_data.size()*4)/5+",");
+        //testing set size
+        writer.print((extracted_data.size()*1)/5+"\n");
+
+
+        //features and labels
+        for(FeatureVector f:extracted_data){
+            List<Integer> vec = f.getFeatures();
+            for(int i=0;i<vec.size();i++)
+                writer.print(vec.get(i)+",");
+            for(int i=0;i<features_count-vec.size();i++)
+                writer.print("0,");
+            writer.print(f.getLabelString()+"\n");
+        }
+        writer.close();
 
 
 

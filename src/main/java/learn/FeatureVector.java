@@ -25,6 +25,7 @@ public class FeatureVector {
 
     //-1 stand for no label for this instance
     private int label = -1;
+    private String label_string;
 
     public void addBinaryFeature(String featureName) {
         if (!featureMap.containsKey(featureName)) {
@@ -35,6 +36,7 @@ public class FeatureVector {
     }
 
     public void addlabelCount(String labelName){
+        label_string=labelName;
         if(!labelMap.containsKey(labelName)){
             labelMap.put(labelName, labelCount++);
             label=labelCount;
@@ -49,5 +51,6 @@ public class FeatureVector {
 
     public int getFeatureCount(){return featureCount;}
     public int getLabelCount(){return labelCount;}
+    public String getLabelString(){return label_string;}
 
 }

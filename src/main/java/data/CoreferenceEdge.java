@@ -8,6 +8,9 @@ import java.io.Serializable;
  * Created by Colin Graber on 3/18/16.
  */
 public class CoreferenceEdge implements Serializable {
+
+    private static final long serialVersionUID = 2L;
+
     private EntityMention e1;
     private EntityMention e2;
     private boolean isCoreferent;

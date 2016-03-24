@@ -24,7 +24,7 @@ import java.util.*;
  */
 public class ACEAnnotation implements Serializable {
 
-    private static final long serialVersionUID = 6529685098267757690L;
+    private static final long serialVersionUID = 1L;
 
     // The following two lists hold all of the relation types/subtypes seen
     private static Set<String> relationTypes;
