@@ -1,13 +1,17 @@
 package learn;
 
+import java.io.*;
 import java.util.*;
 
 /**
  * Created by Colin Graber on 3/21/16.
  */
-public class FeatureVector {
+public class FeatureVector implements Serializable {
     //This contains the mapping between the feature name and its index within the feature vector
     //It is global so that feature indices are consistent between indices
+
+    private static final long serialVersionUID = 5L;
+
     private static Map<String, Integer> featureMap;
     private static Map<String, Integer> labelMap;
     private static int featureCount;
@@ -52,5 +56,6 @@ public class FeatureVector {
     public int getFeatureCount(){return featureCount;}
     public int getLabelCount(){return labelCount;}
     public String getLabelString(){return label_string;}
+
 
 }

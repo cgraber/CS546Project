@@ -3,6 +3,8 @@ package experiments;
 import java.io.IOException;
 import java.io.PrintWriter;
 
+import static java.lang.Math.log;
+
 /**
  * Created by sdq on 3/23/16.
  */
@@ -17,6 +19,8 @@ public class Test_Playground {
 
         writer.close();
 
+        System.out.println((float)1/(45758+14766));
+        System.out.println(log((float)1/(45758+14766)));
 
 
     }

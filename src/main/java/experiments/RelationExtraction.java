@@ -8,6 +8,8 @@ import edu.illinois.cs.cogcomp.core.datastructures.Pair;
 import learn.FeatureVector;
 import org.apache.commons.lang.math.NumberUtils;
 
+import learn.FeatureVectorSet;
+
 import weka.core.Instances;
 import weka.classifiers.functions.Logistic;
 
@@ -19,6 +21,7 @@ import java.lang.*;
 /**
  * Created by sdq on 3/22/16.
  */
+
 public class RelationExtraction {
 
     public static void main(String [] argv) throws IOException {
@@ -118,14 +121,17 @@ public class RelationExtraction {
 
         System.out.println("Extract "+extracted_data.size()+ "instances");
 
+        int features_count=extracted_data.get(0).getFeatureCount();
+        int labels_count=extracted_data.get(0).getLabelCount();
+
+        FeatureVectorSet data_set=new FeatureVectorSet(extracted_data,features_count,labels_count);
+
+        data_set.writeToFile();
 
 
 
 
-
-
-
-
+        /*
         //output binary features and labels
 
         PrintWriter writer=new PrintWriter("RE_data");
@@ -151,7 +157,7 @@ public class RelationExtraction {
             writer.print(f.getLabelString()+"\n");
         }
         writer.close();
-
+        */
 
 
 
