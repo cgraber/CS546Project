@@ -21,9 +21,6 @@ public class RelationExtraction {
 
         List<FeatureVector> extracted_data=FeaturesGenerator();
 
-
-
-
     }
 
     public static List<FeatureVector> FeaturesGenerator() throws IOException{
@@ -66,14 +63,53 @@ public class RelationExtraction {
                 //Entity based features
                 EntityMention left = p.getFirst();
                 EntityMention right = p.getSecond();
+                fea_vec.addInformation(left,right,document.getSentence(left.getSentenceOffset()));
+
+
+
+                //Add label
+                Pair<EntityMention,EntityMention> pair_key=new Pair<>(left,right);
+                Pair<EntityMention, EntityMention> pair_key_r = new Pair<>(right, left);
+
+                String relation = "NO_RELATION";
+
+                if (gold_relation.containsKey(pair_key)){
+                    relation = gold_relation.get(pair_key).getType();
+                }
+
+                else if(gold_relation.containsKey(pair_key_r)){
+                    relation = gold_relation.get(pair_key_r).getType();
+                }
+
+                if(relation=="NO_RELATION"){
+                    double random= Math.random();
+                    //get rid of 93% of No-Relation
+                    if(random<0.95)
+                        continue;
+                }
+
+                /*
+                else if(left.getStartOffset()==right.getStartOffset()){
+                    System.out.println(" ");
+                    System.out.println(left.getExtent());
+                    System.out.println(right.getExtent());
+                    System.out.println(relation);
+                }
+                */
+
+                fea_vec.addLabel(relation);
+                extracted_data.add(fea_vec);
+
+
+
 
 
 
                 //System.out.println(left.getExtent());
                 //System.out.println(right.getExtent());
 
-                fea_vec.addBinaryFeature("E1_type:" + left.getEntityType());
-                fea_vec.addBinaryFeature("E2_type:" + right.getEntityType());
+                fea_vec.addBinaryFeature("E1_E_type:" + left.getEntityType());
+                fea_vec.addBinaryFeature("E2_E_type:" + right.getEntityType());
                 fea_vec.addBinaryFeature("E1_head:" + lemmas.get(left.getEndOffset() - 1));
                 fea_vec.addBinaryFeature("E2_head:" + lemmas.get(right.getEndOffset() - 1));
                 fea_vec.addBinaryFeature("type_concat:" + left.getEntityType() + right.getEntityType());
@@ -105,6 +141,26 @@ public class RelationExtraction {
                 fea_vec.addBinaryFeature("E1_before:" + E1_before);
                 fea_vec.addBinaryFeature("E2_after:" + E2_after);
 
+
+                String E1_after="_none_";
+                String E2_before="_none_";
+                if(leftend<sen_end){
+                    E1_after = lemmas.get(leftend);
+                    if (NumberUtils.isNumber(E1_after))
+                        E1_after = "_digit_";
+
+                }
+                if (rightstart > sen_start) {
+                    E2_before = lemmas.get(rightstart - 1);
+                    if (NumberUtils.isNumber(E2_before))
+                        E2_before = "_digit_";
+                }
+                fea_vec.addBinaryFeature("E1_before:" + E2_before);
+                fea_vec.addBinaryFeature("E1_after:" + E1_after);
+
+
+
+
                 for (int i = leftend; i < rightstart; i++) {
                     String word = lemmas.get(i);
                     if (NumberUtils.isNumber(word)) {
@@ -112,6 +168,10 @@ public class RelationExtraction {
                     }
                     //fea_vec.addBinaryFeature("word:" + word);
                 }
+
+
+
+
 
                 //Syntactic features
                 for(int i=leftend;i<rightstart;i++){
@@ -121,30 +181,12 @@ public class RelationExtraction {
 
 
 
-                //Add label
-                Pair<EntityMention,EntityMention> pair_key=new Pair<>(left,right);
-                Pair<EntityMention, EntityMention> pair_key_r = new Pair<>(right, left);
-
-                String relation = "NO_RELATION";
-
-                if (gold_relation.containsKey(pair_key)){
-                    relation = gold_relation.get(pair_key).getType();
-                }
-
-                else if(gold_relation.containsKey(pair_key_r)){
-                    relation = gold_relation.get(pair_key_r).getType();
-                }
-
-
-
-                fea_vec.addlabelCount(relation);
-                extracted_data.add(fea_vec);
 
             }
 
         }
 
-        System.out.println("All load data successfully\n");
+        System.out.println("All data load successfully\n");
 
         return extracted_data;
 
