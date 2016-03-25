@@ -3,18 +3,11 @@ package experiments;
 import data.ACEAnnotation;
 import data.EntityMention;
 import data.Relation;
-import data.EntityMention;
 import edu.illinois.cs.cogcomp.core.datastructures.Pair;
 import learn.FeatureVector;
 import org.apache.commons.lang.math.NumberUtils;
 
-import learn.FeatureVectorSet;
-
-import weka.core.Instances;
-import weka.classifiers.functions.Logistic;
-
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.*;
 import java.lang.*;
 
@@ -26,15 +19,23 @@ public class RelationExtraction {
 
     public static void main(String [] argv) throws IOException {
 
+        List<FeatureVector> extracted_data=FeaturesGenerator();
+
+
+
+
+    }
+
+    public static List<FeatureVector> FeaturesGenerator() throws IOException{
 
         List<ACEAnnotation> collection = ACEAnnotation.readAllFromFileFlat();
 
         //features and labels for all data
         List<FeatureVector> extracted_data=new ArrayList<>();
 
-
         //process one document at a time
         for(ACEAnnotation document: collection) {
+
 
             List<EntityMention> gold_m = document.getGoldEntityMentions();
 
@@ -46,20 +47,27 @@ public class RelationExtraction {
             List<String> lemmas = document.getLemmas();
             List<String> pos_tags = document.getPOSTags();
 
+            //System.out.println(lemmas.size());
+            //System.out.println(pos_tags.size());
+
             //get gold relations
             Map<Pair<EntityMention, EntityMention>, Relation> gold_relation = document.getGoldRelationsByArgs();
 
-            //setup vector for storing features
-            FeatureVector fea_vec = new FeatureVector();
+
 
 
 
             //features builder on all possible relation
             for (Pair<EntityMention, EntityMention> p : possible_pair) {
 
+                //setup vector for storing features
+                FeatureVector fea_vec = new FeatureVector();
+
                 //Entity based features
                 EntityMention left = p.getFirst();
                 EntityMention right = p.getSecond();
+
+
 
                 //System.out.println(left.getExtent());
                 //System.out.println(right.getExtent());
@@ -99,18 +107,35 @@ public class RelationExtraction {
 
                 for (int i = leftend; i < rightstart; i++) {
                     String word = lemmas.get(i);
-                    if (NumberUtils.isNumber(word))
+                    if (NumberUtils.isNumber(word)) {
                         word = "_digit_";
-                    fea_vec.addBinaryFeature("word:" + word);
+                    }
+                    //fea_vec.addBinaryFeature("word:" + word);
                 }
+
+                //Syntactic features
+                for(int i=leftend;i<rightstart;i++){
+                    String tag=pos_tags.get(i);
+                    fea_vec.addBinaryFeature("Pos:" + tag);
+                }
+
 
 
                 //Add label
-                Pair<EntityMention, EntityMention> pair_key = new Pair<>(left, right);
+                Pair<EntityMention,EntityMention> pair_key=new Pair<>(left,right);
+                Pair<EntityMention, EntityMention> pair_key_r = new Pair<>(right, left);
+
                 String relation = "NO_RELATION";
-                if (gold_relation.containsKey(pair_key)) {
+
+                if (gold_relation.containsKey(pair_key)){
                     relation = gold_relation.get(pair_key).getType();
                 }
+
+                else if(gold_relation.containsKey(pair_key_r)){
+                    relation = gold_relation.get(pair_key_r).getType();
+                }
+
+
 
                 fea_vec.addlabelCount(relation);
                 extracted_data.add(fea_vec);
@@ -119,17 +144,9 @@ public class RelationExtraction {
 
         }
 
-        System.out.println("Extract "+extracted_data.size()+ "instances");
+        System.out.println("All load data successfully\n");
 
-        int features_count=extracted_data.get(0).getFeatureCount();
-        int labels_count=extracted_data.get(0).getLabelCount();
-
-        FeatureVectorSet data_set=new FeatureVectorSet(extracted_data,features_count,labels_count);
-
-        data_set.writeToFile();
-
-
-
+        return extracted_data;
 
         /*
         //output binary features and labels
@@ -158,8 +175,6 @@ public class RelationExtraction {
         }
         writer.close();
         */
-
-
 
     }
 

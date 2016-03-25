@@ -42,8 +42,11 @@ public class FeatureVector implements Serializable {
     public void addlabelCount(String labelName){
         label_string=labelName;
         if(!labelMap.containsKey(labelName)){
-            labelMap.put(labelName, labelCount++);
+
             label=labelCount;
+            labelMap.put(labelName, labelCount);
+            labelCount++;
+
         }
         label=labelMap.get(labelName);
     }
@@ -56,6 +59,7 @@ public class FeatureVector implements Serializable {
     public int getFeatureCount(){return featureCount;}
     public int getLabelCount(){return labelCount;}
     public String getLabelString(){return label_string;}
+    public Map<String, Integer> getLabelMap(){return labelMap;}
 
 
 }
