@@ -30,12 +30,14 @@ public class ACEAnnotation implements Serializable {
     private static Set<String> relationTypes;
     private static Set<String> entityTypes;
     private static Set<String> entitySubtypes;
+    private static Set<String> mentionTypes;
     private static Set<String> bioLabels;
 
     static {
         relationTypes = new HashSet<>();
         relationTypes.add(Consts.NO_REL);
         entityTypes = new HashSet<>();
+        mentionTypes = new HashSet<>();
         entitySubtypes = new HashSet<>();
     }
 
@@ -93,6 +95,7 @@ public class ACEAnnotation implements Serializable {
             entitySubtypes.add(entity.subtype);
             List<EntityMention> coreferentEntities = new ArrayList<>();
             for (ACEEntityMention mention: entity.entityMentionList) {
+                mentionTypes.add(mention.type);
                 EntityMention e = makeEntityMention(mention, entity.type);
                 goldEntityMentions.add(e);
                 coreferentEntities.add(e);
@@ -491,6 +494,36 @@ public class ACEAnnotation implements Serializable {
         return new Pair<>(posEdges, negEdges);
     }
 
+    public List<CoreferenceEdge> getAllPairsTestCoreferenceEdges() {
+        Collections.sort(testEntityMentions, new Comparator<EntityMention>() {
+            @Override
+            public int compare(EntityMention e1, EntityMention e2) {
+                if (e1.getStartOffset() < e2.getStartOffset()) {
+                    return -1;
+                } else if (e2.getStartOffset() < e1.getStartOffset()) {
+                    return 1;
+                } else if (e1.getEndOffset() < e2.getEndOffset()) {
+                    return -1;
+                } else if (e2.getEndOffset() < e1.getEndOffset()) {
+                    return 1;
+                } else {
+                    return 0;
+                }
+            }
+        });
+        List<CoreferenceEdge> result = new ArrayList<>();
+        for (int e1Ind = testEntityMentions.size()-1; e1Ind >= 0; e1Ind--) {
+            for (int e2Ind = e1Ind - 1; e2Ind >= 0; e2Ind--) {
+                EntityMention e1 = goldEntityMentions.get(e1Ind);
+                EntityMention e2 = goldEntityMentions.get(e2Ind);
+                if (!(e2.getMentionType().equals(Consts.PRONOUN) && !e1.getMentionType().equals(Consts.PRONOUN))){
+                    result.add(new CoreferenceEdge(e2, e1));
+                }
+            }
+        }
+        return result;
+    }
+
     public List<CoreferenceEdge> getGoldCoreferenceEdges() {
         return goldCoreferenceEdges;
     }
@@ -589,6 +622,10 @@ public class ACEAnnotation implements Serializable {
 
     public static Set<String> getEntitySubtypes() {
         return entitySubtypes;
+    }
+
+    public static Set<String> getMentionTypes() {
+        return mentionTypes;
     }
 
     public static Set<String> getBIOLabels() {
