@@ -516,8 +516,13 @@ public class ACEAnnotation implements Serializable {
             for (int e2Ind = e1Ind - 1; e2Ind >= 0; e2Ind--) {
                 EntityMention e1 = goldEntityMentions.get(e1Ind);
                 EntityMention e2 = goldEntityMentions.get(e2Ind);
+                boolean isCoreferent = false;
+                if (goldCoreferenceEdgesByEntities.containsKey(new Pair<>(e1,e2)) ||
+                        goldCoreferenceEdgesByEntities.containsKey(new Pair<>(e2,e1))) {
+                    isCoreferent = true;
+                }
                 if (!(e2.getMentionType().equals(Consts.PRONOUN) && !e1.getMentionType().equals(Consts.PRONOUN))){
-                    result.add(new CoreferenceEdge(e2, e1));
+                    result.add(new CoreferenceEdge(e2, e1, isCoreferent));
                 }
             }
         }
