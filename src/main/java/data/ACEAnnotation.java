@@ -495,6 +495,36 @@ public class ACEAnnotation implements Serializable {
     }
 
     public List<CoreferenceEdge> getAllPairsTestCoreferenceEdges() {
+        Collections.sort(goldEntityMentions, new Comparator<EntityMention>() {
+            @Override
+            public int compare(EntityMention e1, EntityMention e2) {
+                if (e1.getStartOffset() < e2.getStartOffset()) {
+                    return -1;
+                } else if (e2.getStartOffset() < e1.getStartOffset()) {
+                    return 1;
+                } else if (e1.getEndOffset() < e2.getEndOffset()) {
+                    return -1;
+                } else if (e2.getEndOffset() < e1.getEndOffset()) {
+                    return 1;
+                } else {
+                    return 0;
+                }
+            }
+        });
+        List<CoreferenceEdge> result = new ArrayList<>();
+        for (int e1Ind = goldEntityMentions.size()-1; e1Ind >= 0; e1Ind--) {
+            for (int e2Ind = e1Ind - 1; e2Ind >= 0; e2Ind--) {
+                EntityMention e1 = goldEntityMentions.get(e1Ind);
+                EntityMention e2 = goldEntityMentions.get(e2Ind);
+                if (!(e2.getMentionType().equals(Consts.PRONOUN) && !e1.getMentionType().equals(Consts.PRONOUN))){
+                    result.add(new CoreferenceEdge(e2, e1));
+                }
+            }
+        }
+        return result;
+    }
+
+    public List<CoreferenceEdge> getAllPairsPipelineCoreferenceEdges() {
         Collections.sort(testEntityMentions, new Comparator<EntityMention>() {
             @Override
             public int compare(EntityMention e1, EntityMention e2) {
@@ -514,8 +544,8 @@ public class ACEAnnotation implements Serializable {
         List<CoreferenceEdge> result = new ArrayList<>();
         for (int e1Ind = testEntityMentions.size()-1; e1Ind >= 0; e1Ind--) {
             for (int e2Ind = e1Ind - 1; e2Ind >= 0; e2Ind--) {
-                EntityMention e1 = goldEntityMentions.get(e1Ind);
-                EntityMention e2 = goldEntityMentions.get(e2Ind);
+                EntityMention e1 = testEntityMentions.get(e1Ind);
+                EntityMention e2 = testEntityMentions.get(e2Ind);
                 if (!(e2.getMentionType().equals(Consts.PRONOUN) && !e1.getMentionType().equals(Consts.PRONOUN))){
                     result.add(new CoreferenceEdge(e2, e1));
                 }
