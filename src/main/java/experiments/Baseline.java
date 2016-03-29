@@ -18,5 +18,10 @@ public class Baseline {
             System.err.println("Missing arg: directory containing ACE2005 data");
             System.exit(1);
         }
+        List<List<ACEAnnotation>> splits = DataUtils.loadDataSplits(argv[0]);
+        for (ACEAnnotation x: splits.get(0)) {
+            x.getHeadNounPhrase();
+        }
     }
+
 }

@@ -351,6 +351,13 @@ public class ACEAnnotation implements Serializable {
         return result;
     }
 
+    public void getHeadNounPhrase() {
+        for (TextAnnotation ta: taList) {
+            System.out.println(ta.getView(ViewNames.PARSE_STANFORD));
+
+        }
+    }
+
     /**
      * This is the function that should be called by the NER system to add an entity mention to the test labels
      *
