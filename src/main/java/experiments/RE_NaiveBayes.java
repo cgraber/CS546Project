@@ -1,6 +1,5 @@
 package experiments;
 
-import javafx.util.Pair;
 import learn.FeatureVector;
 
 import java.io.IOException;

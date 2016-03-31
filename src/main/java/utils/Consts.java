@@ -34,5 +34,12 @@ public class Consts {
     public static final String PRONOUN = "PRO";
 
     //Features
+    public static final String WORD_FEATURE = "WORD_";
+    public static final String PREV_FEATURE = "WORD-1_";
+    public static final String WORD_PREV_FEATURE = "WORD-1:0_";
+    public static final String PREV_2_WORD = "WORD-2:0_";
     public static final String POS_FEATURE = "POS_";
+    public static final String POS_WORD_FEATURE = "POS:WORD_";
+    public static final String CAPITALIZED = "__CAPITALIZED";
+    public static final String ALL_CAPS = "__ALLCAPS";
 }
