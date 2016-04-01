@@ -17,7 +17,7 @@ public class RE_NaiveBayes {
     public static void main(String [] argv) throws IOException {
 
 
-        List<FeatureVector> raw_data_set=RelationExtraction.FeaturesGenerator();
+        List<FeatureVector> raw_data_set=RelationExtraction.generateFeatures();
 
         //randomly selected training and testing set
         Collections.shuffle(raw_data_set);
