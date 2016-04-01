@@ -17,19 +17,15 @@ public class FeatureVector implements Serializable {
     private static Map<String, Integer> featureMap;
     private static Map<String, Integer> labelMap;
     private static List<String> stringList;
-    private static int featureCount;
-    private static int labelCount;
 
     static {
         featureMap = new HashMap<>();
         labelMap = new HashMap<>();
         stringList=new ArrayList<>();
-        featureCount = 0;
-        labelCount = 0;
     }
 
     //All of the features default to zero
-    private List<Integer> features = new ArrayList<>(Collections.nCopies(featureCount, 0));
+    private List<Integer> features = new ArrayList<>(Collections.nCopies(getFeatureCount(), 0));
 
     public EntityMention left;
     public EntityMention right;
@@ -37,48 +33,58 @@ public class FeatureVector implements Serializable {
 
     //-1 stand for no label for this instance
     private int label = -1;
-    private String label_string;
+    private String labelString;
 
-    public void addInformation(EntityMention left, EntityMention right, List<String> sentence){
-
+    public void addRelationMetadata(EntityMention left, EntityMention right, List<String> sentence) {
         this.left=left;
         this.right=right;
         this.sentence=sentence;
-
     }
 
     public void addBinaryFeature(String featureName) {
         if (!featureMap.containsKey(featureName)) {
-            featureMap.put(featureName, featureCount++);
-            features.add(0);
+            featureMap.put(featureName, featureMap.size());
+            updateFeatureVectorSize();
         }
         features.set(featureMap.get(featureName), 1);
     }
 
     public void addLabel(String labelName){
-        label_string=labelName;
+        labelString =labelName;
         if(!labelMap.containsKey(labelName)){
-
-            label=labelCount;
-            labelMap.put(labelName, labelCount);
-            labelCount++;
-            stringList.add(label_string);
-
+            label = labelMap.size();
+            labelMap.put(labelName, label);
+            stringList.add(labelString);
         }
-        label=labelMap.get(labelName);
+        label = labelMap.get(labelName);
     }
 
     public List<Integer> getFeatures() {
+        updateFeatureVectorSize();
         return features;
     }
+
+    private void updateFeatureVectorSize() {
+        if (getFeatureCount() != features.size()) {
+            features.addAll(new ArrayList<>(Collections.nCopies(getFeatureCount() - features.size(), 0)));
+        }
+    }
+
     public int getLabel(){ return label; }
 
-    public int getFeatureCount(){return featureCount;}
-    public int getLabelCount(){return labelCount;}
-    public String getLabelString(){return label_string;}
+    public List<Integer> getLabelVector() {
+        List<Integer> labelVector = new ArrayList<>(Collections.nCopies(getLabelCount(), 0));
+
+        // Returns a one-hot. This should change if we support multiple labels.
+        labelVector.set(label, 1);
+        return labelVector;
+    }
+
+    public int getFeatureCount(){return featureMap.size();}
+    public int getLabelCount(){return labelMap.size();}
+    public String getLabelString(){return labelString;}
     public List<String> getStringList(){return stringList;}
     public Map<String, Integer> getLabelMap(){return labelMap;}
+    public Map<String, Integer> getFeatureMap(){return featureMap;}
     public List<String> getSentence(){return sentence;}
-
-
 }
