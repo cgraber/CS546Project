@@ -54,7 +54,6 @@ public class ACEAnnotation implements Serializable {
     private Map<String,EntityMention> goldEntityMentionsByID = new HashMap<>();
     private Map<IntPair,EntityMention> goldEntityMentionsBySpan = new HashMap<>();
     private List<EntityMention> goldNERMentions = new ArrayList<>();
-    private Map<String,EntityMention> goldNERMentionsByID = new HashMap<>();
     private Map<IntPair,EntityMention> goldNERMentionsBySpan = new HashMap<>();
 
     private List<EntityMention> testEntityMentions = new ArrayList<>();
@@ -103,9 +102,10 @@ public class ACEAnnotation implements Serializable {
             for (ACEEntityMention mention: entity.entityMentionList) {
                 mentionTypes.add(mention.type);
                 EntityMention e = makeEntityMention(mention, entity.type);
-                if (mention.type.equals("NAM")) {
+                //if (!mention.type.equals("PRO")) {
                     goldNERMentions.add(e);
-                }
+                    goldNERMentionsBySpan.put(new IntPair(e.getStartOffset(), e.getEndOffset()), e);
+                //}
                 goldEntityMentions.add(e);
                 coreferentEntities.add(e);
                 goldEntityMentionsByID.put(mention.id, e);
@@ -124,6 +124,22 @@ public class ACEAnnotation implements Serializable {
             }
         }
         Collections.sort(goldEntityMentions, new Comparator<EntityMention>() {
+            @Override
+            public int compare(EntityMention e1, EntityMention e2) {
+                if (e1.getStartOffset() < e2.getStartOffset()) {
+                    return -1;
+                } else if (e2.getStartOffset() < e1.getStartOffset()) {
+                    return 1;
+                } else if (e1.getEndOffset() < e2.getEndOffset()) {
+                    return -1;
+                } else if (e2.getEndOffset() < e1.getEndOffset()) {
+                    return 1;
+                } else {
+                    return 0;
+                }
+            }
+        });
+        Collections.sort(goldNERMentions, new Comparator<EntityMention>() {
             @Override
             public int compare(EntityMention e1, EntityMention e2) {
                 if (e1.getStartOffset() < e2.getStartOffset()) {
@@ -608,8 +624,8 @@ public class ACEAnnotation implements Serializable {
         int correct = 0;
         for (EntityMention testEntity: testEntityMentions) {
             IntPair testSpan = new IntPair(testEntity.getStartOffset(), testEntity.getEndOffset());
-            if (goldEntityMentionsBySpan.containsKey(testSpan) &&
-                    goldEntityMentionsBySpan.get(testSpan).equals(testEntity)) {
+            if (goldNERMentionsBySpan.containsKey(testSpan) &&
+                    goldNERMentionsBySpan.get(testSpan).equals(testEntity)) {
                 correct++;
             }
         }
@@ -619,14 +635,14 @@ public class ACEAnnotation implements Serializable {
     public IntPair getNERRecallInfo() {
         //Next, recall: out of the correct mentions, how many were predicted?
         int correct = 0;
-        for (EntityMention goldEntity: goldEntityMentions) {
+        for (EntityMention goldEntity: goldNERMentions) {
             IntPair goldSpan = new IntPair(goldEntity.getStartOffset(), goldEntity.getEndOffset());
             if (testEntityMentionsBySpan.containsKey(goldSpan) &&
                     testEntityMentionsBySpan.get(goldSpan).equals(goldEntity)) {
                 correct++;
             }
         }
-        return new IntPair(correct, goldEntityMentions.size());
+        return new IntPair(correct, goldNERMentions.size());
 
     }
 
