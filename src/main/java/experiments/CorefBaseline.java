@@ -89,7 +89,7 @@ public class CorefBaseline implements PipelineStage{
 	
 	// Learning with WEKA
 	private void learn(){
-		Instances trainInstances = FeatureGenerator.readData(this.train, true);
+		Instances trainInstances = FeatureGenerator.readData(this.train, true, true);
 		trainInstances.setClassIndex(trainInstances.numAttributes() - 1);
 		System.out.println("number of training instances:" + trainInstances.numInstances());
 		System.out.println("building classifier");
@@ -100,27 +100,72 @@ public class CorefBaseline implements PipelineStage{
 			System.err.println("Unable to build Classifier...\n");
 			e.printStackTrace();
 		}
-			
 	}
-		
+	
 	// Predicting with Weka
-	private void predict() throws Exception{
-		Instances testInstances = FeatureGenerator.readData(this.test, false); // assuming we have ground truth label?
+	private List<String> predict() throws Exception{
+		List<String> predictions = new ArrayList<String> ();
+		System.out.println("predict ...");
+		Instances testInstances = FeatureGenerator.readData(this.test, false, false); // assuming we have ground truth label?
 		int classIndex = testInstances.numAttributes() - 1;
 		testInstances.setClassIndex(classIndex);
+		
 		System.out.println("number of testing instances:" + testInstances.numInstances());
 		for (int i = 0; i < testInstances.numInstances(); i++){
 			double predClass = classifier.classifyInstance(testInstances.instance(i));
-			//i.classValue(); // gives the index of the class index 0 = -1 (False) , index 1 = 1(True)
-			//int pred = Integer.parseInt(testInstances.instance(i).attribute(testInstances.instance(i).numAttributes()-1).value((int)predClass));
-			int pred = Integer.parseInt(testInstances.instance(i).attribute(classIndex).value((int)predClass));
-			int actual = Integer.parseInt( FeatureGenerator.testLabels.get(i));
-			if (pred != actual)
-				System.out.println("predicted class: " + pred + " actual class: " + actual);
-			
-			// TODO: remove
-			break;
+			String c = testInstances.instance(i).attribute(classIndex).value((int) predClass);
+			predictions.add(c);
 		}
+		
+		return predictions;
+	}
+	
+	// Predicting with Weka
+	private List<String> predictGold() throws Exception{
+		List<String> predictions = new ArrayList<String> ();
+		System.out.println("predict ...");
+		Instances testInstances = FeatureGenerator.readData(this.test, false, true); // assuming we have ground truth label?
+		int classIndex = testInstances.numAttributes() - 1;
+		testInstances.setClassIndex(classIndex);
+		int ap = 0;
+		int tp = 0;
+		int an = 0;
+		int tn = 0;
+		System.out.println("number of testing instances:" + testInstances.numInstances());
+		for (int i = 0; i < testInstances.numInstances(); i++){
+			double predClass = classifier.classifyInstance(testInstances.instance(i));
+			// i.classValue(); // gives the index of the class index 0 = -1 (False) , index 1 = 1(True)
+			// int pred = Integer.parseInt(testInstances.instance(i).attribute(testInstances.instance(i).numAttributes()-1).value((int)predClass));
+			String c = testInstances.instance(i).attribute(classIndex).value((int) predClass);
+			int pred = Integer.parseInt(c);
+			
+			// assuming we have the labels
+			int actual = Integer.parseInt( FeatureGenerator.testLabels.get(i));
+			if (actual > 0){
+				if (pred > 0){
+					//System.out.println("predicted class: " + pred + " actual class: " + actual);
+					tp = tp + 1;
+				} 
+				ap = ap + 1;
+			}
+			else{
+				if (pred < 0){
+					//System.out.println("predicted class: " + pred + " actual class: " + actual);
+					tn = tn + 1;
+				}
+				an = an + 1;
+			}
+			predictions.add(c);
+			// TODO: remove
+			//break;
+		}
+		System.out.println(" actual positive: " + ap);
+		System.out.println(" actual negative: " + an);
+		System.out.println("precision: " + (tp/(double)ap) );
+		System.out.println("specificity: " + (tn/(double)an) );
+		System.out.println("accuracy:" + (tp + tn)/(double)(ap + an));
+		
+		return predictions;
 	}
 	
 	public static void main( String[] argv ){
@@ -134,15 +179,15 @@ public class CorefBaseline implements PipelineStage{
 		}
 		test_split.addAll(splits.get(splits.size()-1));
 		
-		System.out.println(train_split.size());
-		System.out.println(test_split.size());
+		System.out.println("training documents size:" + train_split.size());
+		System.out.println("testing documents size" + test_split.size());
 		
 		CorefBaseline cb = new CorefBaseline(train_split, test_split);
 		
 		cb.learn();
 		
 		try {
-			cb.predict();
+			cb.predictGold();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
