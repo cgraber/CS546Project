@@ -63,7 +63,7 @@ public class RelationExtraction {
                 //Entity based features
                 EntityMention left = p.getFirst();
                 EntityMention right = p.getSecond();
-                fea_vec.addInformation(left,right,document.getSentence(left.getSentenceOffset()));
+                fea_vec.addRelationMetadata(left,right,document.getSentence(left.getSentenceOffset()));
 
 
 
