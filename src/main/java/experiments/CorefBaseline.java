@@ -128,9 +128,11 @@ public class CorefBaseline implements PipelineStage{
 		int classIndex = testInstances.numAttributes() - 1;
 		testInstances.setClassIndex(classIndex);
 		int ap = 0;
-		int tp = 0;
 		int an = 0;
+		int tp = 0;
 		int tn = 0;
+		int fp = 0;
+		int fn = 0;
 		System.out.println("number of testing instances:" + testInstances.numInstances());
 		for (int i = 0; i < testInstances.numInstances(); i++){
 			double predClass = classifier.classifyInstance(testInstances.instance(i));
@@ -141,17 +143,21 @@ public class CorefBaseline implements PipelineStage{
 			
 			// assuming we have the labels
 			int actual = Integer.parseInt( FeatureGenerator.testLabels.get(i));
+			//System.out.println("predicted class: " + pred + " actual class: " + actual);
 			if (actual > 0){
 				if (pred > 0){
-					//System.out.println("predicted class: " + pred + " actual class: " + actual);
 					tp = tp + 1;
-				} 
+				} else{
+					fn = fn + 1;
+				}
 				ap = ap + 1;
 			}
 			else{
 				if (pred < 0){
 					//System.out.println("predicted class: " + pred + " actual class: " + actual);
 					tn = tn + 1;
+				} else {
+					fp = fp + 1;
 				}
 				an = an + 1;
 			}
@@ -159,11 +165,20 @@ public class CorefBaseline implements PipelineStage{
 			// TODO: remove
 			//break;
 		}
+		double precision = (tp/(double)(fp + tp));
+		double recall = (tp/(double)ap);
+		System.out.println(" true positive: " + tp);
+		System.out.println(" true negative: " + tn);
+		System.out.println(" false positive: " + fp);
+		System.out.println(" false negative: " + fn);
 		System.out.println(" actual positive: " + ap);
 		System.out.println(" actual negative: " + an);
-		System.out.println("precision: " + (tp/(double)ap) );
+		System.out.println("precision: " + precision );		
+		System.out.println("recall: " + recall );
+		System.out.println("F1 score: " + (2*precision*recall/ (precision + recall)) );
 		System.out.println("specificity: " + (tn/(double)an) );
 		System.out.println("accuracy:" + (tp + tn)/(double)(ap + an));
+
 		
 		return predictions;
 	}
@@ -185,7 +200,7 @@ public class CorefBaseline implements PipelineStage{
 		CorefBaseline cb = new CorefBaseline(train_split, test_split);
 		
 		cb.learn();
-		
+//		
 		try {
 			cb.predictGold();
 		} catch (Exception e) {

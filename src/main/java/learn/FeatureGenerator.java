@@ -17,6 +17,7 @@ import data.ACEAnnotation;
 import data.CoreferenceEdge;
 import data.EntityMention;
 import edu.illinois.cs.cogcomp.core.datastructures.Pair;
+import utils.Consts;
 import weka.core.Attribute;
 import weka.core.FastVector;
 import weka.core.Instance;
@@ -33,11 +34,12 @@ public class FeatureGenerator {
     private static FastVector zeroOne;
     private static FastVector labels;
     public static List<String> testLabels;
-    private static final boolean LOCATIONFEATURES=false;
+    private static final boolean LOCATIONFEATURES=true;
     private static final boolean MENTIONFEATURES=true;
     private static final boolean STRINGFEATURES=false;
-    private static final boolean SEMANTICFEATURES=false;
+    private static final boolean SEMANTICFEATURES=true;
     ///public static final int NUM_CHARS_PER_NAME = 5;
+    private static final int APPOSITIONDISTANCE=3;
 
     static {
     	testLabels = new ArrayList<String>();
@@ -116,7 +118,25 @@ public class FeatureGenerator {
 			attribute_dict.put(attribute_name, a);
 			attributes.addElement(a);
 			
-			// a position?
+			// apposition
+			for (int k = 1; k < FeatureGenerator.APPOSITIONDISTANCE; k++ ){
+				attribute_name = "mentionApposition"+k+"-";
+				a = new Attribute(attribute_name, zeroOne);
+				attribute_dict.put(attribute_name, a);
+				attributes.addElement(a);
+			}
+
+			attribute_name = "mentionSameSentence";
+			a = new Attribute(attribute_name, zeroOne);
+			attribute_dict.put(attribute_name, a);
+			attributes.addElement(a);
+			
+			attribute_name = "mentionRelativePronoun";
+			a = new Attribute(attribute_name, zeroOne);
+			attribute_dict.put(attribute_name, a);
+			attributes.addElement(a);
+			
+			
 		}
 		
 		//Leave the class as the last attribute, though not strictly neccessary.
@@ -182,6 +202,14 @@ public class FeatureGenerator {
 		
 		// dont need to do anything for numeric type features
 		if(FeatureGenerator.LOCATIONFEATURES){
+			// apposition
+			//instance.setValue(attribute_dict.get("mentionApposition1-"), "0");
+			//instance.setValue(attribute_dict.get("mentionApposition2-"), "0");
+			for (int k = 1; k < FeatureGenerator.APPOSITIONDISTANCE; k++ ){
+				instance.setValue(attribute_dict.get("mentionApposition"+k+"-"), "0");
+			}
+			instance.setValue(attribute_dict.get("mentionSameSentence"), "0");
+			instance.setValue(attribute_dict.get("mentionRelativePronoun"), "0");
 			
 		}
 		
@@ -209,7 +237,6 @@ public class FeatureGenerator {
 	    	for (int k = 0; k < positive_count; k++){
 	    		temp_labels.add("1");
 	    	}
-	    	
 	    	// Sample Negative examples
 	    	//System.out.println("Number of positive examples:" + positive_count);
 	    	//System.out.println("Number of negative examples:" + myLabels.getSecond().size());
@@ -217,6 +244,7 @@ public class FeatureGenerator {
 	    	List<CoreferenceEdge> mylist = myLabels.getSecond();
 	    	Collections.shuffle(mylist);
 	    	for (int k = 0; k < positive_count & k < mylist.size(); k++){
+	    	//for (int k = 0; k < mylist.size(); k++){
 	    		temp.add(mylist.get(k));
 	    		temp_labels.add("-1");
 	    	}
@@ -237,6 +265,7 @@ public class FeatureGenerator {
 	    	List<CoreferenceEdge> mylist = myLabels.getSecond();
 	    	Collections.shuffle(mylist);
 	    	for (int k = 0; k < positive_count & k < mylist.size(); k++){
+	    	//for (int k = 0; k < mylist.size(); k++){
 	    		temp.add(mylist.get(k));
 	    		temp_labels.add("-1");
 	    	}
@@ -246,13 +275,9 @@ public class FeatureGenerator {
     		System.out.println("testing entry with " + temp.size() + " Coreference Edges");
     	}
     	
-    	
     	int index = 0;
-    	// List<String> document_tokens = entry.getTokens();
     	for (CoreferenceEdge ce : temp ){
     		Instance instance = create_empty_instance(instances);
-    		
-    		
     		// Adding label to instance
     		if (labeled){
     			// TODO: change to this once isCoreferent is fixed
@@ -276,7 +301,7 @@ public class FeatureGenerator {
     		}
     		
     		
-    		instance = setInstanceFeatures(ce, instance);
+    		instance = setInstanceFeatures(ce, instance, entry);
     		
     		ret.add(instance);
     		index++;
@@ -286,10 +311,21 @@ public class FeatureGenerator {
     	
     }
     
-    public static Instance setInstanceFeatures(CoreferenceEdge ce, Instance instance){
+    public static Instance setInstanceFeatures(CoreferenceEdge ce, Instance instance, ACEAnnotation  entry){
     	Pair<EntityMention, EntityMention> somePair = ce.getEntityMentions();
-		EntityMention e1 = somePair.getFirst();
-		EntityMention e2 = somePair.getSecond();
+    	
+		EntityMention e1 = null;
+		EntityMention e2 = null;
+		
+		if (somePair.getFirst().getStartOffset() < somePair.getSecond().getStartOffset()){
+			e1 = somePair.getFirst();
+			e2 = somePair.getSecond();
+		}else{
+			e2 = somePair.getFirst();
+			e1 = somePair.getSecond();
+		}
+			
+		
 		String key;
 		// Adding features to instance
 		if(FeatureGenerator.MENTIONFEATURES){
@@ -305,13 +341,6 @@ public class FeatureGenerator {
     		if (val.compareTo("0") == 0)
     			instance.setValue(attribute_dict.get(attr_name_prefix + e1.getMentionType()), val);
     		
-//    		if (labeled){
-//    			if (val.compareTo("0") == 0){
-//    				System.out.println("e1: " + e1.getMentionType() + " e2: " + e2.getMentionType() + " equals:" + (e1.getMentionType().compareTo(e2.getMentionType())) );
-//	    			
-//    				System.out.println("miss-match in training:" + val);
-//    			}
-//    		}
 		}
 		
 		if (FeatureGenerator.STRINGFEATURES){
@@ -337,12 +366,69 @@ public class FeatureGenerator {
 		if(FeatureGenerator.LOCATIONFEATURES){
 			key = "mentionDistances"; 
 			//Pair<EntityMention, EntityMention> somePair = ce.getEntityMentions();
-			instance.setValue(attribute_dict.get(key), distanceFeature(somePair.getFirst(), somePair.getSecond()) );
+			instance.setValue(attribute_dict.get(key), distanceFeature(e1, e2) );
+			
+			for (int k = 1; k < FeatureGenerator.APPOSITIONDISTANCE; k++){
+				key = "mentionApposition"+k+"-";
+				if ( e1.getStartOffset() != e2.getStartOffset())
+					instance.setValue( attribute_dict.get(key), getApposition(k, e1, e2, entry.getTokens() ) );
+				
+			}
+			key = "mentionSameSentence";
+			instance.setValue( attribute_dict.get(key), detectMentionSentence(somePair.getFirst(), somePair.getSecond(), entry.getSentences() ) );
+			
+			key = "mentionRelativePronoun";
+			if (instance.stringValue(attribute_dict.get("mentionApposition1-")).compareTo("1") == 0 && e2.getMentionType().compareTo(Consts.PRONOUN) == 0) 
+				instance.setValue( attribute_dict.get(key), "1" );
 		}
 		return instance;
     }
     
     
+	private static String detectMentionSentence(EntityMention first,
+			EntityMention second, List<List<String>> sentences) {
+		
+		int position1 = first.getStartOffset();
+		int position2 = second.getSentenceOffset();
+		int current_position = 0;
+		
+		for (List<String> sentence : sentences){
+			current_position += sentence.size();
+			
+			// when one mention's sentence position is found then we can return the result
+			// if both are with in the same sentence then return true
+			// else return false.
+			if ( position1 < current_position){
+				if (position2 < current_position){
+					return "1";
+				} else{
+					return "0";
+				}
+			}
+			if ( position2 < current_position){
+				if (position1 < current_position){
+					return "1";
+				} else{
+					return "0";
+				}
+			}
+		}
+		
+		
+		return "0";
+	}
+
+	private static String getApposition(int distance, EntityMention first, EntityMention second, List<String> document_tokens) {
+		if (first.getEndOffset() == second.getStartOffset()-distance){
+			if( document_tokens.get(first.getEndOffset()).compareTo(",") == 0 ){
+				//System.out.println("apposition:" + document_tokens.subList(first.getStartOffset(), second.getEndOffset()) );
+				//System.out.println("mentions: first (" + first.getStartOffset() + "-" + first.getEndOffset() + ") " + first.getExtent() + " second ("+ second.getStartOffset() + "-" + second.getEndOffset() +"):" + second.getExtent());
+				return "1";
+			}
+		}
+		return "0";
+	}
+
 	/**
 	 * Distance between two mentions.
 	 * @param e1 is the left most mention
