@@ -67,7 +67,7 @@ public class ReSoftmaxBaseline {
 
         ReSoftmaxBaseline reSoftmaxBaseline = new ReSoftmaxBaseline();
 
-        for (int i = 0; i < 30; i++) {
+        for (int i = 0; i < 50; i++) {
             reSoftmaxBaseline.train(trainInput, trainTarget);
 
             Metric trainResult = reSoftmaxBaseline.test(trainInput, trainTarget);
@@ -106,9 +106,9 @@ public class ReSoftmaxBaseline {
 
             // Multinomial logistic regression (no hidden layer).
             MultiLayerConfiguration conf = new NeuralNetConfiguration.Builder()
-                    .iterations(20).learningRate(0.005).regularization(true).l1(0.35)
+                    .iterations(20).learningRate(0.005).regularization(true).l1(3)
                     .optimizationAlgo(OptimizationAlgorithm.STOCHASTIC_GRADIENT_DESCENT)
-                    .updater(Updater.NESTEROVS).momentum(0.9).list(1)
+                    .updater(Updater.NESTEROVS).momentum(0.999).list(1)
                     .layer(0, new OutputLayer.Builder(LossFunction.NEGATIVELOGLIKELIHOOD)
                             .weightInit(WeightInit.XAVIER)
                             .activation("softmax").nIn(featureSize).nOut(labelSize).build())

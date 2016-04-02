@@ -1,6 +1,7 @@
 package experiments;
 
 import learn.FeatureVector;
+import utils.Metric;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -26,7 +27,7 @@ public class RE_NaiveBayes {
         List<FeatureVector> data_set=raw_data_set;
 
 
-        int labels_count=data_set.get(0).getLabelCount();
+        int numLabels=data_set.get(0).getLabelCount();
         int features_count=data_set.get(0).getFeatureCount();
 
         int instances_size=data_set.size();
@@ -39,15 +40,15 @@ public class RE_NaiveBayes {
         System.out.println("instance_size:"+instances_size);
         System.out.println("train_size:"+train_size);
         System.out.println("features_size:"+features_count);
-        System.out.println("labels_size:"+labels_count);
+        System.out.println("labels_size:"+numLabels);
         System.out.println("Labels_Categories:\n"+labelMap);
 
 
 
 
-        int [] category_count=new int[labels_count];
-        int [] category_count_c=new int[labels_count];
-        int [] train_count=new int [labels_count];
+        int [] category_count=new int[numLabels];
+        int [] category_count_c=new int[numLabels];
+        int [] train_count=new int [numLabels];
 
 
         for(int i=0;i<instances_size;i++){
@@ -67,7 +68,7 @@ public class RE_NaiveBayes {
 
         System.out.println("\nCategory count:");
 
-        for(int i=0;i<labels_count;i++){
+        for(int i=0;i<numLabels;i++){
             category_count_c[i]=(category_count_c[i]*4)/5;
             System.out.println(i+": "+category_count[i]);
 
@@ -76,7 +77,7 @@ public class RE_NaiveBayes {
 
 
         List<FeatureVector> train_set=new ArrayList<>();
-        List<FeatureVector> test_set=new ArrayList<>();
+        List<FeatureVector> testSet=new ArrayList<>();
 
 
         for(FeatureVector f:data_set){
@@ -87,17 +88,17 @@ public class RE_NaiveBayes {
                 category_count_c[label]--;
             }
             else{
-                test_set.add(f);
+                testSet.add(f);
             }
 
         }
 
 
-        double [] balance_factors= new double [labels_count];
+        double [] balance_factors= new double [numLabels];
 
         int base_index=0;
         int base_count=category_count[0];
-        for(int i=0; i<labels_count;i++){
+        for(int i=0; i<numLabels;i++){
             if(category_count[i]>base_count) {
                 base_index=i;
                 base_count=category_count[i];
@@ -107,7 +108,7 @@ public class RE_NaiveBayes {
         balance_factors[base_index]=1.0f;
 
         System.out.println("\nbalance_factors");
-        for(int i=0;i<labels_count;i++){
+        for(int i=0;i<numLabels;i++){
             balance_factors[i]=(float)base_count/category_count[i];
             System.out.println(balance_factors[i]);
         }
@@ -120,11 +121,11 @@ public class RE_NaiveBayes {
 
 
 
-        int[][] frequency_table = new int[labels_count][features_count];
-        double[][] score_table = new double[labels_count][features_count];
+        int[][] frequency_table = new int[numLabels][features_count];
+        double[][] score_table = new double[numLabels][features_count];
 
-        int[] frequency_prior=new int[labels_count];
-        double[] score_prior=new double[labels_count];
+        int[] frequency_prior=new int[numLabels];
+        double[] score_prior=new double[numLabels];
 
 
         //training by counting
@@ -143,7 +144,7 @@ public class RE_NaiveBayes {
         }
 
         //setting up score table for future prediction
-        for(int i=0; i<labels_count;i++){
+        for(int i=0; i<numLabels;i++){
             for(int j=0;j<features_count;j++){
                 double frequency_score=(float)(frequency_table[i][j]+1)*balance_factors[i];
                 score_table[i][j] = log(frequency_score / (train_size + features_count));
@@ -151,7 +152,7 @@ public class RE_NaiveBayes {
         }
 
         //setting up score for prior
-        for(int i=0;i<labels_count;i++){
+        for(int i=0;i<numLabels;i++){
             score_prior[i]=log((float)frequency_prior[i]/train_size);
         }
 
@@ -175,29 +176,29 @@ public class RE_NaiveBayes {
         int hit_count=0;
 
         int two_hit=0;
-        int [] two_hit_category= new int [labels_count];
+        int [] two_hit_category= new int [numLabels];
 
-        int [] category_count_test=new int[labels_count];
-        int [] category_hit=new int[labels_count];
-        int [] category_positive_hit=new int[labels_count];
+        double [] truePositives=new double[numLabels];
+        double [] trueNegatives=new double[numLabels];
+        double [] falsePositives=new double[numLabels];
+        double [] falseNegatives=new double[numLabels];
 
+        for(int i=0;i<testSet.size();i++){
 
-        for(int i=0;i<test_set.size();i++){
-
-            FeatureVector f=test_set.get(i);
-            double [] score_class= new double [labels_count];
+            FeatureVector f=testSet.get(i);
+            double [] score_class= new double [numLabels];
 
             //prediction
             List<Integer> vector=f.getFeatures();
             for(int j=0;j<vector.size();j++){
                 if(vector.get(j)==1){
-                    for(int k=0;k<labels_count;k++){
+                    for(int k=0;k<numLabels;k++){
                         score_class[k]+=score_table[k][j];
                     }
                 }
             }
 
-            for(int j=0;j<labels_count;j++){
+            for(int j=0;j<numLabels;j++){
                 //score_class[j]+=score_prior[j];
             }
 
@@ -206,7 +207,7 @@ public class RE_NaiveBayes {
 
 
 
-            for(int j=0;j<labels_count;j++){
+            for(int j=0;j<numLabels;j++){
                 if(max<score_class[j]){
                     prediction=j;
                     max=score_class[j];
@@ -221,7 +222,7 @@ public class RE_NaiveBayes {
                 second_guess=1;
                 second_max=score_class[1];
             }
-            for(int j=0;j<labels_count;j++){
+            for(int j=0;j<numLabels;j++){
                 if(j==prediction)
                     continue;
                 if(second_max<score_class[j]){
@@ -232,36 +233,66 @@ public class RE_NaiveBayes {
 
 
             int label =f.getLabel();
-            category_count_test[label]++;
-            category_hit[prediction]++;
 
-
-            if(prediction==label){
+            if(prediction==label) {
                 hit_count++;
                 two_hit++;
-                category_positive_hit[label]++;
                 two_hit_category[label]++;
 
-            }
-            else if(second_guess==label){
-                two_hit++;
-                two_hit_category[second_guess]++;
+                for (int j = 0; j < numLabels; j++) {
+                    if (prediction==j){
+                        truePositives[j]++;
+                    } else {
+                        trueNegatives[j]++;
+                    }
+                }
+            } else {
+                for (int j = 0; j < numLabels; j++) {
+                    if (prediction==j) {
+                        falsePositives[j]++;
+                    } else if (label==j){
+                        falseNegatives[j]++;
+                    } else {
+                        trueNegatives[j]++;
+                    }
+                }
 
-                //show confusion
-                System.out.println("\n");
-                System.out.println("First:"+StringList.get(prediction));
-                System.out.println("Second:"+StringList.get(second_guess));
-                System.out.println("Truth:"+StringList.get(label));
-                System.out.println(f.left.getExtent());
-                System.out.println(f.left.getEntityType());
-                System.out.println(f.right.getExtent());
-                System.out.println(f.right.getEntityType());
-                System.out.println(f.sentence);
+                if (second_guess == label) {
+                    two_hit++;
+                    two_hit_category[second_guess]++;
+
+                    //show confusion
+                    System.out.println("\n");
+                    System.out.println("First:" + StringList.get(prediction));
+                    System.out.println("Second:" + StringList.get(second_guess));
+                    System.out.println("Truth:" + StringList.get(label));
+                    System.out.println(f.left.getExtent());
+                    System.out.println(f.left.getEntityType());
+                    System.out.println(f.right.getExtent());
+                    System.out.println(f.right.getEntityType());
+                    System.out.println(f.sentence);
 
 
+                }
             }
         }
 
+        double precision=0, recall=0, accuracy=0;
+        for (int i = 0; i < numLabels; i++) {
+            precision+=truePositives[i]/(truePositives[i]+falsePositives[i]);
+            recall+=truePositives[i]/(truePositives[i]+falseNegatives[i]);
+            accuracy+=truePositives[i];
+        }
+        precision/=numLabels;
+        recall/=numLabels;
+        accuracy/=testSet.size();
+
+        Metric metric = new Metric();
+        metric.setAccuracy(accuracy);
+        metric.setPrecision(precision);
+        metric.setRecall(recall);
+
+        System.out.println("----\n" + metric.toString());
 
 
         //report
@@ -269,20 +300,15 @@ public class RE_NaiveBayes {
         System.out.println("Overall acc:"+(float)hit_count/(instances_size-train_size));
         System.out.println("Overall two_hit_acc:"+(float)two_hit/(instances_size-train_size));
 
-        for(int i=0;i<labels_count;i++){
+        for(int i=0;i<numLabels;i++){
+            double labelAccuracy = (truePositives[i]+trueNegatives[i])/(truePositives[i]+trueNegatives[i]+
+                    falseNegatives[i]+falsePositives[i]);
 
             System.out.print("Class "+i+": ");
             System.out.print("prior:"+frequency_prior[i]+"  ");
-            System.out.print("hit:"+category_hit[i]+"  ");
-            System.out.print("test_count:"+category_count_test[i]+"  ");
-            System.out.print("corret_hit:"+category_positive_hit[i]+"  ");
-            System.out.print("accuracy:"+(float)category_positive_hit[i]/category_count_test[i]+"  ");
-            System.out.println("two_hit_rate:"+ (float)two_hit_category[i]/category_count_test[i]);
-
+            System.out.print("corret_hit:"+truePositives[i]+trueNegatives[i]+"  ");
+            System.out.print("accuracy:"+labelAccuracy+"  ");
         }
-
-
-
 
 
 
