@@ -21,6 +21,7 @@ import org.nd4j.linalg.api.ndarray.INDArray;
 import org.nd4j.linalg.factory.Nd4j;
 import org.nd4j.linalg.indexing.NDArrayIndex;
 import org.nd4j.linalg.lossfunctions.LossFunctions.LossFunction;
+import utils.Metric;
 
 /**
  * Created by daeyun on 4/1/16.
@@ -68,10 +69,12 @@ public class ReSoftmaxBaseline {
 
         for (int i = 0; i < 30; i++) {
             reSoftmaxBaseline.train(trainInput, trainTarget);
-            System.out.println("-- Train --");
-            reSoftmaxBaseline.test(trainInput, trainTarget);
-            System.out.println("-- Test --");
-            reSoftmaxBaseline.test(testInput, testTarget);
+
+            Metric trainResult = reSoftmaxBaseline.test(trainInput, trainTarget);
+            Metric testResult = reSoftmaxBaseline.test(testInput, testTarget);
+
+            System.out.println("Train: " + trainResult.toString());
+            System.out.println("Test:  " + testResult.toString());
         }
     }
 
@@ -119,14 +122,56 @@ public class ReSoftmaxBaseline {
         model.fit(input, target);
     }
 
-    private void test(INDArray input, INDArray target) {
+    private Metric test(INDArray input, INDArray target) {
         INDArray output = model.output(input);
         INDArray predictions = Nd4j.argMax(output, 1);
         INDArray labels = Nd4j.argMax(target, 1);
         INDArray isCorrect = predictions.eq(labels);
 
-        System.out.println("Accuracy: " + isCorrect.sumNumber().doubleValue() / isCorrect.length());
+        int numLabels = target.size(1);
+        double[] tp = new double[numLabels];
+        double[] tn = new double[numLabels];
+        double[] fp = new double[numLabels];
+        double[] fn = new double[numLabels];
 
-        // TODO(daeyun): Precision, recall, f1
+        for (int i = 0; i < predictions.length(); i++) {
+            if (isCorrect.getInt(i) == 1) {
+                for (int j = 0; j < numLabels; j++) {
+                    if (predictions.getInt(i) == j) {
+                        tp[j]++;
+                    } else {
+                        tn[j]++;
+                    }
+                }
+            } else {
+                for (int j = 0; j < numLabels; j++) {
+                    if (predictions.getInt(i) == j) {
+                        fp[j]++;
+                    } else if (labels.getInt(i) == j) {
+                        fn[j]++;
+                    } else {
+                        tn[j]++;
+                    }
+                }
+            }
+        }
+
+        double precision = 0, recall = 0;
+
+        for (int i = 0; i < numLabels; i++) {
+            precision += tp[i] / (tp[i] + fp[i]);
+            recall += tp[i] / (tp[i] + fn[i]);
+        }
+        precision /= numLabels;
+        recall /= numLabels;
+
+        double accuracy = isCorrect.sumNumber().doubleValue() / isCorrect.length();
+
+        Metric metric = new Metric();
+        metric.setAccuracy(accuracy);
+        metric.setPrecision(precision);
+        metric.setRecall(recall);
+
+        return metric;
     }
 }
