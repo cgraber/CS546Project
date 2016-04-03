@@ -515,7 +515,7 @@ public class ACEAnnotation implements Serializable {
                         }
                     }
                 } else if (!(e2.getMentionType().equals(Consts.PRONOUN) && !e1.getMentionType().equals(Consts.PRONOUN))){
-                    negEdges.add(new CoreferenceEdge(e2, e1));
+                    negEdges.add(new CoreferenceEdge(e2, e1, false));
                 }
             }
         }
