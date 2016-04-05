@@ -1,6 +1,9 @@
 .idea
 *.iml
 
+ner_mallet_features
+ner_model
+
 target/
 pom.xml.tag
 pom.xml.releaseBackup

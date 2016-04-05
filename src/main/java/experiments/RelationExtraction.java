@@ -18,15 +18,15 @@ import java.lang.*;
 public class RelationExtraction {
 
     public static void main(String [] argv) throws IOException {
-
-        List<FeatureVector> extracted_data=FeaturesGenerator();
-
+        List<FeatureVector> extracted_data= generateFeatures();
     }
 
-    public static List<FeatureVector> FeaturesGenerator() throws IOException{
-
+    public static List<FeatureVector> generateFeatures() throws IOException{
         List<ACEAnnotation> collection = ACEAnnotation.readAllFromFileFlat();
+        return generateFeatures(collection);
+    }
 
+    public static List<FeatureVector> generateFeatures(List<ACEAnnotation> collection) {
         //features and labels for all data
         List<FeatureVector> extracted_data=new ArrayList<>();
 
@@ -63,7 +63,7 @@ public class RelationExtraction {
                 //Entity based features
                 EntityMention left = p.getFirst();
                 EntityMention right = p.getSecond();
-                fea_vec.addInformation(left,right,document.getSentence(left.getSentenceOffset()));
+                fea_vec.addRelationMetadata(left,right,document.getSentence(left.getSentenceOffset()));
 
 
 
@@ -155,7 +155,7 @@ public class RelationExtraction {
                     if (NumberUtils.isNumber(E2_before))
                         E2_before = "_digit_";
                 }
-                fea_vec.addBinaryFeature("E1_before:" + E2_before);
+                fea_vec.addBinaryFeature("E2_before:" + E2_before);
                 fea_vec.addBinaryFeature("E1_after:" + E1_after);
 
 

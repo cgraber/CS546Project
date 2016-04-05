@@ -52,7 +52,12 @@ public class ACEAnnotation implements Serializable {
     private List<String> tokens = new ArrayList<>();
     private List<EntityMention> goldEntityMentions = new ArrayList<>();
     private Map<String,EntityMention> goldEntityMentionsByID = new HashMap<>();
+    private Map<IntPair,EntityMention> goldEntityMentionsBySpan = new HashMap<>();
+    private List<EntityMention> goldNERMentions = new ArrayList<>();
+    private Map<IntPair,EntityMention> goldNERMentionsBySpan = new HashMap<>();
+
     private List<EntityMention> testEntityMentions = new ArrayList<>();
+    private Map<IntPair,EntityMention> testEntityMentionsBySpan = new HashMap<>();
     private List<Relation> goldRelations = new ArrayList<>();
     private Map<Pair<EntityMention,EntityMention>,Relation> goldRelationsByArgs = new HashMap<>();
     private List<Relation> testRelations = new ArrayList<>();
@@ -97,9 +102,14 @@ public class ACEAnnotation implements Serializable {
             for (ACEEntityMention mention: entity.entityMentionList) {
                 mentionTypes.add(mention.type);
                 EntityMention e = makeEntityMention(mention, entity.type);
+                //if (!mention.type.equals("PRO")) {
+                    goldNERMentions.add(e);
+                    goldNERMentionsBySpan.put(new IntPair(e.getStartOffset(), e.getEndOffset()), e);
+                //}
                 goldEntityMentions.add(e);
                 coreferentEntities.add(e);
                 goldEntityMentionsByID.put(mention.id, e);
+                goldEntityMentionsBySpan.put(new IntPair(e.getStartOffset(), e.getEndOffset()), e);
                 //System.out.println("\t"+mention.id+", "+mention.extent+", "+mention.type+", "+mention.ldcType);
             }
             // Add all pairs of coreference edges
@@ -114,6 +124,22 @@ public class ACEAnnotation implements Serializable {
             }
         }
         Collections.sort(goldEntityMentions, new Comparator<EntityMention>() {
+            @Override
+            public int compare(EntityMention e1, EntityMention e2) {
+                if (e1.getStartOffset() < e2.getStartOffset()) {
+                    return -1;
+                } else if (e2.getStartOffset() < e1.getStartOffset()) {
+                    return 1;
+                } else if (e1.getEndOffset() < e2.getEndOffset()) {
+                    return -1;
+                } else if (e2.getEndOffset() < e1.getEndOffset()) {
+                    return 1;
+                } else {
+                    return 0;
+                }
+            }
+        });
+        Collections.sort(goldNERMentions, new Comparator<EntityMention>() {
             @Override
             public int compare(EntityMention e1, EntityMention e2) {
                 if (e1.getStartOffset() < e2.getStartOffset()) {
@@ -366,7 +392,9 @@ public class ACEAnnotation implements Serializable {
      * @param endOffset The index of the last token + 1 (e.g. if the last token is #3, the value here should be 4)
      */
     public void addEntityMention(String type, int startOffset, int endOffset) {
-        testEntityMentions.add(new EntityMention(type, null, startOffset, endOffset, FindSentenceIndex(startOffset), this));
+        EntityMention e = new EntityMention(type, null, startOffset, endOffset, FindSentenceIndex(startOffset), this);
+        testEntityMentions.add(e);
+        testEntityMentionsBySpan.put(new IntPair(startOffset, endOffset), e);
     }
 
     /**
@@ -494,7 +522,7 @@ public class ACEAnnotation implements Serializable {
                         }
                     }
                 } else if (!(e2.getMentionType().equals(Consts.PRONOUN) && !e1.getMentionType().equals(Consts.PRONOUN))){
-                    negEdges.add(new CoreferenceEdge(e2, e1));
+                    negEdges.add(new CoreferenceEdge(e2, e1, false));
                 }
             }
         }
@@ -502,6 +530,41 @@ public class ACEAnnotation implements Serializable {
     }
 
     public List<CoreferenceEdge> getAllPairsTestCoreferenceEdges() {
+        Collections.sort(goldEntityMentions, new Comparator<EntityMention>() {
+            @Override
+            public int compare(EntityMention e1, EntityMention e2) {
+                if (e1.getStartOffset() < e2.getStartOffset()) {
+                    return -1;
+                } else if (e2.getStartOffset() < e1.getStartOffset()) {
+                    return 1;
+                } else if (e1.getEndOffset() < e2.getEndOffset()) {
+                    return -1;
+                } else if (e2.getEndOffset() < e1.getEndOffset()) {
+                    return 1;
+                } else {
+                    return 0;
+                }
+            }
+        });
+        List<CoreferenceEdge> result = new ArrayList<>();
+        for (int e1Ind = goldEntityMentions.size()-1; e1Ind >= 0; e1Ind--) {
+            for (int e2Ind = e1Ind - 1; e2Ind >= 0; e2Ind--) {
+                EntityMention e1 = goldEntityMentions.get(e1Ind);
+                EntityMention e2 = goldEntityMentions.get(e2Ind);
+                boolean isCoreferent = false;
+                if (goldCoreferenceEdgesByEntities.containsKey(new Pair<>(e1,e2)) ||
+                        goldCoreferenceEdgesByEntities.containsKey(new Pair<>(e2,e1))) {
+                    isCoreferent = true;
+                }
+                if (!(e2.getMentionType().equals(Consts.PRONOUN) && !e1.getMentionType().equals(Consts.PRONOUN))){
+                    result.add(new CoreferenceEdge(e2, e1, isCoreferent));
+                }
+            }
+        }
+        return result;
+    }
+
+    public List<CoreferenceEdge> getAllPairsPipelineCoreferenceEdges() {
         Collections.sort(testEntityMentions, new Comparator<EntityMention>() {
             @Override
             public int compare(EntityMention e1, EntityMention e2) {
@@ -521,8 +584,8 @@ public class ACEAnnotation implements Serializable {
         List<CoreferenceEdge> result = new ArrayList<>();
         for (int e1Ind = testEntityMentions.size()-1; e1Ind >= 0; e1Ind--) {
             for (int e2Ind = e1Ind - 1; e2Ind >= 0; e2Ind--) {
-                EntityMention e1 = goldEntityMentions.get(e1Ind);
-                EntityMention e2 = goldEntityMentions.get(e2Ind);
+                EntityMention e1 = testEntityMentions.get(e1Ind);
+                EntityMention e2 = testEntityMentions.get(e2Ind);
                 if (!(e2.getMentionType().equals(Consts.PRONOUN) && !e1.getMentionType().equals(Consts.PRONOUN))){
                     result.add(new CoreferenceEdge(e2, e1));
                 }
@@ -568,6 +631,32 @@ public class ACEAnnotation implements Serializable {
         return result;
     }
 
+    public IntPair getNERPrecisionInfo() {
+        //precision: out of the predicted mentions, which ones are correct?
+        int correct = 0;
+        for (EntityMention testEntity: testEntityMentions) {
+            IntPair testSpan = new IntPair(testEntity.getStartOffset(), testEntity.getEndOffset());
+            if (goldNERMentionsBySpan.containsKey(testSpan) &&
+                    goldNERMentionsBySpan.get(testSpan).equals(testEntity)) {
+                correct++;
+            }
+        }
+        return new IntPair(correct, testEntityMentions.size());
+    }
+
+    public IntPair getNERRecallInfo() {
+        //Next, recall: out of the correct mentions, how many were predicted?
+        int correct = 0;
+        for (EntityMention goldEntity: goldNERMentions) {
+            IntPair goldSpan = new IntPair(goldEntity.getStartOffset(), goldEntity.getEndOffset());
+            if (testEntityMentionsBySpan.containsKey(goldSpan) &&
+                    testEntityMentionsBySpan.get(goldSpan).equals(goldEntity)) {
+                correct++;
+            }
+        }
+        return new IntPair(correct, goldNERMentions.size());
+
+    }
 
     /**
      * Searches through all of the text annotations to find the token offsets for a given mention
