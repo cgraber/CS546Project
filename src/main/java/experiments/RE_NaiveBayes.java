@@ -308,6 +308,9 @@ public class RE_NaiveBayes {
             System.out.print("prior:"+frequency_prior[i]+"  ");
             System.out.print("corret_hit:"+truePositives[i]+trueNegatives[i]+"  ");
             System.out.print("accuracy:"+labelAccuracy+"  ");
+            System.out.println();
+
+
         }
 
 

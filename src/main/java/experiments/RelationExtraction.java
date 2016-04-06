@@ -155,8 +155,8 @@ public class RelationExtraction {
                     if (NumberUtils.isNumber(E2_before))
                         E2_before = "_digit_";
                 }
-                fea_vec.addBinaryFeature("E2_before:" + E2_before);
-                fea_vec.addBinaryFeature("E1_after:" + E1_after);
+                //fea_vec.addBinaryFeature("E2_before:" + E2_before);
+                //fea_vec.addBinaryFeature("E1_after:" + E1_after);
 
 
 
