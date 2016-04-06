@@ -34,10 +34,10 @@ public class FeatureGenerator {
     private static FastVector zeroOne;
     private static FastVector labels;
     public static List<String> testLabels;
-    private static final boolean LOCATIONFEATURES=true;
-    private static final boolean MENTIONFEATURES=true;
-    private static final boolean STRINGFEATURES=false;
-    private static final boolean SEMANTICFEATURES=true;
+    private static final boolean LOCATIONFEATURES=false;
+    private static final boolean MENTIONFEATURES=false;
+    private static final boolean STRINGFEATURES=true;
+    private static final boolean SEMANTICFEATURES=false;
     ///public static final int NUM_CHARS_PER_NAME = 5;
     private static final int APPOSITIONDISTANCE=3;
 
@@ -100,6 +100,7 @@ public class FeatureGenerator {
 			attributes.addElement(a);
 		}
 		
+		// TODO: need to implement
 		if (FeatureGenerator.SEMANTICFEATURES){
 			// need to set before?
 			System.setProperty("wordnet.database.dir", "/usr/local/WordNet-3.0/dict/");
@@ -150,12 +151,7 @@ public class FeatureGenerator {
     	Instances instances = initializeAttributes();
     	ArrayList<Instance> docInstances = null;
     	for (ACEAnnotation entry : data){
-    		//if (labeled){
     		docInstances = getDocInstance(instances, entry, labeled, gold);
-//    		}
-//    		else{
-//    			docInstances = getGoldDocInstance(instances, entry, labeled);
-//    		}
 			for (Instance i : docInstances){
 				instances.add(i);
 			}
@@ -242,9 +238,9 @@ public class FeatureGenerator {
 	    	//System.out.println("Number of negative examples:" + myLabels.getSecond().size());
 	    	
 	    	List<CoreferenceEdge> mylist = myLabels.getSecond();
-	    	Collections.shuffle(mylist);
-	    	for (int k = 0; k < positive_count & k < mylist.size(); k++){
-	    	//for (int k = 0; k < mylist.size(); k++){
+	    	//Collections.shuffle(mylist);
+	    	//for (int k = 0; k < positive_count & k < mylist.size(); k++){
+	    	for (int k = 0; k < mylist.size(); k++){
 	    		temp.add(mylist.get(k));
 	    		temp_labels.add("-1");
 	    	}
@@ -263,9 +259,9 @@ public class FeatureGenerator {
 	    	// Sample Negative examples
 	    	//System.out.println("testing number of positive examples:" + positive_count);
 	    	List<CoreferenceEdge> mylist = myLabels.getSecond();
-	    	Collections.shuffle(mylist);
-	    	for (int k = 0; k < positive_count & k < mylist.size(); k++){
-	    	//for (int k = 0; k < mylist.size(); k++){
+	    	//Collections.shuffle(mylist);
+	    	//for (int k = 0; k < positive_count & k < mylist.size(); k++){
+	    	for (int k = 0; k < mylist.size(); k++){
 	    		temp.add(mylist.get(k));
 	    		temp_labels.add("-1");
 	    	}
@@ -353,12 +349,12 @@ public class FeatureGenerator {
 				extent2 += word1 + " ";
 			}
 			if ( (extent1.trim().toLowerCase()).compareTo(extent2.trim().toLowerCase()) == 0 ){
-				System.out.println("extentMatch:" + extent1 + extent2);
+				//System.out.println("extentMatch:" + extent1 + extent2);
 				instance.setValue(attribute_dict.get("extentMatch"),"1");
 			}
 			
 			if (extent1.trim().toLowerCase().contains(extent2.trim().toLowerCase()) || extent2.trim().toLowerCase().contains(extent1.trim().toLowerCase()) ){
-				System.out.println("extentSubstring:\n" + extent1 + "\n" + extent2);
+				//System.out.println("extentSubstring:\n" + extent1 + "\n" + extent2);
 				instance.setValue(attribute_dict.get("extentSubstring"),"1");
 			}
 		}
@@ -421,8 +417,10 @@ public class FeatureGenerator {
 	private static String getApposition(int distance, EntityMention first, EntityMention second, List<String> document_tokens) {
 		if (first.getEndOffset() == second.getStartOffset()-distance){
 			if( document_tokens.get(first.getEndOffset()).compareTo(",") == 0 ){
-				//System.out.println("apposition:" + document_tokens.subList(first.getStartOffset(), second.getEndOffset()) );
-				//System.out.println("mentions: first (" + first.getStartOffset() + "-" + first.getEndOffset() + ") " + first.getExtent() + " second ("+ second.getStartOffset() + "-" + second.getEndOffset() +"):" + second.getExtent());
+//				if (distance < 2){
+//					System.out.println("apposition:" + document_tokens.subList(first.getStartOffset(), second.getEndOffset()) );
+//					System.out.println("mentions: first (" + first.getStartOffset() + "-" + first.getEndOffset() + ") " + first.getExtent() + " second ("+ second.getStartOffset() + "-" + second.getEndOffset() +"):" + second.getExtent());
+//				}
 				return "1";
 			}
 		}
