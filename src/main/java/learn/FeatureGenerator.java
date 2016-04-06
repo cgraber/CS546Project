@@ -1,17 +1,7 @@
 package learn;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Scanner;
-import java.util.Set;
-import java.lang.Integer;
 
 import data.ACEAnnotation;
 import data.CoreferenceEdge;
@@ -22,7 +12,6 @@ import weka.core.Attribute;
 import weka.core.FastVector;
 import weka.core.Instance;
 import weka.core.Instances;
-import weka.core.converters.ArffSaver;
 
 public class FeatureGenerator {
 
@@ -313,7 +302,7 @@ public class FeatureGenerator {
 		EntityMention e1 = null;
 		EntityMention e2 = null;
 		
-		if (somePair.getFirst().getStartOffset() < somePair.getSecond().getStartOffset()){
+		if (somePair.getFirst().getExtentStartOffset() < somePair.getSecond().getExtentStartOffset()){
 			e1 = somePair.getFirst();
 			e2 = somePair.getSecond();
 		}else{
@@ -366,7 +355,7 @@ public class FeatureGenerator {
 			
 			for (int k = 1; k < FeatureGenerator.APPOSITIONDISTANCE; k++){
 				key = "mentionApposition"+k+"-";
-				if ( e1.getStartOffset() != e2.getStartOffset())
+				if ( e1.getExtentStartOffset() != e2.getExtentStartOffset())
 					instance.setValue( attribute_dict.get(key), getApposition(k, e1, e2, entry.getTokens() ) );
 				
 			}
@@ -384,7 +373,7 @@ public class FeatureGenerator {
 	private static String detectMentionSentence(EntityMention first,
 			EntityMention second, List<List<String>> sentences) {
 		
-		int position1 = first.getStartOffset();
+		int position1 = first.getExtentStartOffset();
 		int position2 = second.getSentenceOffset();
 		int current_position = 0;
 		
@@ -415,11 +404,11 @@ public class FeatureGenerator {
 	}
 
 	private static String getApposition(int distance, EntityMention first, EntityMention second, List<String> document_tokens) {
-		if (first.getEndOffset() == second.getStartOffset()-distance){
-			if( document_tokens.get(first.getEndOffset()).compareTo(",") == 0 ){
+		if (first.getExtentEndOffset() == second.getExtentStartOffset()-distance){
+			if( document_tokens.get(first.getExtentEndOffset()).compareTo(",") == 0 ){
 //				if (distance < 2){
-//					System.out.println("apposition:" + document_tokens.subList(first.getStartOffset(), second.getEndOffset()) );
-//					System.out.println("mentions: first (" + first.getStartOffset() + "-" + first.getEndOffset() + ") " + first.getExtent() + " second ("+ second.getStartOffset() + "-" + second.getEndOffset() +"):" + second.getExtent());
+//					System.out.println("apposition:" + document_tokens.subList(first.getExtentStartOffset(), second.getExtentEndOffset()) );
+//					System.out.println("mentions: first (" + first.getExtentStartOffset() + "-" + first.getExtentEndOffset() + ") " + first.getExtent() + " second ("+ second.getExtentStartOffset() + "-" + second.getExtentEndOffset() +"):" + second.getExtent());
 //				}
 				return "1";
 			}
@@ -433,12 +422,12 @@ public class FeatureGenerator {
 	 * @param e2 is the rightmost mention.
 	 */
 	public static double distanceFeature(EntityMention e1, EntityMention e2){
-		//System.out.println("entity1 location:" + e1.getStartOffset()+ " to: " + e1.getEndOffset());
-		//System.out.println("entity2 location:" + e2.getStartOffset()+ " to: " + e2.getEndOffset());
+		//System.out.println("entity1 location:" + e1.getExtentStartOffset()+ " to: " + e1.getExtentEndOffset());
+		//System.out.println("entity2 location:" + e2.getExtentStartOffset()+ " to: " + e2.getExtentEndOffset());
 		//System.out.println("entity1:" + e1.getExtent() + " could be coreferent to " + " entity2: " + e2.getExtent() );
 		
 		//TODO: fix distance measure
-		return Math.abs(e1.getEndOffset() - e2.getStartOffset());
+		return Math.abs(e1.getExtentEndOffset() - e2.getExtentStartOffset());
 		
 		
 	}

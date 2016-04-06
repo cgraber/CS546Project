@@ -11,17 +11,21 @@ public class EntityMention implements Serializable {
     private static final long serialVersionUID = 3L;
 
     private String entityType;
-    private int startOffset;
-    private int endOffset;
+    private int extentStartOffset;
+    private int extentEndOffset;
+    private int headStartOffset;
+    private int headEndOffset;
     private int sentenceOffset;
     private ACEAnnotation annotation;
     private String mentionType;
 
-    protected EntityMention(String entityType, String mentionType, int startOffset, int endOffset, int sentenceOffset, ACEAnnotation annotation) {
+    protected EntityMention(String entityType, String mentionType, int extentStartOffset, int extentEndOffset, int headStartOffset, int headEndOffset, int sentenceOffset, ACEAnnotation annotation) {
         this.entityType = entityType;
         this.mentionType = mentionType;
-        this.startOffset = startOffset;
-        this.endOffset = endOffset;
+        this.extentStartOffset = extentStartOffset;
+        this.extentEndOffset = extentEndOffset;
+        this.headStartOffset = headStartOffset;
+        this.headEndOffset = headEndOffset;
         this.sentenceOffset = sentenceOffset;
         this.annotation = annotation;
     }
@@ -34,25 +38,50 @@ public class EntityMention implements Serializable {
         return mentionType;
     }
 
-    public int getStartOffset() {
-        return startOffset;
+    public int getExtentStartOffset() {
+        return extentStartOffset;
+    }
+
+    public int getHeadStartOffset() {
+        return headStartOffset;
+    }
+
+    public int getHeadEndOffset() {
+        return headEndOffset;
     }
 
     public int getSentenceOffset() {return sentenceOffset; }
 
     //NOTE THAT THIS RETURNS THE INDEX OF THE END TOKEN + 1
-    public int getEndOffset() {
-        return endOffset;
+    public int getExtentEndOffset() {
+        return extentEndOffset;
     }
 
     public List<String> getExtent() {
-        return annotation.getExtent(startOffset, endOffset);
+        return annotation.getExtent(extentStartOffset, extentEndOffset);
+    }
+
+    public List<String> getHead() {
+        return annotation.getExtent(headStartOffset, headEndOffset);
     }
 
     public boolean equals(EntityMention other) {
         if (this.entityType.equals(other.entityType) &&
-                this.startOffset == other.startOffset &&
-                this.endOffset == other.endOffset &&
+                this.extentStartOffset == other.extentStartOffset &&
+                this.extentEndOffset == other.extentEndOffset &&
+                this.headStartOffset == other.headStartOffset &&
+                this.headEndOffset == other.headEndOffset &&
+                this.annotation == other.annotation) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public boolean equalsHead(EntityMention other) {
+        if (this.entityType.equals(other.entityType) &&
+                this.headStartOffset == other.headStartOffset &&
+                this.headEndOffset == other.headEndOffset &&
                 this.annotation == other.annotation) {
             return true;
         } else {

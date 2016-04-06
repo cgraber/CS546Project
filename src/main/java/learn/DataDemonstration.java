@@ -89,7 +89,7 @@ public class DataDemonstration {
             //than constructing something new and returning it. Hence, for each task, there is a method that allows you
             //to add a label. For NER, it looks like this:
             //                        MENTION TYPE    START INDEX   END INDEX+1
-            document.addEntityMention("[TYPE]",            0,           2);
+            document.addEntityMention("[TYPE]",            0,           2,           0,            2);
             //NOTE: there are two important facts about the span arguments:
             //      1) These indices are global, not per-sentence. So, for example, if you are adding a mention in the second
             //         sentence, you need to make sure that the indices you pass in here are not the indices within that sentence

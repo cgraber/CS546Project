@@ -38,7 +38,7 @@ public class NERBaseline implements PipelineStage {
                     String tag = testTags.get(tagSentInd).get(tagLabelInd);
                     if (tag.startsWith(Consts.BIO_B)) {
                         if (currentType != null) {
-                            doc.addEntityMention(currentType, currentStart, currentEnd);
+                            doc.addEntityMention(currentType, currentStart, currentEnd, currentStart, currentEnd);
                             //System.out.println("Adding entity of type " + currentType + ", (" + currentStart + ", " + currentEnd + ")");
 
                             currentStart = currentEnd;
@@ -51,7 +51,7 @@ public class NERBaseline implements PipelineStage {
                         currentEnd++;
                     } else {
                         if (currentType != null) {
-                            doc.addEntityMention(currentType, currentStart, currentEnd);
+                            doc.addEntityMention(currentType, currentStart, currentEnd, currentStart, currentEnd);
                             //System.out.println("Adding entity of type " + currentType + ", (" + currentStart + ", " + currentEnd + ")");
 
                             currentType = null;
@@ -85,6 +85,7 @@ public class NERBaseline implements PipelineStage {
     private StringBuilder extractFeatures(ACEAnnotation doc, boolean isTrain) {
         StringBuilder result = new StringBuilder();
         List<List<String>> bioLabels = doc.getGoldBIOEncoding();
+        System.out.println(bioLabels);
         List<List<String>> posTags = doc.getPOSTagsBySentence();
 
         for (int sentInd = 0; sentInd < doc.getNumberOfSentences(); sentInd++) {

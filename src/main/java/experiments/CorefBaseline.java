@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import weka.core.Instances;
 import learn.FeatureGenerator;
@@ -14,7 +13,6 @@ import data.CoreferenceEdge;
 import data.DataUtils;
 import data.EntityMention;
 import edu.illinois.cs.cogcomp.core.datastructures.Pair;
-import edu.illinois.cs.cogcomp.lbjava.learn.NaiveBayes;
 import weka.classifiers.functions.Logistic;
 
 /**
@@ -151,7 +149,7 @@ public class CorefBaseline implements PipelineStage{
 			
 			for ( CoreferenceEdge item : examples){
 				Pair<EntityMention, EntityMention> mentions_pair = item.getEntityMentions();
-				if (mentions_pair.getFirst().getStartOffset() < mentions_pair.getSecond().getStartOffset() ){
+				if (mentions_pair.getFirst().getExtentStartOffset() < mentions_pair.getSecond().getExtentStartOffset() ){
 					em2 = mentions_pair.getSecond();
 				}
 				else{
@@ -214,7 +212,7 @@ public class CorefBaseline implements PipelineStage{
 			
 			for ( CoreferenceEdge item : examples){
 				Pair<EntityMention, EntityMention> mentions_pair = item.getEntityMentions();
-				if (mentions_pair.getFirst().getStartOffset() < mentions_pair.getSecond().getStartOffset() ){
+				if (mentions_pair.getFirst().getExtentStartOffset() < mentions_pair.getSecond().getExtentStartOffset() ){
 					em1 = mentions_pair.getFirst();
 					em2 = mentions_pair.getSecond();
 				}
@@ -222,7 +220,7 @@ public class CorefBaseline implements PipelineStage{
 					em2 = mentions_pair.getFirst();
 					em1 = mentions_pair.getSecond();
 				}
-				//System.out.println("first ("+em1.getStartOffset() +"-"+ em1.getEndOffset()+"):"+ em1.getExtent() + " second ("+em2.getStartOffset() +"-"+ em2.getEndOffset()+"):" + em2.getExtent());
+				//System.out.println("first ("+em1.getExtentStartOffset() +"-"+ em1.getExtentEndOffset()+"):"+ em1.getExtent() + " second ("+em2.getExtentStartOffset() +"-"+ em2.getExtentEndOffset()+"):" + em2.getExtent());
 //				if( positive_examples.contains(  )  ){
 //					System.out.println("contains duplicate");
 //				}

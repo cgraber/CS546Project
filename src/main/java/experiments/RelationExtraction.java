@@ -89,7 +89,7 @@ public class RelationExtraction {
                 }
 
                 /*
-                else if(left.getStartOffset()==right.getStartOffset()){
+                else if(left.getExtentStartOffset()==right.getExtentStartOffset()){
                     System.out.println(" ");
                     System.out.println(left.getExtent());
                     System.out.println(right.getExtent());
@@ -110,8 +110,8 @@ public class RelationExtraction {
 
                 fea_vec.addBinaryFeature("E1_E_type:" + left.getEntityType());
                 fea_vec.addBinaryFeature("E2_E_type:" + right.getEntityType());
-                fea_vec.addBinaryFeature("E1_head:" + lemmas.get(left.getEndOffset() - 1));
-                fea_vec.addBinaryFeature("E2_head:" + lemmas.get(right.getEndOffset() - 1));
+                fea_vec.addBinaryFeature("E1_head:" + lemmas.get(left.getExtentEndOffset() - 1));
+                fea_vec.addBinaryFeature("E2_head:" + lemmas.get(right.getExtentEndOffset() - 1));
                 fea_vec.addBinaryFeature("type_concat:" + left.getEntityType() + right.getEntityType());
 
                 //Word based features
@@ -119,10 +119,10 @@ public class RelationExtraction {
                 int sen_start = document.getSentenceIndex(sen_offset);
                 int sen_end = document.getSentenceIndex(sen_offset + 1) - 1;
 
-                int leftstart = left.getStartOffset();
-                int leftend = left.getEndOffset();
-                int rightstart = right.getStartOffset();
-                int rightend = right.getEndOffset();
+                int leftstart = left.getExtentStartOffset();
+                int leftend = left.getExtentEndOffset();
+                int rightstart = right.getExtentStartOffset();
+                int rightend = right.getExtentEndOffset();
 
                 String E1_before = "_none_";
                 String E2_after = "_none_";
