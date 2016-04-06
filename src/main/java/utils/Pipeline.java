@@ -34,6 +34,7 @@ public class Pipeline {
         props.setProperty(PipelineConfigurator.USE_SRL_VERB.key, Configurator.FALSE);
         props.setProperty(PipelineConfigurator.USE_SRL_NOM.key, Configurator.FALSE);
         props.setProperty(PipelineConfigurator.STFRD_MAX_SENTENCE_LENGTH.key, "5000");
+        props.setProperty(PipelineConfigurator.STFRD_TIME_PER_SENTENCE.key, "10000");
         ResourceManager rm = new ResourceManager(props);
         AnnotatorService pipeline = null;
         try {
@@ -50,6 +51,7 @@ public class Pipeline {
             pipeline.addView(ta, ViewNames.LEMMA);
             pipeline.addView(ta, ViewNames.PARSE_STANFORD);
         } catch (AnnotatorException e) {
+            System.out.println("SIZE: "+ta.size());
             System.err.println("PIPELINE PROBLEM - THIS SHOULDN'T HAPPEN");
             for (int i = 0; i < ta.getNumberOfSentences(); i++) {
                 System.out.println(ta.getSentence(i).getTokens().length);

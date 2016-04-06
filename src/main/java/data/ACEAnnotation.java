@@ -3,10 +3,9 @@ package data;
 import edu.illinois.cs.cogcomp.core.datastructures.IntPair;
 import edu.illinois.cs.cogcomp.core.datastructures.Pair;
 import edu.illinois.cs.cogcomp.core.datastructures.ViewNames;
-import edu.illinois.cs.cogcomp.core.datastructures.textannotation.Constituent;
-import edu.illinois.cs.cogcomp.core.datastructures.textannotation.Sentence;
-import edu.illinois.cs.cogcomp.core.datastructures.textannotation.TextAnnotation;
-import edu.illinois.cs.cogcomp.core.datastructures.textannotation.View;
+import edu.illinois.cs.cogcomp.core.datastructures.textannotation.*;
+import edu.illinois.cs.cogcomp.edison.features.ParseHeadWordFeatureExtractor;
+import edu.illinois.cs.cogcomp.edison.features.helpers.ParseHelper;
 import edu.illinois.cs.cogcomp.reader.ace2005.annotationStructure.*;
 import edu.illinois.cs.cogcomp.reader.ace2005.documentReader.AceFileProcessor;
 import edu.illinois.cs.cogcomp.reader.util.EventConstants;
@@ -378,10 +377,54 @@ public class ACEAnnotation implements Serializable {
     }
 
     public void getHeadNounPhrase() {
-        for (TextAnnotation ta: taList) {
-            System.out.println(ta.getView(ViewNames.PARSE_STANFORD));
+        EntityMention e = goldEntityMentions.get(0);
+        Constituent span = getParseSpanForMention(e);
+        //for (TextAnnotation ta: taList) {
+        //    System.out.println(ta.getView(ViewNames.PARSE_STANFORD));
 
+        //}
+    }
+
+    private Constituent getParseSpanForMention(EntityMention e) {
+        System.out.println("START OFFSET: "+e.getStartOffset());
+        System.out.println("END OFFSET: "+e.getEndOffset());
+        System.out.println("EXTENT: "+e.getExtent());
+        int offset = 0;
+        int taNo = 0;
+        int sentNo = 0;
+        while (sentNo + taList.get(taNo).getNumberOfSentences() < e.getSentenceOffset()) {
+            sentNo += taList.get(taNo).getNumberOfSentences();
+            offset += taList.get(taNo).getTokens().length;
+            taNo++;
         }
+        System.out.println("TANO: "+taNo);
+        System.out.println("OFFSET: "+offset);
+        TreeView parse = (TreeView)taList.get(taNo).getView(ViewNames.PARSE_STANFORD);
+        System.out.println(ParseHelper.getParseTreeCovering(ViewNames.PARSE_STANFORD, new Constituent(null, null, taList.get(taNo), e.getStartOffset() - offset, e.getEndOffset() - offset)));
+        /*
+        //System.out.println(parse.getTree(e.getSentenceOffset() - sentNo));
+        List<Constituent> span = parse
+                .getConstituentsCoveringSpan(e.getStartOffset() - offset, e.getEndOffset() - offset);
+        int tokenNo = Integer.MAX_VALUE;
+        Constituent result = null;
+        for (Constituent con: span) {
+            boolean found = true;
+            for (int i = e.getStartOffset() - offset; i < e.getEndOffset()-offset; i++) {
+                if (!con.doesConstituentCover(i)) {
+                    found = false;
+                    break;
+                }
+            }
+            if (found && con.getNumberOfTokens() < tokenNo) {
+                tokenNo = con.getNumberOfTokens();
+                result = con;
+            }
+        }
+        System.out.println(result.getSurfaceForm());
+        System.out.println(result.getLabel());
+        return result;
+        */
+        return null;
     }
 
     /**
