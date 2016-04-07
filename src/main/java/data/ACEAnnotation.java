@@ -1,5 +1,6 @@
 package data;
 
+import edu.illinois.cs.cogcomp.annotation.TextAnnotationBuilder;
 import edu.illinois.cs.cogcomp.core.datastructures.IntPair;
 import edu.illinois.cs.cogcomp.core.datastructures.Pair;
 import edu.illinois.cs.cogcomp.core.datastructures.ViewNames;
@@ -7,6 +8,8 @@ import edu.illinois.cs.cogcomp.core.datastructures.textannotation.Constituent;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.Sentence;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.TextAnnotation;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.View;
+import edu.illinois.cs.cogcomp.nlp.tokenizer.IllinoisTokenizer;
+import edu.illinois.cs.cogcomp.nlp.utility.CcgTextAnnotationBuilder;
 import edu.illinois.cs.cogcomp.reader.ace2005.annotationStructure.*;
 import edu.illinois.cs.cogcomp.reader.ace2005.documentReader.AceFileProcessor;
 import edu.illinois.cs.cogcomp.reader.util.EventConstants;
@@ -24,7 +27,9 @@ import java.util.*;
  */
 public class ACEAnnotation implements Serializable {
 
-    private static final long serialVersionUID = 1L;
+    private static final long serialVersionUID = 2L;
+    private static TextAnnotationBuilder taBuilder;
+
 
     // The following two lists hold all of the relation types/subtypes seen
     private static Set<String> relationTypes;
@@ -39,11 +44,13 @@ public class ACEAnnotation implements Serializable {
         entityTypes = new HashSet<>();
         mentionTypes = new HashSet<>();
         entitySubtypes = new HashSet<>();
+
+        taBuilder = new CcgTextAnnotationBuilder(new IllinoisTokenizer());
     }
 
 
     private String id;
-    private List<TextAnnotation> taList;
+    private TextAnnotation ta;
 
     // Each sentence is represented as a List of tokens - this is a list of those lists
     private List<List<String>> sentenceTokens = new ArrayList<>();
@@ -71,23 +78,17 @@ public class ACEAnnotation implements Serializable {
     public ACEAnnotation(ACEDocument doc) {
         id = doc.aceAnnotation.id;
 
-        taList = AceFileProcessor.populateTextAnnotation(doc);
-
-        // Since there may be multiple text annotations, each holding multiple sentences, we make accessing sentences
-        // easier
+        ta = taBuilder.createTextAnnotation(null, id, doc.contentRemovingTags);
         int count=0;
-        for (TextAnnotation ta: taList) {
-            Pipeline.addAllViews(ta);
-            for (Sentence sentence: ta.sentences()) {
-                List<String> sentenceArray=Arrays.asList(sentence.getTokens());
-                sentenceTokens.add(sentenceArray);
-                tokens.addAll(sentenceArray);
-                sentenceIndex.add(count);
-                count+=sentenceArray.size();
-            }
+        Pipeline.addAllViews(ta);
+        for (Sentence sentence: ta.sentences()) {
+            List<String> sentenceArray=Arrays.asList(sentence.getTokens());
+            sentenceTokens.add(sentenceArray);
+            tokens.addAll(sentenceArray);
+            sentenceIndex.add(count);
+            count+=sentenceArray.size();
         }
         sentenceIndex.add(count);
-
 
         // And now we pull all of the gold data out of the ACEDocumentAnnotation wrapper
         relationList = doc.aceAnnotation.relationList;
@@ -269,7 +270,7 @@ public class ACEAnnotation implements Serializable {
         });
 
         for (EntityMention e: goldEntityMentions) {
-            System.out.println("("+e.getHeadStartOffset()+", "+e.getHeadEndOffset()+")");
+            //System.out.println("("+e.getHeadStartOffset()+", "+e.getHeadEndOffset()+")");
         }
         Iterator<EntityMention> labelItr = goldEntityMentions.iterator();
         EntityMention currentLabel = labelItr.next();
@@ -306,32 +307,32 @@ public class ACEAnnotation implements Serializable {
      */
     public List<List<String>> getPOSTagsBySentence() {
         List<List<String>> result = new ArrayList<List<String>>();
-        for (TextAnnotation ta: taList) {
-            int tokenInd = 0;
-            for (Sentence sentence: ta.sentences()) {
-                List<String> posList = new ArrayList<>();
-                result.add(posList);
-                View posView = ta.getView(ViewNames.POS);
-                for (int i = 0; i < sentence.getTokens().length; i++) {
-                    posList.add(posView.getLabelsCoveringToken(tokenInd++).get(0));
-                }
+
+        int tokenInd = 0;
+        for (Sentence sentence: ta.sentences()) {
+            List<String> posList = new ArrayList<>();
+            result.add(posList);
+            View posView = ta.getView(ViewNames.POS);
+            for (int i = 0; i < sentence.getTokens().length; i++) {
+                posList.add(posView.getLabelsCoveringToken(tokenInd++).get(0));
             }
         }
+
 
         return result;
     }
 
     public List<String> getPOSTags() {
         List<String> result = new ArrayList<>();
-        for (TextAnnotation ta: taList) {
-            int tokenInd = 0;
-            for (Sentence sentence: ta.sentences()) {
-                View posView = ta.getView(ViewNames.POS);
-                for (int i = 0; i < sentence.getTokens().length; i++) {
-                    result.add(posView.getLabelsCoveringToken(tokenInd++).get(0));
-                }
+
+        int tokenInd = 0;
+        for (Sentence sentence: ta.sentences()) {
+            View posView = ta.getView(ViewNames.POS);
+            for (int i = 0; i < sentence.getTokens().length; i++) {
+                result.add(posView.getLabelsCoveringToken(tokenInd++).get(0));
             }
         }
+
         return result;
     }
 
@@ -342,32 +343,32 @@ public class ACEAnnotation implements Serializable {
      */
     public List<List<String>> getLemmasBySentence() {
         List<List<String>> result = new ArrayList<>();
-        for (TextAnnotation ta: taList) {
-            int tokenInd = 0;
-            for (Sentence sentence: ta.sentences()) {
-                List<String> lemmaList = new ArrayList<>();
-                result.add(lemmaList);
-                View lemmaView = ta.getView(ViewNames.LEMMA);
-                for (int i = 0; i < sentence.getTokens().length; i++) {
-                    lemmaList.add(lemmaView.getLabelsCoveringToken(tokenInd++).get(0));
-                }
+
+        int tokenInd = 0;
+        for (Sentence sentence: ta.sentences()) {
+            List<String> lemmaList = new ArrayList<>();
+            result.add(lemmaList);
+            View lemmaView = ta.getView(ViewNames.LEMMA);
+            for (int i = 0; i < sentence.getTokens().length; i++) {
+                lemmaList.add(lemmaView.getLabelsCoveringToken(tokenInd++).get(0));
             }
         }
+
 
         return result;
     }
 
     public List<String> getLemmas() {
         List<String> result = new ArrayList<>();
-        for (TextAnnotation ta: taList) {
-            int tokenInd = 0;
-            for (Sentence sentence: ta.sentences()) {
-                View posView = ta.getView(ViewNames.LEMMA);
-                for (int i = 0; i < sentence.getTokens().length; i++) {
-                    result.add(posView.getLabelsCoveringToken(tokenInd++).get(0));
-                }
+
+        int tokenInd = 0;
+        for (Sentence sentence: ta.sentences()) {
+            View posView = ta.getView(ViewNames.LEMMA);
+            for (int i = 0; i < sentence.getTokens().length; i++) {
+                result.add(posView.getLabelsCoveringToken(tokenInd++).get(0));
             }
         }
+
         return result;
     }
 
@@ -594,28 +595,7 @@ public class ACEAnnotation implements Serializable {
     }
 
     public List<String> getExtent(int start, int end) {
-        int tokenCount = -1;
-        List<String> result = new ArrayList<>();
-        for (TextAnnotation ta: taList) {
-            if (start > tokenCount + ta.getTokens().length) {
-                tokenCount += ta.getTokens().length;
-                continue;
-            }
-            for (int i = 0; i < ta.getTokens().length; i++) {
-                tokenCount++;
-                if (tokenCount < start) {
-                    continue;
-                } else if (tokenCount < end) {
-                    result.add(ta.getTokens()[i]);
-                } else {
-                    break;
-                }
-            }
-            if (tokenCount >= end) {
-                break;
-            }
-        }
-        return result;
+        return Arrays.asList(ta.getTokensInSpan(start, end));
     }
 
     public IntPair getNERPrecisionInfo() {
@@ -655,32 +635,7 @@ public class ACEAnnotation implements Serializable {
      */
     private IntPair findTokenOffsets(int mentionStart, int mentionEnd )
     {
-        int tokenStart = -1;
-        int tokenEnd = -1;
-        int tokenStartOffset = 0;
-        int tokenEndOffset = 0;
-        for (TextAnnotation ta: taList) {
-
-            View tokenOffsetView = ta.getView(EventConstants.TOKEN_WITH_CHAR_OFFSET);
-
-            for (Constituent t : tokenOffsetView.getConstituents()) {
-                System.out.println("Looking at span: ("+t.getAttribute(EventConstants.CHAR_START)+", "+t.getAttribute(EventConstants.CHAR_END)+"): "+t.getSurfaceForm());
-                if (Integer.parseInt(t.getAttribute(EventConstants.CHAR_START)) <= mentionStart) {
-                    tokenStart = t.getStartSpan();
-                }
-                if (tokenEnd == -1 && Integer.parseInt(t.getAttribute(EventConstants.CHAR_END)) >= mentionEnd) {
-                    tokenEnd = t.getEndSpan();
-                }
-            }
-
-            if (tokenStart >= 0 && tokenEnd >= 0) {
-                return new IntPair(tokenStart + tokenStartOffset, tokenEnd+tokenEndOffset);
-            } else {
-                tokenStartOffset += ta.getTokens().length;
-                tokenEndOffset += ta.getTokens().length;
-            }
-        }
-        return null;
+        return new IntPair(ta.getTokenIdFromCharacterOffset(mentionStart), ta.getTokenIdFromCharacterOffset(mentionEnd)+1);
     }
 
 
