@@ -27,7 +27,7 @@ import java.util.*;
  */
 public class ACEAnnotation implements Serializable {
 
-    private static final long serialVersionUID = 2L;
+    private static final long serialVersionUID = 3L;
     private static TextAnnotationBuilder taBuilder;
 
 
@@ -370,6 +370,10 @@ public class ACEAnnotation implements Serializable {
         }
 
         return result;
+    }
+
+    public IntPair findMentionHead(int headStartOffset, int headEndOffset) {
+        return null;
     }
 
     /**

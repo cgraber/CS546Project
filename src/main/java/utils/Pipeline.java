@@ -29,10 +29,13 @@ public class Pipeline {
         props.setProperty(PipelineConfigurator.USE_SHALLOW_PARSE.key, Configurator.FALSE);
         props.setProperty(PipelineConfigurator.USE_NER_CONLL.key, Configurator.FALSE);
         props.setProperty(PipelineConfigurator.USE_NER_ONTONOTES.key, Configurator.FALSE);
-        props.setProperty(PipelineConfigurator.USE_STANFORD_PARSE.key, Configurator.FALSE);
+        props.setProperty(PipelineConfigurator.USE_STANFORD_PARSE.key, Configurator.TRUE);
         props.setProperty(PipelineConfigurator.USE_STANFORD_DEP.key, Configurator.FALSE);
         props.setProperty(PipelineConfigurator.USE_SRL_VERB.key, Configurator.FALSE);
         props.setProperty(PipelineConfigurator.USE_SRL_NOM.key, Configurator.FALSE);
+        props.setProperty(PipelineConfigurator.STFRD_MAX_SENTENCE_LENGTH.key, "10000");
+        props.setProperty(PipelineConfigurator.STFRD_TIME_PER_SENTENCE.key, "100000000");
+
         ResourceManager rm = new ResourceManager(props);
         AnnotatorService pipeline = null;
         try {
@@ -47,8 +50,10 @@ public class Pipeline {
         try {
             pipeline.addView(ta, ViewNames.POS);
             pipeline.addView(ta, ViewNames.LEMMA);
+            pipeline.addView(ta, ViewNames.PARSE_STANFORD);
         } catch (AnnotatorException e) {
             System.err.println("PIPELINE PROBLEM - THIS SHOULDN'T HAPPEN");
+            e.printStackTrace();
             System.exit(1);
         }
     }
