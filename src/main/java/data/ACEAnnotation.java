@@ -123,29 +123,13 @@ public class ACEAnnotation implements Serializable {
         Collections.sort(goldEntityMentions, new Comparator<EntityMention>() {
             @Override
             public int compare(EntityMention e1, EntityMention e2) {
-                if (e1.getExtentStartOffset() < e2.getExtentStartOffset()) {
+                if (e1.getHeadStartOffset() < e2.getHeadStartOffset()) {
                     return -1;
-                } else if (e2.getExtentStartOffset() < e1.getExtentStartOffset()) {
+                } else if (e2.getHeadStartOffset() < e1.getHeadStartOffset()) {
                     return 1;
-                } else if (e1.getExtentEndOffset() < e2.getExtentEndOffset()) {
+                } else if (e1.getHeadEndOffset() < e2.getHeadEndOffset()) {
                     return -1;
-                } else if (e2.getExtentEndOffset() < e1.getExtentEndOffset()) {
-                    return 1;
-                } else {
-                    return 0;
-                }
-            }
-        });
-        Collections.sort(goldEntityMentions, new Comparator<EntityMention>() {
-            @Override
-            public int compare(EntityMention e1, EntityMention e2) {
-                if (e1.getExtentStartOffset() < e2.getExtentStartOffset()) {
-                    return -1;
-                } else if (e2.getExtentStartOffset() < e1.getExtentStartOffset()) {
-                    return 1;
-                } else if (e1.getExtentEndOffset() < e2.getExtentEndOffset()) {
-                    return -1;
-                } else if (e2.getExtentEndOffset() < e1.getExtentEndOffset()) {
+                } else if (e2.getHeadEndOffset() < e1.getHeadEndOffset()) {
                     return 1;
                 } else {
                     return 0;
@@ -438,7 +422,7 @@ public class ACEAnnotation implements Serializable {
             Collections.sort(mention_in_sentence, new Comparator<EntityMention>() {
                 @Override
                 public int compare(EntityMention o1, EntityMention o2) {
-                    return o1.getExtentStartOffset()-o2.getExtentStartOffset();
+                    return o1.getHeadStartOffset()-o2.getHeadStartOffset();
                 }
             });
 
@@ -537,22 +521,6 @@ public class ACEAnnotation implements Serializable {
     }
 
     public List<CoreferenceEdge> getAllPairsTestCoreferenceEdges() {
-        Collections.sort(goldEntityMentions, new Comparator<EntityMention>() {
-            @Override
-            public int compare(EntityMention e1, EntityMention e2) {
-                if (e1.getExtentStartOffset() < e2.getExtentStartOffset()) {
-                    return -1;
-                } else if (e2.getExtentStartOffset() < e1.getExtentStartOffset()) {
-                    return 1;
-                } else if (e1.getExtentEndOffset() < e2.getExtentEndOffset()) {
-                    return -1;
-                } else if (e2.getExtentEndOffset() < e1.getExtentEndOffset()) {
-                    return 1;
-                } else {
-                    return 0;
-                }
-            }
-        });
         List<CoreferenceEdge> result = new ArrayList<>();
         for (int e1Ind = goldEntityMentions.size()-1; e1Ind >= 0; e1Ind--) {
             for (int e2Ind = e1Ind - 1; e2Ind >= 0; e2Ind--) {
@@ -575,13 +543,13 @@ public class ACEAnnotation implements Serializable {
         Collections.sort(testEntityMentions, new Comparator<EntityMention>() {
             @Override
             public int compare(EntityMention e1, EntityMention e2) {
-                if (e1.getExtentStartOffset() < e2.getExtentStartOffset()) {
+                if (e1.getHeadStartOffset() < e2.getHeadStartOffset()) {
                     return -1;
-                } else if (e2.getExtentStartOffset() < e1.getExtentStartOffset()) {
+                } else if (e2.getHeadStartOffset() < e1.getHeadStartOffset()) {
                     return 1;
-                } else if (e1.getExtentEndOffset() < e2.getExtentEndOffset()) {
+                } else if (e1.getHeadEndOffset() < e2.getHeadEndOffset()) {
                     return -1;
-                } else if (e2.getExtentEndOffset() < e1.getExtentEndOffset()) {
+                } else if (e2.getHeadEndOffset() < e1.getHeadEndOffset()) {
                     return 1;
                 } else {
                     return 0;
