@@ -8,6 +8,8 @@ import edu.illinois.cs.cogcomp.core.datastructures.textannotation.Constituent;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.Sentence;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.TextAnnotation;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.View;
+import edu.illinois.cs.cogcomp.core.datastructures.trees.Tree;
+import edu.illinois.cs.cogcomp.edison.features.helpers.ParseHelper;
 import edu.illinois.cs.cogcomp.nlp.tokenizer.IllinoisTokenizer;
 import edu.illinois.cs.cogcomp.nlp.utility.CcgTextAnnotationBuilder;
 import edu.illinois.cs.cogcomp.reader.ace2005.annotationStructure.*;
@@ -372,7 +374,20 @@ public class ACEAnnotation implements Serializable {
         return result;
     }
 
-    public IntPair findMentionHead(int headStartOffset, int headEndOffset) {
+    public IntPair findMentionExtent(int headStartOffset, int headEndOffset) {
+        List<Constituent> trees = ta.getView(ViewNames.PARSE_STANFORD).getConstituentsCoveringSpan(headStartOffset, headEndOffset);
+        Constituent correct = trees.get(0);
+        int span = trees.get(0).getEndSpan() - trees.get(0).getStartSpan();
+        for (Constituent tree: trees) {
+            int possibleSpan = tree.getEndSpan() - tree.getStartSpan();
+            if (possibleSpan < span && possibleSpan > headEndOffset - headStartOffset) {
+                correct = tree;
+                span = possibleSpan;
+            }
+        }
+        System.out.println(correct);
+
+        System.exit(0);
         return null;
     }
 

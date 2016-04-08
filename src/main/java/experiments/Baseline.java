@@ -28,6 +28,7 @@ public class Baseline {
             e.printStackTrace();
             System.exit(1);
         }
+        System.exit(0);
         */
         List<List<ACEAnnotation>> splits = null;
         try {
