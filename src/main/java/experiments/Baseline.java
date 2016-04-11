@@ -1,10 +1,7 @@
 package experiments;
 
 import data.ACEAnnotation;
-import data.DataUtils;
-import data.EntityMention;
 import edu.illinois.cs.cogcomp.core.datastructures.Pair;
-import edu.illinois.cs.cogcomp.core.datastructures.textannotation.TextAnnotation;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -42,11 +39,21 @@ public class Baseline {
         for (int i = 0; i < splits.size() - 1; i++) {
             train.addAll(splits.get(i));
         }
-        List<ACEAnnotation> test = splits.get(splits.size()-1);
+        List<ACEAnnotation> test = splits.get(splits.size() - 1);
         //ner.trainModel(train);
-        ner.test(test);
-        Pair<Double,Double> results = ner.evaluate(test);
-        System.out.println("PRECISION: "+results.getFirst());
-        System.out.println("RECALL: "+results.getSecond());
+        ner.test(train);
+        Pair<Double,Double> results = ner.evaluateHead(train);
+        System.out.println("HEAD PRECISION: "+results.getFirst());
+        System.out.println("HEAD RECALL: " + results.getSecond());
+        double headF1 = 2*results.getSecond()*results.getFirst()/(results.getFirst()+results.getSecond());
+        System.out.println("HEAD F1: "+headF1);
+        System.out.println("");
+
+        results = ner.evaluateExtent(train);
+        System.out.println("EXTENT PRECISION: "+results.getFirst());
+        System.out.println("EXTENT RECALL: "+results.getSecond());
+        double extentF1 = 2*results.getSecond()*results.getFirst()/(results.getFirst()+results.getSecond());
+        System.out.println("EXTENT F1: "+extentF1);
+        System.out.println("");
     }
 }

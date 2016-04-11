@@ -29,7 +29,9 @@ public class NERBaseline implements PipelineStage {
         System.out.println(testTags);
         int tagSentInd = 0;
         for (ACEAnnotation doc: data) {
-            System.out.println("NEW DOC: "+doc.getNumberOfSentences());
+            int tokenInd = 0;
+
+            //System.out.println("NEW DOC: "+doc.getNumberOfSentences());
             int currentStart = 0;
             int currentEnd = 1;
             String currentType = null;
@@ -38,6 +40,7 @@ public class NERBaseline implements PipelineStage {
                     String tag = testTags.get(tagSentInd).get(tagLabelInd);
                     if (tag.startsWith(Consts.BIO_B)) {
                         if (currentType != null) {
+                            System.out.println("Sentence offset: "+tokenInd);
                             IntPair extent = doc.findMentionExtent(currentStart, currentEnd);
                             doc.addEntityMention(currentType, extent.getFirst(), extent.getSecond(), currentStart, currentEnd);
                             //System.out.println("Adding entity of type " + currentType + ", (" + currentStart + ", " + currentEnd + ")");
@@ -52,6 +55,8 @@ public class NERBaseline implements PipelineStage {
                         currentEnd++;
                     } else {
                         if (currentType != null) {
+                            System.out.println("Sentence offset: "+tokenInd);
+
                             IntPair extent = doc.findMentionExtent(currentStart, currentEnd);
                             doc.addEntityMention(currentType, extent.getFirst(), extent.getSecond(), currentStart, currentEnd);
                             //System.out.println("Adding entity of type " + currentType + ", (" + currentStart + ", " + currentEnd + ")");
@@ -62,9 +67,8 @@ public class NERBaseline implements PipelineStage {
                         currentStart++;
 
                     }
-
                 }
-
+                tokenInd += doc.getSentence(sentInd).size();
                 tagSentInd++;
             }
         }
@@ -193,16 +197,32 @@ public class NERBaseline implements PipelineStage {
         return null;
     }
 
-    public Pair<Double,Double> evaluate(List<ACEAnnotation> docs) {
+    public Pair<Double,Double> evaluateExtent(List<ACEAnnotation> docs) {
         int precisionCount = 0;
         double precisionCorrectCount = 0;
         int recallCount = 0;
         double recallCorrectCount = 0;
         for (ACEAnnotation doc: docs) {
-            IntPair counts = doc.getNERPrecisionInfo();
+            IntPair counts = doc.getNERExtentPrecisionInfo();
             precisionCorrectCount += counts.getFirst();
             precisionCount += counts.getSecond();
-            counts = doc.getNERRecallInfo();
+            counts = doc.getNERExtentRecallInfo();
+            recallCorrectCount += counts.getFirst();
+            recallCount += counts.getSecond();
+        }
+        return new Pair<>(precisionCorrectCount/precisionCount, recallCorrectCount/recallCount);
+    }
+
+    public Pair<Double,Double> evaluateHead(List<ACEAnnotation> docs) {
+        int precisionCount = 0;
+        double precisionCorrectCount = 0;
+        int recallCount = 0;
+        double recallCorrectCount = 0;
+        for (ACEAnnotation doc: docs) {
+            IntPair counts = doc.getNERHeadPrecisionInfo();
+            precisionCorrectCount += counts.getFirst();
+            precisionCount += counts.getSecond();
+            counts = doc.getNERHeadRecallInfo();
             recallCorrectCount += counts.getFirst();
             recallCount += counts.getSecond();
         }

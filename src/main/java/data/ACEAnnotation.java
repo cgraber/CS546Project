@@ -4,7 +4,6 @@ import edu.illinois.cs.cogcomp.annotation.TextAnnotationBuilder;
 import edu.illinois.cs.cogcomp.core.datastructures.IntPair;
 import edu.illinois.cs.cogcomp.core.datastructures.Pair;
 import edu.illinois.cs.cogcomp.core.datastructures.ViewNames;
-import edu.illinois.cs.cogcomp.core.datastructures.textannotation.Constituent;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.Sentence;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.TextAnnotation;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.View;
@@ -13,8 +12,6 @@ import edu.illinois.cs.cogcomp.edison.features.helpers.ParseHelper;
 import edu.illinois.cs.cogcomp.nlp.tokenizer.IllinoisTokenizer;
 import edu.illinois.cs.cogcomp.nlp.utility.CcgTextAnnotationBuilder;
 import edu.illinois.cs.cogcomp.reader.ace2005.annotationStructure.*;
-import edu.illinois.cs.cogcomp.reader.ace2005.documentReader.AceFileProcessor;
-import edu.illinois.cs.cogcomp.reader.util.EventConstants;
 import utils.Consts;
 import utils.Pipeline;
 
@@ -157,7 +154,7 @@ public class ACEAnnotation implements Serializable {
         }
     }
 
-    private int FindSentenceIndex(int start){
+    private int findSentenceIndex(int start){
 
         for(int i=0;i<sentenceIndex.size()-1;i++){
             int index=sentenceIndex.get(i);
@@ -183,7 +180,7 @@ public class ACEAnnotation implements Serializable {
             System.exit(1);
         }
 
-        int sentenceOffset=FindSentenceIndex(extentOffsets.getFirst());
+        int sentenceOffset= findSentenceIndex(extentOffsets.getFirst());
         return new EntityMention(type, mention.type, extentOffsets.getFirst(), extentOffsets.getSecond(), headOffsets.getFirst(), headOffsets.getSecond(), sentenceOffset, this);
     }
 
@@ -359,20 +356,41 @@ public class ACEAnnotation implements Serializable {
     }
 
     public IntPair findMentionExtent(int headStartOffset, int headEndOffset) {
-        List<Constituent> trees = ta.getView(ViewNames.PARSE_STANFORD).getConstituentsCoveringSpan(headStartOffset, headEndOffset);
-        Constituent correct = trees.get(0);
-        int span = trees.get(0).getEndSpan() - trees.get(0).getStartSpan();
-        for (Constituent tree: trees) {
-            int possibleSpan = tree.getEndSpan() - tree.getStartSpan();
-            if (possibleSpan < span && possibleSpan > headEndOffset - headStartOffset) {
-                correct = tree;
-                span = possibleSpan;
-            }
+        System.out.println("CHECKING ("+headStartOffset+", "+headEndOffset+")");
+        return new IntPair(headStartOffset, headEndOffset);
+        /*
+        int sentenceInd = findSentenceIndex(headStartOffset);
+        int sentenceOffset = getSentenceIndex(sentenceInd);
+        System.out.println("SENTENCE OFFSET: "+sentenceOffset);
+        Tree<String> tree = ParseHelper.getParseTree(ViewNames.PARSE_STANFORD, ta, sentenceInd);
+        System.out.println(tree);
+        Tree<Pair<String, IntPair>> prev = ParseHelper.getTokenIndexedTreeCovering(tree, headStartOffset-sentenceOffset, headEndOffset-sentenceOffset);
+        System.out.println(prev);
+        Tree<Pair<String, IntPair>> parent = prev.getParent();
+        while (parent != null && !parent.getLabel().getFirst().equals("S") && !parent.getLabel().getFirst().startsWith("VP")){ //&& !parent.getLabel().getFirst().startsWith("NP")) {
+            prev = parent;
+            parent = parent.getParent();
         }
-        System.out.println(correct);
-
-        System.exit(0);
-        return null;
+        if (parent == null || parent.getLabel().getFirst().equals("S") || parent.getLabel().getFirst().startsWith("VP")) {
+            //System.out.println("RETURNING PREV");
+            //System.out.println(prev);
+            IntPair temp = prev.getLabel().getSecond();
+            System.out.println("RESULT: ("+(sentenceOffset+temp.getFirst())+", "+ (sentenceOffset+temp.getSecond())+")");
+            System.out.println(prev);
+            return new IntPair(sentenceOffset+temp.getFirst(), sentenceOffset+temp.getSecond());
+        } else {
+            /*
+            while (parent != null && parent.getLabel().getFirst().startsWith("NP")) {
+                prev = parent;
+                parent = parent.getParent();
+            }
+            //System.out.println("RETURNING PARENT");
+            //System.out.println(parent);
+            IntPair temp = parent.getLabel().getSecond();
+            System.out.println("RESULT: ("+(sentenceOffset+temp.getFirst())+", "+ (sentenceOffset+temp.getSecond())+")");
+            System.out.println(prev);
+            return new IntPair(sentenceOffset+temp.getFirst(), sentenceOffset+temp.getSecond());
+        }*/
     }
 
     /**
@@ -383,9 +401,9 @@ public class ACEAnnotation implements Serializable {
      * @param extentEndOffset The index of the last token + 1 (e.g. if the last token is #3, the value here should be 4)
      */
     public void addEntityMention(String type, int extentStartOffset, int extentEndOffset, int headStartOffset, int headEndOffset) {
-        EntityMention e = new EntityMention(type, null, extentStartOffset, extentEndOffset, headStartOffset, headEndOffset, FindSentenceIndex(extentStartOffset), this);
+        EntityMention e = new EntityMention(type, null, extentStartOffset, extentEndOffset, headStartOffset, headEndOffset, findSentenceIndex(extentStartOffset), this);
         testEntityMentions.add(e);
-        testEntityMentionsBySpan.put(new IntPair(extentStartOffset, extentEndOffset), e);
+        testEntityMentionsBySpan.put(new IntPair(headStartOffset, headEndOffset), e);
     }
 
     /**
@@ -585,7 +603,7 @@ public class ACEAnnotation implements Serializable {
         return Arrays.asList(ta.getTokensInSpan(start, end));
     }
 
-    public IntPair getNERPrecisionInfo() {
+    public IntPair getNERHeadPrecisionInfo() {
         //precision: out of the predicted mentions, which ones are correct?
         int correct = 0;
         for (EntityMention testEntity: testEntityMentions) {
@@ -598,13 +616,40 @@ public class ACEAnnotation implements Serializable {
         return new IntPair(correct, testEntityMentions.size());
     }
 
-    public IntPair getNERRecallInfo() {
+    public IntPair getNERExtentPrecisionInfo() {
+        //precision: out of the predicted mentions, which ones are correct?
+        int correct = 0;
+        for (EntityMention testEntity: testEntityMentions) {
+            IntPair testSpan = new IntPair(testEntity.getHeadStartOffset(), testEntity.getHeadEndOffset());
+            if (goldEntityMentionsByHeadSpan.containsKey(testSpan) &&
+                    goldEntityMentionsByHeadSpan.get(testSpan).equals(testEntity)) {
+                correct++;
+            }
+        }
+        return new IntPair(correct, testEntityMentions.size());
+    }
+
+    public IntPair getNERHeadRecallInfo() {
         //Next, recall: out of the correct mentions, how many were predicted?
         int correct = 0;
         for (EntityMention goldEntity: goldEntityMentions) {
             IntPair goldSpan = new IntPair(goldEntity.getHeadStartOffset(), goldEntity.getHeadEndOffset());
             if (testEntityMentionsBySpan.containsKey(goldSpan) &&
                     testEntityMentionsBySpan.get(goldSpan).equalsHead(goldEntity)) {
+                correct++;
+            }
+        }
+        return new IntPair(correct, goldEntityMentions.size());
+
+    }
+
+    public IntPair getNERExtentRecallInfo() {
+        //Next, recall: out of the correct mentions, how many were predicted?
+        int correct = 0;
+        for (EntityMention goldEntity: goldEntityMentions) {
+            IntPair goldSpan = new IntPair(goldEntity.getHeadStartOffset(), goldEntity.getHeadEndOffset());
+            if (testEntityMentionsBySpan.containsKey(goldSpan) &&
+                    testEntityMentionsBySpan.get(goldSpan).equals(goldEntity)) {
                 correct++;
             }
         }
