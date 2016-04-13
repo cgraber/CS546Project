@@ -8,11 +8,9 @@ import edu.illinois.cs.cogcomp.core.datastructures.textannotation.Constituent;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.Sentence;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.TextAnnotation;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.View;
+import edu.illinois.cs.cogcomp.nlp.corpusreaders.aceReader.annotationStructure.*;
 import edu.illinois.cs.cogcomp.nlp.tokenizer.IllinoisTokenizer;
-import edu.illinois.cs.cogcomp.nlp.utility.CcgTextAnnotationBuilder;
-import edu.illinois.cs.cogcomp.reader.ace2005.annotationStructure.*;
-import edu.illinois.cs.cogcomp.reader.ace2005.documentReader.AceFileProcessor;
-import edu.illinois.cs.cogcomp.reader.util.EventConstants;
+import edu.illinois.cs.cogcomp.nlp.utility.TokenizerTextAnnotationBuilder;
 import utils.Consts;
 import utils.Pipeline;
 
@@ -45,7 +43,7 @@ public class ACEAnnotation implements Serializable {
         mentionTypes = new HashSet<>();
         entitySubtypes = new HashSet<>();
 
-        taBuilder = new CcgTextAnnotationBuilder(new IllinoisTokenizer());
+        taBuilder = new TokenizerTextAnnotationBuilder(new IllinoisTokenizer());
     }
 
 

@@ -1,11 +1,10 @@
 package data;
 
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.TextAnnotation;
+import edu.illinois.cs.cogcomp.nlp.corpusreaders.aceReader.annotationStructure.*;
+import edu.illinois.cs.cogcomp.nlp.corpusreaders.aceReader.documentReader.AceFileProcessor;
 import edu.illinois.cs.cogcomp.nlp.tokenizer.IllinoisTokenizer;
-import edu.illinois.cs.cogcomp.nlp.utility.CcgTextAnnotationBuilder;
-import edu.illinois.cs.cogcomp.reader.ace2005.annotationStructure.*;
-import edu.illinois.cs.cogcomp.reader.ace2005.documentReader.AceFileProcessor;
-import edu.illinois.cs.cogcomp.reader.ace2005.documentReader.ReadACEAnnotation;
+import edu.illinois.cs.cogcomp.nlp.utility.TokenizerTextAnnotationBuilder;
 
 import java.io.File;
 import java.io.FilenameFilter;
@@ -21,7 +20,7 @@ public class DataLoadTest {
 
     public static void main(String [] argv) {
         //ReadACEAnnotation.is2004mode = false;
-        AceFileProcessor processor = new AceFileProcessor(new CcgTextAnnotationBuilder(new IllinoisTokenizer()));
+        AceFileProcessor processor = new AceFileProcessor(new TokenizerTextAnnotationBuilder(new IllinoisTokenizer()));
 
         String aceCorpusDir = "/home/cgraber/Documents/Illinois/Classes/CS546/project/ACE05_English";
 
