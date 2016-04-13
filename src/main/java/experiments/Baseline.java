@@ -22,7 +22,6 @@ public class Baseline {
         }
 
         List<List<ACEAnnotation>> splits = DataUtils.loadDataSplits(argv[0]);
-        System.exit(0);
         NERBaseline ner = new NERBaseline();
         List<ACEAnnotation> train = new ArrayList<ACEAnnotation>();
         for (int i = 0; i < splits.size() - 1; i++) {
