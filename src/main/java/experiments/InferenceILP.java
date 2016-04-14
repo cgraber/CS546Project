@@ -1,9 +1,6 @@
 package experiments;
 
-import data.ACEAnnotation;
-import data.CoreferenceEdge;
-import data.DataUtils;
-import data.EntityMention;
+import data.*;
 import edu.illinois.cs.cogcomp.core.datastructures.Pair;
 import learn.FeatureVector;
 
@@ -40,6 +37,30 @@ public class InferenceILP {
         List<FeatureVector> train_extract_data = RelationExtraction.generateFeatures(train_set, "train");
         nb_classifier.train(train_extract_data);
 
+        List<GISentence> gi_sentences = ACEAnnotation.BreakDocumentIntoSentence(test_set);
+
+        for(GISentence gs: gi_sentences){
+
+            ACEAnnotation.printSentence(gs.sentence);
+            for(EntityMention m: gs.mentions){
+
+                System.out.println(m.getExtent());
+
+            }
+            System.out.println();
+
+        }
+
+
+
+
+
+
+
+
+
+
+        /*
         List<FeatureVector> test_extract_data = RelationExtraction.generateFeatures(test_set, "test");
 
         int hit=0;
@@ -50,6 +71,8 @@ public class InferenceILP {
         }
 
         System.out.println((float)hit/test_size);
+        */
+
 
     }
 

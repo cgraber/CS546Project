@@ -19,7 +19,7 @@ import java.lang.*;
 public class RelationExtraction {
 
     public static void main(String [] argv) throws IOException {
-        List<FeatureVector> extracted_data= generateFeatures();
+
     }
 
     public static List<FeatureVector> generateFeatures() throws IOException{
@@ -44,14 +44,11 @@ public class RelationExtraction {
             //get all possible relation from this document (including sorting)
             List<List<EntityMention>> gold_m_sentence = document.splitMentionBySentence(gold_m);
             List<Pair<EntityMention, EntityMention>> possible_pair = ACEAnnotation.getPossibleMentionPair(gold_m_sentence);
-            Map<Pair<EntityMention,EntityMention>, CoreferenceEdge> coreferenceEdgeMap = document.getGoldCoreferenceEdgesByEntities();
+
 
             //get Lemmas and POSTags for feature extraction
             List<String> lemmas = document.getLemmas();
             List<String> pos_tags = document.getPOSTags();
-
-            //System.out.println(lemmas.size());
-            //System.out.println(pos_tags.size());
 
             //get gold relations
             Map<Pair<EntityMention, EntityMention>, Relation> gold_relation = document.getGoldRelationsByArgs();
