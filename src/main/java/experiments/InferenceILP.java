@@ -37,14 +37,19 @@ public class InferenceILP {
         List<FeatureVector> train_extract_data = RelationExtraction.generateFeatures(train_set, "train");
         nb_classifier.train(train_extract_data);
 
-        List<GISentence> gi_sentences = ACEAnnotation.BreakDocumentIntoSentence(test_set);
+        List<GISentence> gi_sentences = GISentence.BreakDocumentIntoSentence(test_set);
 
         for(GISentence gs: gi_sentences){
 
             ACEAnnotation.printSentence(gs.sentence);
             for(EntityMention m: gs.mentions){
-
                 System.out.println(m.getExtent());
+            }
+            for(Relation r: gs.relations){
+
+                System.out.print(r.getArg1().getExtent()+" ");
+                System.out.print(r.getType()+" ");
+                System.out.print(r.getArg2().getExtent()+"\n");
 
             }
             System.out.println();

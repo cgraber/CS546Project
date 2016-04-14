@@ -408,9 +408,10 @@ public class ACEAnnotation implements Serializable {
 
 
 
-    public static List<Pair<EntityMention,EntityMention>> getPossibleMentionPair(List<List<EntityMention>> MentionsBySentence){
+    public static List<Relation> getPossibleMentionPair(List<List<EntityMention>> MentionsBySentence){
 
-        List<Pair<EntityMention, EntityMention>> possible_pair=new ArrayList<>();
+        List<Relation> possible_pair=new ArrayList<>();
+
         for(int i=0;i<MentionsBySentence.size();i++){
             List<EntityMention> mention_in_sentence=MentionsBySentence.get(i);
 
@@ -418,7 +419,7 @@ public class ACEAnnotation implements Serializable {
             int length=mention_in_sentence.size();
             for(int j=0;j<length-1;j++){
                 for(int k=j+1;k<length;k++) {
-                    possible_pair.add(new Pair<>(mention_in_sentence.get(j),mention_in_sentence.get(k)));
+                    possible_pair.add(new Relation("Unknown", mention_in_sentence.get(j), mention_in_sentence.get(k)));
                 }
             }
         }
@@ -427,62 +428,6 @@ public class ACEAnnotation implements Serializable {
 
     }
 
-    public static List<GISentence> BreakDocumentIntoSentence(List<ACEAnnotation> test_set){
-
-        //Turn ACEAnnotations into sentences
-        List<GISentence> test_sentence = new ArrayList<>();
-
-        for(ACEAnnotation document: test_set){
-
-            int sentences_count = document.getNumberOfSentences();
-
-            List<List<String>> sentences = document.getSentences();
-            List<List<String>> lemmas = document.getLemmasBySentence();
-
-            List<EntityMention> gold_m = document.getGoldEntityMentions();
-
-            List<List<EntityMention>> gold_m_sentence = document.splitMentionBySentence(gold_m);
-            List<List<Pair<EntityMention, EntityMention>>> pair_by_sentence = ACEAnnotation.getMentionPairBySentence(gold_m_sentence);
-
-            for(int i=0; i<sentences_count; i++){
-
-                GISentence sentence_instance = new GISentence();
-
-                sentence_instance.document=document;
-                sentence_instance.lemmas=lemmas.get(i);
-                sentence_instance.sentence=sentences.get(i);
-                sentence_instance.mentions=gold_m_sentence.get(i);
-                sentence_instance.relations=pair_by_sentence.get(i);
-
-                test_sentence.add(sentence_instance);
-            }
-
-        }
-
-        return test_sentence;
-    }
-
-    public static List<List<Pair<EntityMention,EntityMention>>> getMentionPairBySentence(List<List<EntityMention>> MentionsBySentence){
-
-        List<List<Pair<EntityMention,EntityMention>>> output=new ArrayList<>();
-
-        for(int i=0;i<MentionsBySentence.size();i++){
-
-            List<Pair<EntityMention, EntityMention>> possible_pair_in_sentence=new ArrayList<>();
-            List<EntityMention> mention_in_sentence=MentionsBySentence.get(i);
-
-            //make all possible combination without duplication
-            int length=mention_in_sentence.size();
-            for(int j=0;j<length-1;j++){
-                for(int k=j+1;k<length;k++) {
-                    possible_pair_in_sentence.add(new Pair<>(mention_in_sentence.get(j),mention_in_sentence.get(k)));
-                }
-            }
-            output.add(possible_pair_in_sentence);
-        }
-
-        return output;
-    }
 
 
     public List<List<EntityMention>> splitMentionBySentence(List<EntityMention> list){

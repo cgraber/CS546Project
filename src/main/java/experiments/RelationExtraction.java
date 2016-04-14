@@ -43,7 +43,7 @@ public class RelationExtraction {
 
             //get all possible relation from this document (including sorting)
             List<List<EntityMention>> gold_m_sentence = document.splitMentionBySentence(gold_m);
-            List<Pair<EntityMention, EntityMention>> possible_pair = ACEAnnotation.getPossibleMentionPair(gold_m_sentence);
+            List<Relation> possible_pair = ACEAnnotation.getPossibleMentionPair(gold_m_sentence);
 
 
             //get Lemmas and POSTags for feature extraction
@@ -54,14 +54,15 @@ public class RelationExtraction {
             Map<Pair<EntityMention, EntityMention>, Relation> gold_relation = document.getGoldRelationsByArgs();
 
             //features builder on all possible relation
-            for (Pair<EntityMention, EntityMention> p : possible_pair) {
+            for (Relation p : possible_pair) {
 
                 //setup vector for storing features
                 FeatureVector fea_vec = new FeatureVector();
 
                 //Entity based features
-                EntityMention left = p.getFirst();
-                EntityMention right = p.getSecond();
+                EntityMention left = p.getArg1();
+                EntityMention right = p.getArg2();
+
                 fea_vec.addRelationMetadata(left,right,document.getSentence(left.getSentenceOffset()));
 
                 //Add label
