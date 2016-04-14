@@ -16,12 +16,8 @@ import java.util.List;
 public class Baseline {
 
     public static void main(String [] argv) {
-        if (argv.length != 1) {
-            System.err.println("Missing arg: directory containing ACE2005 data");
-            System.exit(1);
-        }
 
-        List<List<ACEAnnotation>> splits = DataUtils.loadDataSplits(argv[0]);
+        List<List<ACEAnnotation>> splits = DataUtils.loadDataSplits("./ACE05_English");
         NERBaseline ner = new NERBaseline();
         List<ACEAnnotation> train = new ArrayList<ACEAnnotation>();
         for (int i = 0; i < splits.size() - 1; i++) {

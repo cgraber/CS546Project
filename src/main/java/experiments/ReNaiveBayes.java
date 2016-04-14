@@ -1,5 +1,7 @@
 package experiments;
 
+import data.ACEAnnotation;
+import data.EntityMention;
 import learn.FeatureVector;
 import utils.Metric;
 
@@ -13,7 +15,7 @@ import static java.lang.Math.log;
 /**
  * Created by sdq on 3/23/16.
  */
-public class RE_NaiveBayes {
+public class ReNaiveBayes {
 
     public static void main(String [] argv) throws IOException {
 
@@ -174,8 +176,12 @@ public class RE_NaiveBayes {
 
         //testing
         int hit_count=0;
-
         int two_hit=0;
+        int three_hit=0;
+
+        double max_margin= 0.0;
+        double max_margin2=0.0;
+
         int [] two_hit_category= new int [numLabels];
 
         double [] truePositives=new double[numLabels];
@@ -186,7 +192,7 @@ public class RE_NaiveBayes {
         for(int i=0;i<testSet.size();i++){
 
             FeatureVector f=testSet.get(i);
-            double [] score_class= new double [numLabels];
+            final double [] score_class= new double [numLabels];
 
             //prediction
             List<Integer> vector=f.getFeatures();
@@ -202,41 +208,39 @@ public class RE_NaiveBayes {
                 //score_class[j]+=score_prior[j];
             }
 
-            int prediction = 0;
-            double max=score_class[0];
+            List<Integer> index_array = new ArrayList <> ();
 
+            for(int j=0; j<numLabels; j++){
+                index_array.add(j);
+            }
 
-
-            for(int j=0;j<numLabels;j++){
-                if(max<score_class[j]){
-                    prediction=j;
-                    max=score_class[j];
+            Collections.sort(index_array, new Comparator<Integer>() {
+                @Override
+                public int compare(Integer o1, Integer o2) {
+                    if (score_class[o2] > score_class[o1])
+                        return 1;
+                    else
+                        return -1;
                 }
-            }
+            });
 
 
-            //find second guess;
-            int second_guess=0;
-            double second_max=score_class[0];
-            if(prediction==0){
-                second_guess=1;
-                second_max=score_class[1];
-            }
-            for(int j=0;j<numLabels;j++){
-                if(j==prediction)
-                    continue;
-                if(second_max<score_class[j]){
-                    second_guess=j;
-                    second_max=score_class[j];
-                }
-            }
+            int prediction=index_array.get(0);
+            int second_guess=index_array.get(1);
+            int third_guess=index_array.get(2);
 
 
+            //get the true label
             int label =f.getLabel();
 
+            //summary for instance
             if(prediction==label) {
                 hit_count++;
                 two_hit++;
+                three_hit++;
+
+                max_margin+=(score_class[prediction]-score_class[second_guess]);
+
                 two_hit_category[label]++;
 
                 for (int j = 0; j < numLabels; j++) {
@@ -259,7 +263,11 @@ public class RE_NaiveBayes {
 
                 if (second_guess == label) {
                     two_hit++;
+                    three_hit++;
                     two_hit_category[second_guess]++;
+
+
+                    max_margin2+=(score_class[prediction]-score_class[second_guess]);
 
                     //show confusion
                     System.out.println("\n");
@@ -270,7 +278,23 @@ public class RE_NaiveBayes {
                     System.out.println(f.left.getEntityType());
                     System.out.println(f.right.getExtent());
                     System.out.println(f.right.getEntityType());
-                    System.out.println(f.sentence);
+                    ACEAnnotation.printSentence(f.sentence);
+
+
+                }
+                if(third_guess == label){
+                    three_hit++;
+
+
+                    System.out.println("\n");
+                    System.out.println("First:" + StringList.get(prediction));
+                    System.out.println("Third:" + StringList.get(third_guess));
+                    System.out.println("Truth:" + StringList.get(label));
+                    System.out.println(f.left.getExtent());
+                    System.out.println(f.left.getEntityType());
+                    System.out.println(f.right.getExtent());
+                    System.out.println(f.right.getEntityType());
+                    ACEAnnotation.printSentence(f.sentence);
 
 
                 }
@@ -299,6 +323,10 @@ public class RE_NaiveBayes {
         System.out.println("\nSummary: ");
         System.out.println("Overall acc:"+(float)hit_count/(instances_size-train_size));
         System.out.println("Overall two_hit_acc:"+(float)two_hit/(instances_size-train_size));
+        System.out.println("Overall three_hit_acc:"+(float)three_hit/(instances_size-train_size));
+
+        System.out.println("avergae margin_first:" +(float)max_margin/hit_count);
+        System.out.println("avergae margin_second:" +(float)max_margin2/two_hit);
 
         for(int i=0;i<numLabels;i++){
             double labelAccuracy = (truePositives[i]+trueNegatives[i])/(truePositives[i]+trueNegatives[i]+
@@ -306,7 +334,6 @@ public class RE_NaiveBayes {
 
             System.out.print("Class "+i+": ");
             System.out.print("prior:"+frequency_prior[i]+"  ");
-            System.out.print("corret_hit:"+truePositives[i]+trueNegatives[i]+"  ");
             System.out.print("accuracy:"+labelAccuracy+"  ");
             System.out.println();
 

@@ -354,7 +354,8 @@ public class CorefBaseline implements PipelineStage{
 	}
 	
 	public static void main( String[] argv ){
-		List<List<ACEAnnotation>> splits = DataUtils.loadDataSplits(argv[0]);
+
+		List<List<ACEAnnotation>> splits = DataUtils.loadDataSplits("./ACE05_English");
 		
 		// temporary training/testing
 		ArrayList<ACEAnnotation> train_split = new ArrayList<ACEAnnotation>();

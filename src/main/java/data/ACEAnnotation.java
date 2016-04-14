@@ -27,7 +27,7 @@ import java.util.*;
  */
 public class ACEAnnotation implements Serializable {
 
-    private static final long serialVersionUID = 2L;
+    private static final long serialVersionUID = 1L;
     private static TextAnnotationBuilder taBuilder;
 
 
@@ -66,6 +66,7 @@ public class ACEAnnotation implements Serializable {
     private List<Relation> goldRelations = new ArrayList<>();
     private Map<Pair<EntityMention,EntityMention>,Relation> goldRelationsByArgs = new HashMap<>();
     private List<Relation> testRelations = new ArrayList<>();
+
     private List<CoreferenceEdge> goldCoreferenceEdges = new ArrayList<>();
     private Map<Pair<EntityMention,EntityMention>,CoreferenceEdge> goldCoreferenceEdgesByEntities = new HashMap<>();
     private List<CoreferenceEdge> testCoreferenceEdges = new ArrayList<>();
@@ -638,7 +639,13 @@ public class ACEAnnotation implements Serializable {
         return new IntPair(ta.getTokenIdFromCharacterOffset(mentionStart), ta.getTokenIdFromCharacterOffset(mentionEnd)+1);
     }
 
+    public static void printSentence(List<String> sentence){
 
+        for(String token: sentence){
+            System.out.print(token+" ");
+        }
+        System.out.println();
+    }
 
 
 
