@@ -23,19 +23,21 @@
     <dependencies>
         <dependency>
             <groupId>edu.illinois.cs.cogcomp</groupId>
-            <artifactId>illinois-nlp-readers</artifactId>
-            <version>0.0.2-SNAPSHOT</version>
+            <artifactId>illinois-corpusreaders</artifactId>
+            <version>3.0.30</version>
+            <!--
             <exclusions>
                 <exclusion>
                     <groupId>edu.illinois.cs.cogcomp</groupId>
                     <artifactId>illinois-core-utilities</artifactId>
                 </exclusion>
             </exclusions>
+            -->
         </dependency>
         <dependency>
             <groupId>edu.illinois.cs.cogcomp</groupId>
             <artifactId>illinois-nlp-pipeline</artifactId>
-            <version>0.1.16</version>
+            <version>0.1.19</version>
         </dependency>
         <dependency>
             <groupId>edu.illinois.cs.cogcomp</groupId>
