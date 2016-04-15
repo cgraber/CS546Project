@@ -16,7 +16,7 @@ import java.lang.*;
  * Created by sdq on 3/22/16.
  */
 
-public class RelationExtraction {
+public class REFeatures {
 
     public static void main(String [] argv) throws IOException {
 
@@ -27,6 +27,22 @@ public class RelationExtraction {
         return generateFeatures(collection, "train");
     }
 
+    /**
+     * this method generate Features all possible pair of Entity from a collection of document.
+     * when mode = "train", this method will throw away 95% of the negative examples to achieve a more balanced data set.
+     * the features for two EntityMentions (e1, e2) are as follow:
+     *
+     * the type of (e1.type), (e2.type) and the concatenation of the type(e1.type, e2.type)
+     * the lemmas of the last word in both e1.mention and e2.mention
+     * the lemmas of the word before e1.mention and the word after e2.mention
+     * all the pos tags between e1.mention and e2.mention
+     * --------------
+     * the features that are available but not included in NaiveBayes Classifier:
+     *
+     * the lemmas of the word after e1.mention and the word before e2.mention
+     * all the lemmas between e1.mention and e2.mention
+     */
+
     public static List<FeatureVector> generateFeatures(List<ACEAnnotation> collection, String mode) {
 
         float no_relation_block_rate=0f;
@@ -35,6 +51,11 @@ public class RelationExtraction {
 
         //features and labels for all data
         List<FeatureVector> extracted_data=new ArrayList<>();
+
+
+
+
+
 
         //process one document at a time
         for(ACEAnnotation document: collection) {
@@ -52,6 +73,11 @@ public class RelationExtraction {
 
             //get gold relations
             Map<Pair<EntityMention, EntityMention>, Relation> gold_relation = document.getGoldRelationsByArgs();
+
+
+
+
+
 
             //features builder on all possible relation
             for (Relation p : possible_pair) {
@@ -124,9 +150,9 @@ public class RelationExtraction {
                 fea_vec.addBinaryFeature("E2_after:" + E2_after);
 
 
-
-                String E1_after="_none_";
-                String E2_before="_none_";
+                /*
+                String E1_after = "_none_";
+                String E2_before = "_none_";
                 if(leftend<sen_end){
                     E1_after = lemmas.get(leftend);
                     if (NumberUtils.isNumber(E1_after))
@@ -140,8 +166,8 @@ public class RelationExtraction {
                         E2_before = "_digit_";
                 }
 
-                //fea_vec.addBinaryFeature("E2_before:" + E2_before);
-                //fea_vec.addBinaryFeature("E1_after:" + E1_after);
+                fea_vec.addBinaryFeature("E2_before:" + E2_before);
+                fea_vec.addBinaryFeature("E1_after:" + E1_after);
 
 
                 for (int i = leftend; i < rightstart; i++) {
@@ -149,8 +175,9 @@ public class RelationExtraction {
                     if (NumberUtils.isNumber(word)) {
                         word = "_digit_";
                     }
-                    //fea_vec.addBinaryFeature("word:" + word);
+                    fea_vec.addBinaryFeature("word:" + word);
                 }
+                */
 
                 //Syntactic features
                 for(int i=leftend;i<rightstart;i++){

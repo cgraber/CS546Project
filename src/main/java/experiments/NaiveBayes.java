@@ -23,6 +23,11 @@ public class NaiveBayes {
     private float [][] score_table;
     private float [] unseen_score;
 
+
+    /**
+     * training on a list of featureVector
+     */
+
     public void train(List<FeatureVector> data_set){
 
         labels_count=data_set.get(0).getLabelCount();
@@ -92,7 +97,9 @@ public class NaiveBayes {
 
 
 
-
+    /**
+     * predict on one instance of FeatureVector
+     */
 
     public int predict(FeatureVector f){
 
@@ -135,13 +142,9 @@ public class NaiveBayes {
 
     }
 
-
-
-
-
-
-
-
+    /**
+     * prediction on a list of instances, and report the result
+     */
 
     public void test(List<FeatureVector> data_set){
 
@@ -220,7 +223,6 @@ public class NaiveBayes {
             System.out.print("size:"+test_category_count[i]+"  ");
             System.out.print("accuracy:"+(float)test_category_hit[i]/test_category_count[i]+"  ");
             System.out.println();
-
 
         }
 

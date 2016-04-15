@@ -10,10 +10,14 @@ import java.util.Set;
 
 
 /**
+ * This class contain all useful information for global inference
+ * GISentence stand for Global Inference Sentence
  * Created by sdq on 4/13/16.
  */
 
+
 public class GISentence {
+
 
     public ACEAnnotation document;
     public List<String> sentence;
@@ -30,6 +34,9 @@ public class GISentence {
 
     }
 
+    /**
+     * this method is equivalent to a GIsentence class constructor, it break a list of document into GIsentence instances
+     */
     public static List<GISentence> BreakDocumentIntoSentence(List<ACEAnnotation> test_set){
 
         //Turn ACEAnnotations into sentences
@@ -71,10 +78,8 @@ public class GISentence {
 
                 for(Relation r: sentence_instance.relations){
 
-
                     EntityMention e1 = r.getArg1();
                     EntityMention e2 = r.getArg2();
-
 
                     Pair<EntityMention, EntityMention> p = new Pair (e1, e2);
                     Pair<EntityMention, EntityMention> p2 = new Pair (e2, e1);
@@ -82,7 +87,6 @@ public class GISentence {
                     //assign coreference group index
                     if(gold_coreferences.containsKey(p) || gold_coreferences.containsKey(p2)){
 
-                        //System.out.println("hit");
                         if(e1.corefGroupIndex==-1 && e2.corefGroupIndex==-1){
 
                             e1.corefGroupIndex=coref_count;
@@ -93,36 +97,27 @@ public class GISentence {
 
                         else if(e1.corefGroupIndex==-1){
                             e1.corefGroupIndex = e2.corefGroupIndex;
-                            //System.out.println("e1");
                         }
                         else if(e2.corefGroupIndex==-1){
                             e2.corefGroupIndex = e1.corefGroupIndex;
-                            //System.out.println("e2");
                         }
 
 
                     }
                     else{
 
-                        //System.out.println("hit2 "+e1.corefGroupIndex+" "+e2.corefGroupIndex);
-
-
                         if(e1.corefGroupIndex==-1){
                             e1.corefGroupIndex=coref_count;
-                            //System.out.println("2e1");
                             coref_count++;
                         }
                         if(e2.corefGroupIndex==-1){
                             e2.corefGroupIndex=coref_count;
-                            //System.out.println("2e2");
                             coref_count++;
                         }
 
                     }
 
                 }
-
-
 
 
                 System.out.println("coref_count "+coref_count);
@@ -141,8 +136,6 @@ public class GISentence {
                     sentence_instance.corefgroup.get(index).add(m);
                 }
 
-
-
                 test_sentence.add(sentence_instance);
             }
 
@@ -154,6 +147,9 @@ public class GISentence {
 
 
 
+    /**
+     * get all possible relations from a document
+     */
     public static List<List<Relation>> getRelationBySentence(List<List<EntityMention>> MentionsBySentence){
 
         List<List<Relation>> output=new ArrayList<>();

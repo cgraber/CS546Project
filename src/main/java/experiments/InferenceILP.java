@@ -38,7 +38,7 @@ public class InferenceILP {
 
         NaiveBayes nb_classifier = new NaiveBayes();
 
-        List<FeatureVector> train_extract_data = RelationExtraction.generateFeatures(train_set, "train");
+        List<FeatureVector> train_extract_data = REFeatures.generateFeatures(train_set, "train");
         nb_classifier.train(train_extract_data);
 
         List<GISentence> gi_sentences = GISentence.BreakDocumentIntoSentence(test_set);
