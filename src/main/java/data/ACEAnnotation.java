@@ -410,10 +410,13 @@ public class ACEAnnotation implements Serializable {
 
     public static List<Relation> getPossibleMentionPair(List<List<EntityMention>> MentionsBySentence){
 
+
         List<Relation> possible_pair=new ArrayList<>();
+
 
         for(int i=0;i<MentionsBySentence.size();i++){
             List<EntityMention> mention_in_sentence=MentionsBySentence.get(i);
+
 
             //make all possible combination without duplication
             int length=mention_in_sentence.size();

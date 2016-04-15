@@ -17,11 +17,18 @@ public class InferenceILP {
 
     public static void main(String [] argv) throws IOException {
 
+
+
+
         List<ACEAnnotation> all_documents = ACEAnnotation.readAllFromFileFlat();
         Collections.shuffle(all_documents);
 
         List<ACEAnnotation> train_set = new ArrayList<>();
         List<ACEAnnotation> test_set = new ArrayList<>();
+
+
+
+
 
         //split data
         int train_size = (all_documents.size()*4)/5;
@@ -42,6 +49,9 @@ public class InferenceILP {
         for(GISentence gs: gi_sentences){
 
             ACEAnnotation.printSentence(gs.sentence);
+            ACEAnnotation.printSentence(gs.lemmas);
+            ACEAnnotation.printSentence(gs.postags);
+
             for(EntityMention m: gs.mentions){
                 System.out.println(m.getExtent());
             }
@@ -52,17 +62,18 @@ public class InferenceILP {
                 System.out.print(r.getArg2().getExtent()+"\n");
 
             }
+
+            for(List<EntityMention> l: gs.corefgroup){
+                System.out.print("coref group: ");
+                for(EntityMention e: l){
+                    System.out.print(e.getExtent()+" ");
+                }
+                System.out.println();
+            }
+
             System.out.println();
 
         }
-
-
-
-
-
-
-
-
 
 
         /*
@@ -77,6 +88,15 @@ public class InferenceILP {
 
         System.out.println((float)hit/test_size);
         */
+
+
+
+
+
+
+
+
+
 
 
     }

@@ -18,6 +18,7 @@ public class EntityMention implements Serializable {
     private int sentenceOffset;
     private ACEAnnotation annotation;
     private String mentionType;
+    public int corefGroupIndex;
 
     protected EntityMention(String entityType, String mentionType, int extentStartOffset, int extentEndOffset, int headStartOffset, int headEndOffset, int sentenceOffset, ACEAnnotation annotation) {
         this.entityType = entityType;
@@ -28,6 +29,7 @@ public class EntityMention implements Serializable {
         this.headEndOffset = headEndOffset;
         this.sentenceOffset = sentenceOffset;
         this.annotation = annotation;
+        this.corefGroupIndex=-1;
     }
 
     public String getEntityType() {
@@ -50,7 +52,7 @@ public class EntityMention implements Serializable {
         return headEndOffset;
     }
 
-    public int getSentenceOffset() {return sentenceOffset; }
+    public int getSentenceOffset() { return sentenceOffset; }
 
     //NOTE THAT THIS RETURNS THE INDEX OF THE END TOKEN + 1
     public int getExtentEndOffset() {

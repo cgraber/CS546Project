@@ -13,6 +13,7 @@ public class Relation implements Serializable {
 
     private EntityMention e1;
     private EntityMention e2;
+
     private String type;
 
     public Relation(String type, EntityMention e1, EntityMention e2) {

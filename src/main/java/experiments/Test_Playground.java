@@ -1,8 +1,6 @@
 package experiments;
 
-import data.ACEAnnotation;
-import data.EntityMention;
-import data.Relation;
+import data.*;
 import edu.illinois.cs.cogcomp.core.datastructures.Pair;
 import edu.illinois.cs.cogcomp.lbjava.nlp.StringArraysToWords;
 import org.deeplearning4j.datasets.iterator.impl.IrisDataSetIterator;
@@ -26,6 +24,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -40,7 +39,16 @@ public class Test_Playground {
 
     public static void main(String[] args) throws IOException {
 
+        List<ACEAnnotation> test=new ArrayList<>();
+        test.add(ACEAnnotation.readFileByID(0));
 
+        List<GISentence> sentences = GISentence.BreakDocumentIntoSentence(test);
+
+        /*
+        ACEAnnotation doc=test.get(0);
+        Map<Pair<EntityMention,EntityMention>, CoreferenceEdge> map = doc.getGoldCoreferenceEdgesByEntities();
+        System.out.println(map.size());
+        */
 
     }
 

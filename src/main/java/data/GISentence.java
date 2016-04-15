@@ -5,30 +5,30 @@ import edu.illinois.cs.cogcomp.core.datastructures.Pair;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 
 /**
  * Created by sdq on 4/13/16.
  */
+
 public class GISentence {
 
     public ACEAnnotation document;
     public List<String> sentence;
+
+    public List<String> postags;
+    public List<List<EntityMention>> corefgroup;
+
+
     public List<EntityMention> mentions;
     public List<Relation> relations;
     public List<String> lemmas;
 
     public GISentence(){
 
-
     }
-
-    /*
-    public ACEAnnotation getDocument(){ return document; }
-    public List<String> getSentence() { return sentence; }
-    public List<EntityMention> getMentions() { return mentions; }
-    public List<Pair<EntityMention,EntityMention>> getRelations() { return relations; }
-    public List<String> getLemmas(){ return lemmas; }
-    */
 
     public static List<GISentence> BreakDocumentIntoSentence(List<ACEAnnotation> test_set){
 
@@ -41,6 +41,9 @@ public class GISentence {
 
             List<List<String>> sentences = document.getSentences();
             List<List<String>> lemmas = document.getLemmasBySentence();
+            List<List<String>> postag = document.getPOSTagsBySentence();
+
+            Map<Pair<EntityMention, EntityMention>, CoreferenceEdge> gold_coreferences = document.getGoldCoreferenceEdgesByEntities();
 
             List<EntityMention> gold_m = document.getGoldEntityMentions();
             List<List<EntityMention>> gold_m_sentence = document.splitMentionBySentence(gold_m);
@@ -48,13 +51,95 @@ public class GISentence {
             List<List<Relation>> pair_by_sentence = getRelationBySentence(gold_m_sentence);
 
 
+
             for(int i=0; i<sentences_count; i++){
+
+                //build GISentence one at a time
                 GISentence sentence_instance = new GISentence();
                 sentence_instance.document=document;
                 sentence_instance.lemmas=lemmas.get(i);
                 sentence_instance.sentence=sentences.get(i);
                 sentence_instance.mentions=gold_m_sentence.get(i);
                 sentence_instance.relations=pair_by_sentence.get(i);
+                sentence_instance.postags=postag.get(i);
+                sentence_instance.corefgroup=new ArrayList<>();
+
+                ACEAnnotation.printSentence(sentence_instance.sentence);
+                System.out.println(sentence_instance.mentions);
+
+                int coref_count=0;
+
+                for(Relation r: sentence_instance.relations){
+
+
+                    EntityMention e1 = r.getArg1();
+                    EntityMention e2 = r.getArg2();
+
+
+                    Pair<EntityMention, EntityMention> p = new Pair (e1, e2);
+                    Pair<EntityMention, EntityMention> p2 = new Pair (e2, e1);
+
+                    //assign coreference group index
+                    if(gold_coreferences.containsKey(p) || gold_coreferences.containsKey(p2)){
+
+                        //System.out.println("hit");
+                        if(e1.corefGroupIndex==-1 && e2.corefGroupIndex==-1){
+
+                            e1.corefGroupIndex=coref_count;
+                            e2.corefGroupIndex=coref_count;
+                            coref_count++;
+
+                        }
+
+                        else if(e1.corefGroupIndex==-1){
+                            e1.corefGroupIndex = e2.corefGroupIndex;
+                            //System.out.println("e1");
+                        }
+                        else if(e2.corefGroupIndex==-1){
+                            e2.corefGroupIndex = e1.corefGroupIndex;
+                            //System.out.println("e2");
+                        }
+
+
+                    }
+                    else{
+
+                        //System.out.println("hit2 "+e1.corefGroupIndex+" "+e2.corefGroupIndex);
+
+
+                        if(e1.corefGroupIndex==-1){
+                            e1.corefGroupIndex=coref_count;
+                            //System.out.println("2e1");
+                            coref_count++;
+                        }
+                        if(e2.corefGroupIndex==-1){
+                            e2.corefGroupIndex=coref_count;
+                            //System.out.println("2e2");
+                            coref_count++;
+                        }
+
+                    }
+
+                }
+
+                System.out.println("coref_count "+coref_count);
+
+                //group Entity into Coreference group
+                for(int j=0; j<coref_count; j++){
+                    sentence_instance.corefgroup.add(new ArrayList<EntityMention>());
+                }
+
+                for(EntityMention m: sentence_instance.mentions){
+                    int index=m.corefGroupIndex;
+                    if(index==-1){
+                        index=0;
+                        sentence_instance.corefgroup.add(new ArrayList<EntityMention>());
+                    }
+                    sentence_instance.corefgroup.get(index).add(m);
+                }
+
+
+
                 test_sentence.add(sentence_instance);
             }
 
