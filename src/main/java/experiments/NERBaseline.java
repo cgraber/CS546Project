@@ -85,7 +85,7 @@ public class NERBaseline implements PipelineStage {
                 tokenInd += doc.getSentence(sentInd).size();
                 tagSentInd++;
             }
-        }/*
+        }
         buildExtentFeatureFile(data, false);
         testTags = runMalletTest(false);
         tagSentInd = 0;
@@ -126,7 +126,7 @@ public class NERBaseline implements PipelineStage {
                 sentOffset += sentence.size();
             }
 
-        }*/
+        }
     }
 
     private void buildHeadFeatureFile(List<ACEAnnotation> data, boolean isTrain) {
@@ -136,20 +136,6 @@ public class NERBaseline implements PipelineStage {
             fullFeatures.append("\n");
         }
         writeFeatureFile(fullFeatures.toString(), HEAD_FEATURE_FILE);
-
-        fullFeatures = new StringBuilder();
-        for (ACEAnnotation doc: data) {
-            List<List<EntityMention>> entitiesPerSentence = null;
-            if (isTrain) {
-                entitiesPerSentence = doc.splitMentionBySentence(doc.getGoldEntityMentions());
-            } else {
-                entitiesPerSentence = doc.splitMentionBySentence(doc.getTestEntityMentions());
-            }
-            fullFeatures.append(extractExtentFeatures(doc, entitiesPerSentence, isTrain));
-            fullFeatures.append("\n");
-        }
-
-        writeFeatureFile(fullFeatures.toString(), EXTENT_FEATURE_FILE);
     }
 
     private void buildExtentFeatureFile(List<ACEAnnotation> data, boolean isTrain) {
