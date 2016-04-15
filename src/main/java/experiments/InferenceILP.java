@@ -27,9 +27,6 @@ public class InferenceILP {
         List<ACEAnnotation> test_set = new ArrayList<>();
 
 
-
-
-
         //split data
         int train_size = (all_documents.size()*4)/5;
         for(int i=0;i<all_documents.size();i++){
