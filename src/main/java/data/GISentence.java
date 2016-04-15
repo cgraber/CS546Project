@@ -122,6 +122,9 @@ public class GISentence {
 
                 }
 
+
+
+
                 System.out.println("coref_count "+coref_count);
 
                 //group Entity into Coreference group
