@@ -50,7 +50,7 @@ public class Pipeline {
         try {
             pipeline.addView(ta, ViewNames.POS);
             pipeline.addView(ta, ViewNames.LEMMA);
-            pipeline.addView(ta, ViewNames.PARSE_STANFORD);
+            //pipeline.addView(ta, ViewNames.PARSE_STANFORD);
         } catch (AnnotatorException e) {
             System.err.println("PIPELINE PROBLEM - THIS SHOULDN'T HAPPEN");
             e.printStackTrace();

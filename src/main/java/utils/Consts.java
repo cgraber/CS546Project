@@ -42,4 +42,6 @@ public class Consts {
     public static final String POS_WORD_FEATURE = "POS:WORD_";
     public static final String CAPITALIZED = "__CAPITALIZED";
     public static final String ALL_CAPS = "__ALLCAPS";
+    public static final String IN_HEAD = "_IN_HEAD";
+    public static final String HEAD_OFFSET = "_HEAD_OFFSET_";
 }

@@ -153,6 +153,11 @@ public class ACEAnnotation implements Serializable {
         }
     }
 
+    public void clearTestEntityMentions() {
+        testEntityMentions = new ArrayList<>();
+        testEntityMentionsBySpan = new HashMap<>();
+    }
+
     private int findSentenceIndex(int start){
 
         for(int i=0;i<sentenceIndex.size()-1;i++){
@@ -282,6 +287,31 @@ public class ACEAnnotation implements Serializable {
         return BIOencoding;
     }
 
+    public List<List<List<String>>> getGoldNERExtentBIOEncoding() {
+        List<List<List<String>>> result = new ArrayList<>();
+        ArrayList<List<EntityMention>> entitiesPerSentence = splitMentionBySentence(goldEntityMentions);
+        int sentenceOffset = 0;
+        for (int i = 0; i < entitiesPerSentence.size(); i++) {
+            List<String> sentence = sentenceTokens.get(i);
+            List<List<String>> bioPerSentence = new ArrayList<>();
+            result.add(bioPerSentence);
+            for (EntityMention e: entitiesPerSentence.get(i)) {
+                List<String> labelList = new ArrayList<>();
+                bioPerSentence.add(labelList);
+                for (int ind = sentenceOffset; ind < sentenceOffset + sentence.size(); ind++) {
+                    if (ind == e.getExtentStartOffset()) {
+                        labelList.add(Consts.BIO_B + e.getEntityType());
+                    } else if (ind < e.getHeadEndOffset()) {
+                        labelList.add(Consts.BIO_I + e.getEntityType());
+                    } else {
+                        labelList.add(Consts.BIO_O);
+                    }
+                }
+            }
+            sentenceOffset += sentence.size();
+        }
+        return result;
+    }
     /**
      *
      * @return A list of lists - each of these representing a sentence - of POS tags (representing the tag per

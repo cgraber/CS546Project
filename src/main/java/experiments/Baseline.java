@@ -1,6 +1,7 @@
 package experiments;
 
 import data.ACEAnnotation;
+import data.DataUtils;
 import edu.illinois.cs.cogcomp.core.datastructures.Pair;
 
 import java.io.IOException;
@@ -40,16 +41,16 @@ public class Baseline {
             train.addAll(splits.get(i));
         }
         List<ACEAnnotation> test = splits.get(splits.size() - 1);
-        //ner.trainModel(train);
-        ner.test(train);
-        Pair<Double,Double> results = ner.evaluateHead(train);
+        ner.trainModel(train);
+        ner.test(test);
+        Pair<Double,Double> results = ner.evaluateHead(test);
         System.out.println("HEAD PRECISION: "+results.getFirst());
         System.out.println("HEAD RECALL: " + results.getSecond());
         double headF1 = 2*results.getSecond()*results.getFirst()/(results.getFirst()+results.getSecond());
         System.out.println("HEAD F1: "+headF1);
         System.out.println("");
 
-        results = ner.evaluateExtent(train);
+        results = ner.evaluateExtent(test);
         System.out.println("EXTENT PRECISION: "+results.getFirst());
         System.out.println("EXTENT RECALL: "+results.getSecond());
         double extentF1 = 2*results.getSecond()*results.getFirst()/(results.getFirst()+results.getSecond());
