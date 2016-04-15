@@ -4,10 +4,8 @@ import edu.illinois.cs.cogcomp.annotation.TextAnnotationBuilder;
 import edu.illinois.cs.cogcomp.core.datastructures.IntPair;
 import edu.illinois.cs.cogcomp.core.datastructures.Pair;
 import edu.illinois.cs.cogcomp.core.datastructures.ViewNames;
-import edu.illinois.cs.cogcomp.core.datastructures.textannotation.Constituent;
-import edu.illinois.cs.cogcomp.core.datastructures.textannotation.Sentence;
-import edu.illinois.cs.cogcomp.core.datastructures.textannotation.TextAnnotation;
-import edu.illinois.cs.cogcomp.core.datastructures.textannotation.View;
+import edu.illinois.cs.cogcomp.core.datastructures.textannotation.*;
+import edu.illinois.cs.cogcomp.nlp.corpusreaders.ACEReader;
 import edu.illinois.cs.cogcomp.nlp.corpusreaders.aceReader.annotationStructure.*;
 import edu.illinois.cs.cogcomp.nlp.tokenizer.IllinoisTokenizer;
 import edu.illinois.cs.cogcomp.nlp.utility.TokenizerTextAnnotationBuilder;
@@ -80,6 +78,12 @@ public class ACEAnnotation implements Serializable {
         ta = taBuilder.createTextAnnotation(null, id, doc.contentRemovingTags);
         int count=0;
         Pipeline.addAllViews(ta);
+        SpanLabelView entityView = new SpanLabelView(ACEReader.ENTITYVIEW, ACEAnnotation.class.getCanonicalName(), ta, 1.0f, true);
+        ta.addView(ACEReader.ENTITYVIEW, entityView);
+        CoreferenceView corefView = new CoreferenceView(ViewNames.COREF, ACEAnnotation.class.getCanonicalName(), ta, 1.0f);
+        ta.addView(ViewNames.COREF, corefView);
+        PredicateArgumentView relationView = new PredicateArgumentView(ACEReader.RELATIONVIEW, ACEAnnotation.class.get)
+
         for (Sentence sentence: ta.sentences()) {
             List<String> sentenceArray=Arrays.asList(sentence.getTokens());
             sentenceTokens.add(sentenceArray);
