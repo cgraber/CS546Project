@@ -47,6 +47,9 @@ public class ACEAnnotation implements Serializable {
 
     private String id;
     private TextAnnotation ta;
+    private SpanLabelView entityView;
+    private CoreferenceView corefView;
+    private PredicateArgumentView relationView;
 
     // Each sentence is represented as a List of tokens - this is a list of those lists
     private List<List<String>> sentenceTokens = new ArrayList<>();
@@ -69,6 +72,7 @@ public class ACEAnnotation implements Serializable {
     private List<ACERelation> relationList;
     private List<Integer> sentenceIndex = new ArrayList<>();
 
+
     // Annotation info
     private List<List<String>> BIOencoding = null;
 
@@ -78,11 +82,12 @@ public class ACEAnnotation implements Serializable {
         ta = taBuilder.createTextAnnotation(null, id, doc.contentRemovingTags);
         int count=0;
         Pipeline.addAllViews(ta);
-        SpanLabelView entityView = new SpanLabelView(ACEReader.ENTITYVIEW, ACEAnnotation.class.getCanonicalName(), ta, 1.0f, true);
+        entityView = new SpanLabelView(ACEReader.ENTITYVIEW, ACEAnnotation.class.getCanonicalName(), ta, 1.0f, true);
         ta.addView(ACEReader.ENTITYVIEW, entityView);
-        CoreferenceView corefView = new CoreferenceView(ViewNames.COREF, ACEAnnotation.class.getCanonicalName(), ta, 1.0f);
+        corefView = new CoreferenceView(ViewNames.COREF, ACEAnnotation.class.getCanonicalName(), ta, 1.0f);
         ta.addView(ViewNames.COREF, corefView);
-        PredicateArgumentView relationView = new PredicateArgumentView(ACEReader.RELATIONVIEW, ACEAnnotation.class.get)
+        relationView = new PredicateArgumentView(ACEReader.RELATIONVIEW, ACEAnnotation.class.getCanonicalName(), ta, 1.0f);
+        ta.addView(ACEReader.RELATIONVIEW, relationView);
 
         for (Sentence sentence: ta.sentences()) {
             List<String> sentenceArray=Arrays.asList(sentence.getTokens());
