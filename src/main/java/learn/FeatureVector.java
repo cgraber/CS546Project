@@ -19,9 +19,28 @@ public class FeatureVector implements Serializable {
     private static List<String> stringList;
 
     static {
+
         featureMap = new HashMap<>();
         labelMap = new HashMap<>();
         stringList=new ArrayList<>();
+
+        labelMap.put("NO_RELATION" ,0);
+        labelMap.put("GEN-AFF", 1);
+        labelMap.put("PER-SOC", 2);
+        labelMap.put("ORG-AFF", 3);
+        labelMap.put("PHYS", 4);
+        labelMap.put("PART-WHOLE", 5);
+        labelMap.put("ART" ,6);
+
+        stringList.add("NO_RELATION");
+        stringList.add("GEN-AFF");
+        stringList.add("PER-SOC");
+        stringList.add("ORG-AFF");
+        stringList.add("PHYS");
+        stringList.add("PART-WHOLE");
+        stringList.add("ART");
+
+
     }
 
     //All of the features default to zero
@@ -51,11 +70,6 @@ public class FeatureVector implements Serializable {
 
     public void addLabel(String labelName){
         labelString =labelName;
-        if(!labelMap.containsKey(labelName)){
-            label = labelMap.size();
-            labelMap.put(labelName, label);
-            stringList.add(labelString);
-        }
         label = labelMap.get(labelName);
     }
 

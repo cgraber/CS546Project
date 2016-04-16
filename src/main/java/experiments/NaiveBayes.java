@@ -1,5 +1,6 @@
 package experiments;
 
+import data.EntityMention;
 import learn.FeatureVector;
 
 import java.util.ArrayList;
@@ -141,6 +142,81 @@ public class NaiveBayes {
 
 
     }
+
+    public double[] giveOptions(FeatureVector f){
+
+        final double [] score_class= new double [labels_count];
+
+        //prediction
+        List<Integer> vector=f.getFeatures();
+        for(int j=0;j<vector.size();j++){
+            //check if this is unseen features
+            if(vector.get(j)==1){
+                for(int k=0; k<labels_count; k++){
+                    if(j<features_count)
+                        score_class[k]+=score_table[k][j];
+                    else
+                        score_class[k]+=unseen_score[k];
+                }
+            }
+        }
+
+        return score_class;
+
+    }
+
+
+    /**
+     * get the most likely relation between two reference group
+     */
+    public static int RelationbetweenCorefGroup(List<EntityMention> g1, List<EntityMention> g2, NaiveBayes clf){
+
+
+        List<FeatureVector> list_vec = new ArrayList<>();
+
+        //generate feature vector for all possible pair between two group
+        for(int i=0; i<g1.size(); i++){
+            for(int j=0; j<g2.size(); j++){
+                list_vec.add(ReFeatures.FeatureForOneInstance(g1.get(i), g2.get(j)));
+            }
+        }
+
+        //set up score table for all possible relation
+        int labels_count = list_vec.get(0).getLabelCount();
+        final double [] score_table = new double [labels_count];
+
+
+        //use the pre-train classifier to get the score for each feature vector and then sum them up by class
+        for(FeatureVector f: list_vec){
+
+            double [] score = clf.giveOptions(f);
+            for(int i=0; i<labels_count; i++){
+                score_table[i]+=score[i];
+            }
+        }
+
+        //get ranking by sorting index
+        List<Integer> index_array = new ArrayList <> ();
+        for(int j=0; j < labels_count; j++){
+            index_array.add(j);
+        }
+
+        Collections.sort(index_array, new Comparator<Integer>() {
+            @Override
+            public int compare(Integer o1, Integer o2) {
+                if (score_table[o2] > score_table[o1])
+                    return 1;
+                else
+                    return -1;
+            }
+        });
+
+        int prediction=index_array.get(0);
+        return prediction;
+
+    }
+
+
 
     /**
      * prediction on a list of instances, and report the result

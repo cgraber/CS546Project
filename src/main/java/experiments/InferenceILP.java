@@ -10,6 +10,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+
 /**
  * Created by sdq on 4/11/16.
  */
@@ -17,15 +18,11 @@ public class InferenceILP {
 
     public static void main(String [] argv) throws IOException {
 
-
-
-
         List<ACEAnnotation> all_documents = ACEAnnotation.readAllFromFileFlat();
         Collections.shuffle(all_documents);
 
         List<ACEAnnotation> train_set = new ArrayList<>();
         List<ACEAnnotation> test_set = new ArrayList<>();
-
 
         //split data
         int train_size = (all_documents.size()*4)/5;
@@ -43,56 +40,16 @@ public class InferenceILP {
 
         List<GISentence> gi_sentences = GISentence.BreakDocumentIntoSentence(test_set);
 
-        for(GISentence gs: gi_sentences){
 
-            ACEAnnotation.printSentence(gs.sentence);
-            ACEAnnotation.printSentence(gs.lemmas);
-            ACEAnnotation.printSentence(gs.postags);
 
-            for(EntityMention m: gs.mentions){
-                System.out.println(m.getExtent());
-            }
-            for(Relation r: gs.relations){
+        //iterate through all sentence instance
+        for(GISentence g: gi_sentences){
 
-                System.out.print(r.getArg1().getExtent()+" ");
-                System.out.print(r.getType()+" ");
-                System.out.print(r.getArg2().getExtent()+"\n");
-
-            }
-
-            for(List<EntityMention> l: gs.corefgroup){
-                System.out.print("coref group: ");
-                for(EntityMention e: l){
-                    System.out.print(e.getExtent()+" ");
-                }
-                System.out.println();
-            }
-
-            System.out.println();
+            g.assignRelationWithCorefConstraint(nb_classifier);
 
         }
 
-
-        /*
-        List<FeatureVector> test_extract_data = RelationExtraction.generateFeatures(test_set, "test");
-
-        int hit=0;
-        int test_size=test_extract_data.size();
-        for(FeatureVector f: test_extract_data) {
-            if(nb_classifier.predict(f)==f.getLabel())
-                hit++;
-        }
-
-        System.out.println((float)hit/test_size);
-        */
-
-
-
-
-
-
-
-
+        GISentence.printGiInformation (gi_sentences);
 
 
 

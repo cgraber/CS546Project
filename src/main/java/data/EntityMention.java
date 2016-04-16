@@ -10,14 +10,17 @@ public class EntityMention implements Serializable {
 
     private static final long serialVersionUID = 3L;
 
-    private String entityType;
-    private int extentStartOffset;
-    private int extentEndOffset;
-    private int headStartOffset;
-    private int headEndOffset;
-    private int sentenceOffset;
-    private ACEAnnotation annotation;
-    private String mentionType;
+    public String entityType;
+    public String mentionType;
+
+    public int extentStartOffset;
+    public int extentEndOffset;
+    public int headStartOffset;
+    public int headEndOffset;
+    public int sentenceOffset;
+
+    public ACEAnnotation annotation;
+    public GISentence sentence;
     public int corefGroupIndex;
 
     protected EntityMention(String entityType, String mentionType, int extentStartOffset, int extentEndOffset, int headStartOffset, int headEndOffset, int sentenceOffset, ACEAnnotation annotation) {
