@@ -85,7 +85,7 @@ public class NERBaseline implements PipelineStage {
                 tokenInd += doc.getSentence(sentInd).size();
                 tagSentInd++;
             }
-        }/*
+        }
         buildExtentFeatureFile(data, false);
         testTags = runMalletTest(false);
         tagSentInd = 0;
@@ -126,7 +126,7 @@ public class NERBaseline implements PipelineStage {
                 sentOffset += sentence.size();
             }
 
-        }*/
+        }
     }
 
     private void buildHeadFeatureFile(List<ACEAnnotation> data, boolean isTrain) {

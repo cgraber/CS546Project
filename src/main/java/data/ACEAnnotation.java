@@ -301,7 +301,7 @@ public class ACEAnnotation implements Serializable {
                 for (int ind = sentenceOffset; ind < sentenceOffset + sentence.size(); ind++) {
                     if (ind == e.getExtentStartOffset()) {
                         labelList.add(Consts.BIO_B + e.getEntityType());
-                    } else if (ind < e.getHeadEndOffset()) {
+                    } else if (ind > e.getExtentStartOffset() && ind < e.getHeadEndOffset()) {
                         labelList.add(Consts.BIO_I + e.getEntityType());
                     } else {
                         labelList.add(Consts.BIO_O);
