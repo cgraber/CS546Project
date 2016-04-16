@@ -126,6 +126,7 @@ public class ACEAnnotation implements Serializable {
                 }
             }
         }
+
         Collections.sort(goldEntityMentions, new Comparator<EntityMention>() {
             @Override
             public int compare(EntityMention e1, EntityMention e2) {
@@ -177,6 +178,15 @@ public class ACEAnnotation implements Serializable {
                 goldRelationsByArgs.put(new Pair<>(e1, e2), rel);
             }
         }
+    }
+
+    /**
+     * This Constructor is meant to be used at test time
+     * @param ta the input text annotation
+     */
+    public ACEAnnotation(TextAnnotation ta) {
+        this.ta = ta;
+
     }
 
     private int FindSentenceIndex(int start){
