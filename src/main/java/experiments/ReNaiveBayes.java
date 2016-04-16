@@ -1,7 +1,6 @@
 package experiments;
 
 import data.ACEAnnotation;
-import data.EntityMention;
 import learn.FeatureVector;
 import utils.Metric;
 
@@ -20,7 +19,7 @@ public class ReNaiveBayes {
     public static void main(String [] argv) throws IOException {
 
 
-        List<FeatureVector> raw_data_set=ReFeatures.generateFeatures();
+        List<FeatureVector> raw_data_set= REFeatures.generateFeatures();
 
         //randomly selected training and testing set
         Collections.shuffle(raw_data_set);

@@ -1,14 +1,12 @@
 package experiments;
 
 import data.*;
-import edu.illinois.cs.cogcomp.core.datastructures.Pair;
 import learn.FeatureVector;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
 
 /**
@@ -39,7 +37,7 @@ public class InferenceILP {
 
         //training  stage
         NaiveBayes nb_classifier = new NaiveBayes();
-        List<FeatureVector> train_extract_data = ReFeatures.generateFeatures(train_set, "train");
+        List<FeatureVector> train_extract_data = REFeatures.generateFeatures(train_set, "train");
         nb_classifier.train(train_extract_data);
 
 
@@ -47,7 +45,7 @@ public class InferenceILP {
 
 
         /*
-        List<FeatureVector> test_extract_data = ReFeatures.generateFeatures(test_set, "test");
+        List<FeatureVector> test_extract_data = REFeatures.generateFeatures(test_set, "test");
         nb_classifier.test(test_extract_data);
         */
 
