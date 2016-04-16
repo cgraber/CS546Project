@@ -18,8 +18,10 @@ public class InferenceILP {
 
     public static void main(String [] argv) throws IOException {
 
-        List<ACEAnnotation> all_documents = ACEAnnotation.readAllFromFileFlat();
+        List<ACEAnnotation> all_documents = DataStorage.LoadDocuments();
         Collections.shuffle(all_documents);
+
+
 
         List<ACEAnnotation> train_set = new ArrayList<>();
         List<ACEAnnotation> test_set = new ArrayList<>();
@@ -33,21 +35,82 @@ public class InferenceILP {
                 test_set.add(all_documents.get(i));
         }
 
-        NaiveBayes nb_classifier = new NaiveBayes();
 
+
+        //training  stage
+        NaiveBayes nb_classifier = new NaiveBayes();
         List<FeatureVector> train_extract_data = ReFeatures.generateFeatures(train_set, "train");
         nb_classifier.train(train_extract_data);
 
-        List<GISentence> gi_sentences = GISentence.BreakDocumentIntoSentence(test_set);
 
+
+
+
+        /*
+        List<FeatureVector> test_extract_data = ReFeatures.generateFeatures(test_set, "test");
+        nb_classifier.test(test_extract_data);
+        */
+
+
+
+
+
+
+        //mode = 0 standfor no grouping
+        List<GISentence> test_sentences = GISentence.BreakDocumentIntoSentence(test_set, 1);
 
 
         //iterate through all sentence instance
-        for(GISentence g: gi_sentences){
-            g.assignRelationWithCorefConstraint(nb_classifier);
+        for(GISentence g: test_sentences){
+
+            ////mode = 0 compare max, mode = 1 compare acc max
+            g.assignRelationWithCorefConstraint(nb_classifier, 1);
         }
 
-        GISentence.printGiInformation (gi_sentences);
+
+        //put real label by checking goldRelation
+        for(GISentence g: test_sentences){
+           GISentence.assignTrueLabel(g);
+        }
+
+        GISentence.printGiInformation (test_sentences);
+
+        //summary
+        int hit = 0;
+        int count = 0;
+
+
+        int labels_count = Relation.labels_count;
+        int [] c_pick = new int [labels_count];
+        int [] c_hit = new int [labels_count];
+        int [] c_count = new int [labels_count];
+
+        for(GISentence g: test_sentences){
+            for(Relation r: g.relations){
+
+                if (r.pred_num == r.type_num) {
+                    hit++;
+                    c_hit[r.type_num]++;
+                }
+                count++;
+                c_pick[r.pred_num]++;
+                c_count[r.type_num]++;
+
+            }
+        }
+
+        System.out.println((float)hit/count);
+        for(int i=0;i<labels_count;i++){
+
+            System.out.print("Class "+i+" ");
+            System.out.print("Count "+c_count[i]+" ");
+            System.out.print("Pick "+c_pick[i]+" ");
+            System.out.print("Hit "+c_hit[i]+" ");
+            System.out.println((float)c_hit[i]/c_count[i]);
+
+        }
+
+
 
 
 

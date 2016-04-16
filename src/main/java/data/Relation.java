@@ -16,8 +16,10 @@ public class Relation implements Serializable {
     private static final long serialVersionUID = 4L;
     private static List<String> stringList;
     private static Map<String, Integer> labelMap;
+    public static Integer labels_count;
 
     static{
+
 
         labelMap = new HashMap<>();
         stringList=new ArrayList<>();
@@ -38,18 +40,31 @@ public class Relation implements Serializable {
         stringList.add("PART-WHOLE");
         stringList.add("ART");
 
+        labels_count = stringList.size();
+
     }
 
     private EntityMention e1;
     private EntityMention e2;
 
+
     public String type;
     public int type_num;
 
-    public Relation(String type, EntityMention e1, EntityMention e2) {
+    public String pred_type;
+    public int pred_num;
+
+
+    public Relation(String relation, EntityMention e1, EntityMention e2) {
         this.e1 = e1;
         this.e2 = e2;
-        this.type = type;
+        this.type = relation;
+        this.type_num = labelMap.get(relation);
+    }
+
+    public void SetPrediction(int pred_num){
+        this.pred_num = pred_num;
+        this.pred_type = stringList.get(pred_num);
     }
 
     public void SetRelation(int type_num){

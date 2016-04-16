@@ -337,7 +337,6 @@ public class ReNaiveBayes {
             System.out.print("accuracy:"+labelAccuracy+"  ");
             System.out.println();
 
-
         }
 
 

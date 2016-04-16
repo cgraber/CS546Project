@@ -42,7 +42,7 @@ public class Test_Playground {
         List<ACEAnnotation> test=new ArrayList<>();
         test.add(ACEAnnotation.readFileByID(0));
 
-        List<GISentence> sentences = GISentence.BreakDocumentIntoSentence(test);
+        List<GISentence> sentences = GISentence.BreakDocumentIntoSentence(test, 1);
 
         /*
         ACEAnnotation doc=test.get(0);

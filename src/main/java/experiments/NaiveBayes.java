@@ -17,29 +17,30 @@ public class NaiveBayes {
 
     private int labels_count;
     private int features_count;
+
+    private int new_features_count;
     private int train_size;
+
     private int [] train_category_count;
     private float [] balance_factors;
     private int [][] frequency_table;
     private float [][] score_table;
-    private float [] unseen_score;
 
 
     /**
      * training on a list of featureVector
      */
-
     public void train(List<FeatureVector> data_set){
 
         labels_count=data_set.get(0).getLabelCount();
         features_count=data_set.get(0).getFeatureCount();
         train_size=data_set.size();
+        new_features_count=features_count;
 
         train_category_count = new int [labels_count];
         balance_factors = new float [labels_count];
         frequency_table = new int [labels_count][features_count];
         score_table = new float [labels_count][features_count];
-        unseen_score = new float [labels_count];
 
 
         for(int i=0;i<train_size;i++){
@@ -86,10 +87,6 @@ public class NaiveBayes {
                 double frequency_score=(float)(frequency_table[i][j]+1)*balance_factors[i];
                 score_table[i][j] = (float) log(frequency_score / (train_size + features_count));
             }
-
-            //unseen score for new features
-            double frequency_score=(float)(1)*balance_factors[i];
-            unseen_score[i] = (float) log( frequency_score / (train_size + features_count));
         }
 
 
@@ -102,50 +99,12 @@ public class NaiveBayes {
      * predict on one instance of FeatureVector
      */
 
-    public int predict(FeatureVector f){
 
-        final double [] score_class= new double [labels_count];
-
-        //prediction
-        List<Integer> vector=f.getFeatures();
-        for(int j=0;j<vector.size();j++){
-            //check if this is unseen features
-            if(vector.get(j)==1){
-                for(int k=0; k<labels_count; k++){
-                    if(j<features_count)
-                        score_class[k]+=score_table[k][j];
-                    else
-                        score_class[k]+=unseen_score[k];
-                }
-            }
-        }
-
-        //get ranking
-        List<Integer> index_array = new ArrayList <> ();
-        for(int j=0; j < labels_count; j++){
-            index_array.add(j);
-        }
-
-        Collections.sort(index_array, new Comparator<Integer>() {
-            @Override
-            public int compare(Integer o1, Integer o2) {
-                if (score_class[o2] > score_class[o1])
-                    return 1;
-                else
-                    return -1;
-            }
-        });
-
-        int prediction=index_array.get(0);
-
-        return prediction;
-
-
-    }
 
     public double[] giveOptions(FeatureVector f){
 
         final double [] score_class= new double [labels_count];
+        new_features_count=f.getFeatureCount();
 
         //prediction
         List<Integer> vector=f.getFeatures();
@@ -153,10 +112,16 @@ public class NaiveBayes {
             //check if this is unseen features
             if(vector.get(j)==1){
                 for(int k=0; k<labels_count; k++){
+
+                    //if this is a new feature, the frequency is 0
+                    int frequency = 0;
                     if(j<features_count)
-                        score_class[k]+=score_table[k][j];
-                    else
-                        score_class[k]+=unseen_score[k];
+                        frequency=frequency_table[k][j];
+
+
+                    double frequency_score=(float)(frequency+1)*balance_factors[k];
+                    double score = (float) log( frequency_score / (train_size + new_features_count));
+                    score_class[k] += score;
                 }
             }
         }
@@ -169,9 +134,9 @@ public class NaiveBayes {
     /**
      * get the most likely relation between two reference group
      */
-    public static int RelationbetweenCorefGroup(List<EntityMention> g1, List<EntityMention> g2, NaiveBayes clf){
+    public static int RelationbetweenCorefGroup(List<EntityMention> g1, List<EntityMention> g2, NaiveBayes clf, int mode){
 
-
+        //mode = 0 compare max, mode = 1 compare acc max
         List<FeatureVector> list_vec = new ArrayList<>();
 
         //generate feature vector for all possible pair between two group
@@ -184,15 +149,26 @@ public class NaiveBayes {
         //set up score table for all possible relation
         int labels_count = list_vec.get(0).getLabelCount();
         final double [] score_table = new double [labels_count];
-
+        for(int i=0; i<labels_count; i++){
+            score_table[i] = 0f;
+        }
 
         //use the pre-train classifier to get the score for each feature vector and then sum them up by class
         for(FeatureVector f: list_vec){
 
+            //prediction on a single feature vector
             double [] score = clf.giveOptions(f);
+
             for(int i=0; i<labels_count; i++){
-                score_table[i]+=score[i];
+                if(mode == 0){
+                    if(score_table[i]<score[i]){
+                        score_table[i]=score[i];
+                    }
+                }
+                score_table[i] += score[i];
+
             }
+
         }
 
         //get ranking by sorting index

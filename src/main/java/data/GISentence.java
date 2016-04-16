@@ -38,7 +38,9 @@ public class GISentence {
     /**
      * this method is equivalent to a GIsentence class constructor, it break a list of document into GIsentence instances
      */
-    public static List<GISentence> BreakDocumentIntoSentence(List<ACEAnnotation> test_set){
+    public static List<GISentence> BreakDocumentIntoSentence(List<ACEAnnotation> test_set, int mode){
+
+        // mode=0 turn off grouping
 
         //Turn ACEAnnotations into sentences
         List<GISentence> test_sentence = new ArrayList<>();
@@ -85,7 +87,12 @@ public class GISentence {
                     sentence_instance.relationmap.put(p2,r);
 
                     //assign coreference group index
-                    if(gold_coreferences.containsKey(p) || gold_coreferences.containsKey(p2)){
+                    //gold_coreferences.containsKey(p) || gold_coreferences.containsKey(p2)
+
+                    boolean condition = gold_coreferences.containsKey(p) || gold_coreferences.containsKey(p2);
+                    if(mode == 0)
+                        condition = false;
+                    if(condition){
 
                         if(e1.corefGroupIndex==-1 && e2.corefGroupIndex==-1){
                             e1.corefGroupIndex=coref_count;
@@ -154,7 +161,7 @@ public class GISentence {
             int length=mention_in_sentence.size();
             for(int j=0;j<length-1;j++){
                 for(int k=j+1;k<length;k++) {
-                    possible_pair_in_sentence.add(new Relation("Unknown", mention_in_sentence.get(j),mention_in_sentence.get(k)));
+                    possible_pair_in_sentence.add(new Relation("NO_RELATION", mention_in_sentence.get(j),mention_in_sentence.get(k)));
                 }
             }
 
@@ -169,31 +176,38 @@ public class GISentence {
      */
     public static void printGiInformation(List<GISentence> gi_sentences){
 
+        System.out.println();
+
         for(GISentence gs: gi_sentences){
 
-            ACEAnnotation.printSentence(gs.sentence);
-            //ACEAnnotation.printSentence(gs.lemmas);
-            //ACEAnnotation.printSentence(gs.postags);
+            if(gs.corefgroup.size()!=gs.mentions.size()) {
 
-            for(EntityMention m: gs.mentions){
-                System.out.println(m.getExtent());
-            }
+                ACEAnnotation.printSentence(gs.sentence);
+                //ACEAnnotation.printSentence(gs.lemmas);
+                //ACEAnnotation.printSentence(gs.postags);
 
-            for(Relation r: gs.relations){
-                System.out.print(r.getArg1().getExtent()+" ");
-                System.out.print(r.getType()+" ");
-                System.out.print(r.getArg2().getExtent()+"\n");
-            }
-
-            for(List<EntityMention> l: gs.corefgroup){
-                System.out.print("coref group: ");
-                for(EntityMention e: l){
-                    System.out.print(e.getExtent()+" ");
+                for (EntityMention m : gs.mentions) {
+                    System.out.println(m.getExtent());
                 }
-                System.out.println();
-            }
 
-            System.out.println();
+                for (Relation r : gs.relations) {
+                    System.out.print(r.getArg1().getExtent() + " ");
+                    System.out.print(r.pred_type + " ");
+                    System.out.print(r.type + " ");
+                    System.out.print(r.getArg2().getExtent() + "\n");
+                }
+
+                for (List<EntityMention> l : gs.corefgroup) {
+                    System.out.print("coref group: ");
+                    for (EntityMention e : l) {
+                        System.out.print(e.getExtent() + " ");
+                    }
+                    System.out.println();
+                }
+
+                System.out.println();
+
+            }
 
         }
 
@@ -201,7 +215,7 @@ public class GISentence {
 
     }
 
-    public void assignRelationWithCorefConstraint(NaiveBayes clf){
+    public void assignRelationWithCorefConstraint(NaiveBayes clf, int mode){
 
         List<List<EntityMention>> group=this.corefgroup;
 
@@ -212,13 +226,13 @@ public class GISentence {
                 //predict relation between two group
                 List<EntityMention> g1 = group.get(i);
                 List<EntityMention> g2 = group.get(j);
-                int prediction = NaiveBayes.RelationbetweenCorefGroup(g1,g2,clf);
+                int prediction = NaiveBayes.RelationbetweenCorefGroup(g1,g2,clf,mode);
 
                 //set relation for between two group
                 for(int ii=0; ii<g1.size(); ii++){
                     for(int jj=0; jj<g2.size(); jj++){
                         Relation r = this.relationmap.get(new Pair(g1.get(ii), g2.get(jj)));
-                        r.SetRelation(prediction);
+                        r.SetPrediction(prediction);
                     }
                 }
             }
@@ -230,16 +244,34 @@ public class GISentence {
             if (g.size() > 1) {
                 for (int ii = 0; ii < g.size(); ii++) {
                     for (int jj = ii+1; jj < g.size(); jj++) {
+
                         //0 standfor NO_RELATION
                         Relation r = this.relationmap.get(new Pair(g.get(ii), g.get(jj)));
-                        r.SetRelation(0);
+                        r.SetPrediction(0);
                     }
                 }
             }
         }
+    }
 
+    public static void assignTrueLabel(GISentence g){
 
+        Map<Pair<EntityMention, EntityMention>, Relation> map = g.document.getGoldRelationsByArgs();
 
+        for(Relation r: g.relations){
+            EntityMention e1=r.getArg1();
+            EntityMention e2=r.getArg2();
+            Pair<EntityMention,EntityMention> p1 = new Pair(e1, e2);
+            Pair<EntityMention,EntityMention> p2 = new Pair(e2, e1);
+            Relation r1 = map.get(p1);
+            Relation r2 = map.get(p2);
+            if(r1!=null){
+                r.SetRelation(r1.type_num);
+            }
+            if(r2!=null){
+                r.SetRelation(r2.type_num);
+            }
+        }
 
     }
 
