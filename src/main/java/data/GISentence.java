@@ -57,7 +57,6 @@ public class GISentence {
             List<List<EntityMention>> entity_bysentence = document.splitMentionBySentence(gold_entitymention);
             List<List<Relation>> pair_by_sentence = getRelationBySentence(entity_bysentence);
 
-
             //iterate through all sentences
             for(int i=0; i<sentences_count; i++){
 
@@ -89,11 +88,9 @@ public class GISentence {
                     if(gold_coreferences.containsKey(p) || gold_coreferences.containsKey(p2)){
 
                         if(e1.corefGroupIndex==-1 && e2.corefGroupIndex==-1){
-
                             e1.corefGroupIndex=coref_count;
                             e2.corefGroupIndex=coref_count;
                             coref_count++;
-
                         }
 
                         else if(e1.corefGroupIndex==-1){
@@ -105,7 +102,6 @@ public class GISentence {
 
                     }
                     else{
-
                         if(e1.corefGroupIndex==-1){
                             e1.corefGroupIndex=coref_count;
                             coref_count++;
@@ -114,12 +110,8 @@ public class GISentence {
                             e2.corefGroupIndex=coref_count;
                             coref_count++;
                         }
-
                     }
-
                 }
-
-                System.out.println("coref_count "+coref_count);
 
                 //group Entity into Coreference group
                 for(int j=0; j<coref_count; j++){
@@ -180,18 +172,17 @@ public class GISentence {
         for(GISentence gs: gi_sentences){
 
             ACEAnnotation.printSentence(gs.sentence);
-            ACEAnnotation.printSentence(gs.lemmas);
-            ACEAnnotation.printSentence(gs.postags);
+            //ACEAnnotation.printSentence(gs.lemmas);
+            //ACEAnnotation.printSentence(gs.postags);
 
             for(EntityMention m: gs.mentions){
                 System.out.println(m.getExtent());
             }
-            for(Relation r: gs.relations){
 
+            for(Relation r: gs.relations){
                 System.out.print(r.getArg1().getExtent()+" ");
                 System.out.print(r.getType()+" ");
                 System.out.print(r.getArg2().getExtent()+"\n");
-
             }
 
             for(List<EntityMention> l: gs.corefgroup){
@@ -235,13 +226,13 @@ public class GISentence {
 
         //set NO_RELATION within the same corefgroup
         for(int i=0; i<group.size(); i++) {
-            List<EntityMention> g1 = group.get(i);
-            if (g1.size() > 1) {
-                for (int ii = 0; ii < g1.size(); ii++) {
-                    for (int jj = 0; jj < g1.size(); jj++) {
+            List<EntityMention> g = group.get(i);
+            if (g.size() > 1) {
+                for (int ii = 0; ii < g.size(); ii++) {
+                    for (int jj = ii+1; jj < g.size(); jj++) {
                         //0 standfor NO_RELATION
-                        Relation r = this.relationmap.get(new Pair(g1.get(ii), g1.get(jj)));
-                        //r.SetRelation(0);
+                        Relation r = this.relationmap.get(new Pair(g.get(ii), g.get(jj)));
+                        r.SetRelation(0);
                     }
                 }
             }

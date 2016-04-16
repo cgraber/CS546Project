@@ -44,9 +44,7 @@ public class InferenceILP {
 
         //iterate through all sentence instance
         for(GISentence g: gi_sentences){
-
             g.assignRelationWithCorefConstraint(nb_classifier);
-
         }
 
         GISentence.printGiInformation (gi_sentences);

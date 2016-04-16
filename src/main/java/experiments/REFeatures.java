@@ -1,9 +1,6 @@
 package experiments;
 
-import data.ACEAnnotation;
-import data.CoreferenceEdge;
-import data.EntityMention;
-import data.Relation;
+import data.*;
 import edu.illinois.cs.cogcomp.core.datastructures.Pair;
 import learn.FeatureVector;
 import org.apache.commons.lang.math.NumberUtils;
@@ -52,11 +49,6 @@ public class ReFeatures {
         //features and labels for all data
         List<FeatureVector> extracted_data=new ArrayList<>();
 
-
-
-
-
-
         //process one document at a time
         for(ACEAnnotation document: collection) {
 
@@ -73,11 +65,6 @@ public class ReFeatures {
 
             //get gold relations
             Map<Pair<EntityMention, EntityMention>, Relation> gold_relation = document.getGoldRelationsByArgs();
-
-
-
-
-
 
             //features builder on all possible relation
             for (Relation p : possible_pair) {
@@ -192,5 +179,68 @@ public class ReFeatures {
         return extracted_data;
 
     }
+
+    public static FeatureVector FeatureForOneInstance(EntityMention p1, EntityMention p2){
+
+        EntityMention left = null;
+        EntityMention right = null;
+
+        if(p1.extentStartOffset <= p2.extentStartOffset) {
+            left = p1;
+            right =p2;
+        }
+        else{
+            left = p2;
+            right = p1;
+        }
+
+        FeatureVector fea_vec = new FeatureVector();
+        ACEAnnotation document = left.annotation;
+        List<String> lemmas = document.getLemmas();
+        List<String> pos_tags = document.getPOSTags();
+
+        fea_vec.addBinaryFeature("E1_E_type:" + left.getEntityType());
+        fea_vec.addBinaryFeature("E2_E_type:" + right.getEntityType());
+        fea_vec.addBinaryFeature("E1_head:" + lemmas.get(left.getExtentEndOffset() - 1));
+        fea_vec.addBinaryFeature("E2_head:" + lemmas.get(right.getExtentEndOffset() - 1));
+        fea_vec.addBinaryFeature("type_concat:" + left.getEntityType() + right.getEntityType());
+
+        //Word based features
+        int sen_offset = left.getSentenceOffset();
+        int sen_start = document.getSentenceIndex(sen_offset);
+        int sen_end = document.getSentenceIndex(sen_offset + 1) - 1;
+
+        int leftstart = left.getExtentStartOffset();
+        int leftend = left.getExtentEndOffset();
+        int rightstart = right.getExtentStartOffset();
+        int rightend = right.getExtentEndOffset();
+
+        String E1_before = "_none_";
+        String E2_after = "_none_";
+
+        if (leftstart > sen_start) {
+            E1_before = lemmas.get(leftstart - 1);
+            if (NumberUtils.isNumber(E1_before))
+                E1_before = "_digit_";
+        }
+        if (rightend < sen_end) {
+            E2_after = lemmas.get(rightend);
+            if (NumberUtils.isNumber(E2_after))
+                E2_after = "_digit_";
+        }
+
+        fea_vec.addBinaryFeature("E1_before:" + E1_before);
+        fea_vec.addBinaryFeature("E2_after:" + E2_after);
+
+        //Syntactic features
+        for(int i=leftend;i<rightstart;i++){
+            String tag=pos_tags.get(i);
+            fea_vec.addBinaryFeature("Pos:" + tag);
+        }
+
+        return fea_vec;
+
+    }
+
 
 }
