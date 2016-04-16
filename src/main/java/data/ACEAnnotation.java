@@ -391,6 +391,13 @@ public class ACEAnnotation implements Serializable {
         EntityMention e = new EntityMention(type, null, extentStartOffset, extentEndOffset, headStartOffset, headEndOffset, FindSentenceIndex(extentStartOffset), this);
         testEntityMentions.add(e);
         testEntityMentionsBySpan.put(new IntPair(extentStartOffset, extentEndOffset), e);
+        Constituent entityConstituent = new Constituent(type, ACEReader.ENTITYVIEW, ta, extentStartOffset, extentEndOffset);
+        entityConstituent.addAttribute(ACEReader.EntityHeadStartCharOffset, ta.getTokenCharacterOffset(headStartOffset).getFirst()+"");
+        entityConstituent.addAttribute(ACEReader.EntityHeadEndCharOffset, ta.getTokenCharacterOffset(headEndOffset).getSecond()+"");
+        entityConstituent.addAttribute(ACEReader.EntityTypeAttribute, type);
+
+        entityView.addConstituent(entityConstituent);
+        e.setConstituent(entityConstituent);
     }
 
     /**
@@ -405,6 +412,19 @@ public class ACEAnnotation implements Serializable {
 
     public void addCoreferenceEdge(EntityMention e1, EntityMention e2) {
         testCoreferenceEdges.add(new CoreferenceEdge(e1, e2));
+    }
+
+    public void addCoreferentEntity(List<EntityMention> mentions) {
+        //Find canonical mention - according to the reader, this is the one with the longest span
+        Constituent canonical = null;
+        List<Constituent> constituents = new ArrayList<>();
+        for (EntityMention e: mentions) {
+            if (canonical == null || canonical.getSurfaceForm().length() < e.getConstituent().getSurfaceForm().length()) {
+                canonical = e.getConstituent();
+            }
+            constituents.add(e.getConstituent());
+        }
+        corefView.addCorefEdges(canonical, constituents);
     }
 
     public List<EntityMention> getGoldEntityMentions() {
@@ -665,13 +685,6 @@ public class ACEAnnotation implements Serializable {
         }
         System.out.println();
     }
-
-
-
-
-
-
-
 
 
     // Static methods - these are used to access global information relating to the dataset
