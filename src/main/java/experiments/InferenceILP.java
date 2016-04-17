@@ -47,7 +47,7 @@ public class InferenceILP {
 
         //training  stage
         NaiveBayes nb_classifier = new NaiveBayes();
-        List<FeatureVector> train_extract_data = ReFeatures.generateFeatures(train_set, "train");
+        List<FeatureVector> train_extract_data = ReFeatures.generateFeatures(train_set, 0.95f);
         nb_classifier.train(train_extract_data);
 
 
@@ -58,7 +58,7 @@ public class InferenceILP {
         for(GISentence g: test_sentences){
 
             //mode = 0 compare max, mode = 1 compare acc max
-            //g.assignRelationWithCorefConstraint(nb_classifier, 1);
+            //g.assignRelationWithCorefConstraint(nb_classifier, 0);
 
             //mode = 1, automatically set coreference to NO_RELATION
             g.assignRelation(nb_classifier, 1);
@@ -86,12 +86,29 @@ public class InferenceILP {
         int [] c_hit = new int [labels_count];
         int [] c_count = new int [labels_count];
 
+        int true_positive=0;
+        int false_postive=0;
+        int false_negative=0;
+
         for(GISentence g: test_sentences){
             for(Relation r: g.relations){
 
                 if (r.pred_num == r.type_num) {
                     hit++;
                     c_hit[r.type_num]++;
+
+                    if(r.type_num!=0) {
+                        true_positive++;
+                    }
+
+                }
+                else{
+                    if(r.type_num!=0) {
+                        false_postive++;
+                    }
+                    if(r.pred_num==0){
+                        false_negative++;
+                    }
                 }
                 count++;
                 c_pick[r.pred_num]++;
@@ -100,7 +117,12 @@ public class InferenceILP {
             }
         }
 
-        System.out.println("\nacc"+ (float)hit/count);
+        //System.out.println("\nacc: "+ (float)hit/count);
+        System.out.println("precision: "+ (float)true_positive/(true_positive+false_postive));
+        System.out.println("recall: "+ (float)true_positive/(true_positive+false_negative));
+        System.out.println();
+
+
         for(int i=0;i<labels_count;i++){
 
             System.out.print("Class "+i+" ");

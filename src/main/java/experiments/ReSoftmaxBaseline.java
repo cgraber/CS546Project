@@ -31,7 +31,7 @@ public class ReSoftmaxBaseline {
 
     public static void main(String[] argv) throws IOException {
         List<ACEAnnotation> aceAnnotations = ACEAnnotation.readAllFromFileFlat();
-        List<FeatureVector> featureVectors = ReFeatures.generateFeatures(aceAnnotations, "train");
+        List<FeatureVector> featureVectors = ReFeatures.generateFeatures(aceAnnotations, 0.97f);
 
         Collections.shuffle(featureVectors);
 

@@ -180,31 +180,33 @@ public class GISentence {
 
             if(gs.corefgroup.size()!=gs.mentions.size()) {
 
-                ACEAnnotation.printSentence(gs.sentence);
+                //ACEAnnotation.printSentence(gs.sentence);
                 //ACEAnnotation.printSentence(gs.lemmas);
                 //ACEAnnotation.printSentence(gs.postags);
 
                 for (EntityMention m : gs.mentions) {
-                    System.out.println(m.getExtent());
+                    //System.out.println(m.getExtent());
                 }
 
                 for (Relation r : gs.relations) {
-                    System.out.print(r.getArg1().getExtent() + " ");
-                    System.out.print(r.pred_type + " ");
-                    System.out.print(r.type + " ");
-                    System.out.print(r.getArg2().getExtent() + "\n");
+                    if(r.type_num!=0 && r.type_num!=r.pred_num) {
+                        ACEAnnotation.printSentence(gs.sentence);
+                        System.out.print(r.getArg1().getExtent() + " ");
+                        System.out.print(r.pred_type + " ");
+                        System.out.print(r.type + " ");
+                        System.out.print(r.getArg2().getExtent() + "\n\n");
+                    }
                 }
+
 
                 for (List<EntityMention> l : gs.corefgroup) {
-                    System.out.print("coref group: ");
+                    //System.out.print("coref group: ");
                     for (EntityMention e : l) {
-                        System.out.print(e.getExtent() + " ");
+                        //System.out.print(e.getExtent() + " ");
                     }
-                    System.out.println();
+                    //System.out.println();
                 }
-
-                System.out.println();
-
+                //System.out.println();
             }
 
         }
