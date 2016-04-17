@@ -68,7 +68,7 @@ public class Relation implements Serializable {
     }
 
     public void SetRelation(int type_num){
-        this.type_num=type_num;
+        this.type_num = type_num;
         this.type = stringList.get(type_num);
     }
 

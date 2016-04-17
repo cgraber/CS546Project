@@ -48,6 +48,11 @@ public class NaiveBayes {
             train_category_count[label]++;
         }
 
+        System.out.println("\ntraining examples count: ");
+        for(int i=0;i<labels_count;i++){
+            System.out.println("class "+i+" "+train_category_count[i]);
+        }
+
         //balance step
         int base_index=0;
         int base_count=train_category_count[0];
@@ -127,6 +132,52 @@ public class NaiveBayes {
         }
 
         return score_class;
+
+    }
+
+    public int predict(FeatureVector f){
+
+        final double [] score_class= new double [labels_count];
+        new_features_count=f.getFeatureCount();
+
+        //prediction
+        List<Integer> vector=f.getFeatures();
+        for(int j=0;j<vector.size();j++){
+            //check if this is unseen features
+            if(vector.get(j)==1){
+                for(int k=0; k<labels_count; k++){
+
+                    //if this is a new feature, the frequency is 0
+                    int frequency = 0;
+                    if(j<features_count)
+                        frequency=frequency_table[k][j];
+
+
+                    double frequency_score=(float)(frequency+1)*balance_factors[k];
+                    double score = (float) log( frequency_score / (train_size + new_features_count));
+                    score_class[k] += score;
+                }
+            }
+        }
+
+        //get ranking by sorting index
+        List<Integer> index_array = new ArrayList <> ();
+        for(int j=0; j < labels_count; j++){
+            index_array.add(j);
+        }
+
+        Collections.sort(index_array, new Comparator<Integer>() {
+            @Override
+            public int compare(Integer o1, Integer o2) {
+                if (score_class[o2] > score_class[o1])
+                    return 1;
+                else
+                    return -1;
+            }
+        });
+
+        int prediction=index_array.get(0);
+        return prediction;
 
     }
 

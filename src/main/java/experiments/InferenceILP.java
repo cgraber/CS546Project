@@ -21,8 +21,7 @@ public class InferenceILP {
         List<ACEAnnotation> all_documents = DataStorage.LoadDocuments();
         Collections.shuffle(all_documents);
 
-
-
+        //adding gold relation for corefgroup in each sentence
         List<ACEAnnotation> train_set = new ArrayList<>();
         List<ACEAnnotation> test_set = new ArrayList<>();
 
@@ -37,6 +36,17 @@ public class InferenceILP {
 
 
 
+        //Add more relation
+        //List<GISentence> train_sentences = GISentence.BreakDocumentIntoSentence(train_set, 1);
+        //GISentence.IncrementRelationFromCoref(train_sentences);
+
+        List<GISentence> test_sentences = GISentence.BreakDocumentIntoSentence(test_set, 1);
+        //GISentence.IncrementRelationFromCoref(test_sentences);
+
+
+
+
+
         //training  stage
         NaiveBayes nb_classifier = new NaiveBayes();
         List<FeatureVector> train_extract_data = ReFeatures.generateFeatures(train_set, "train");
@@ -46,25 +56,17 @@ public class InferenceILP {
 
 
 
-        /*
-        List<FeatureVector> test_extract_data = ReFeatures.generateFeatures(test_set, "test");
-        nb_classifier.test(test_extract_data);
-        */
-
-
-
-
-
-
-        //mode = 0 standfor no grouping
-        List<GISentence> test_sentences = GISentence.BreakDocumentIntoSentence(test_set, 1);
 
 
         //iterate through all sentence instance
         for(GISentence g: test_sentences){
 
-            ////mode = 0 compare max, mode = 1 compare acc max
-            g.assignRelationWithCorefConstraint(nb_classifier, 1);
+            //mode = 0 compare max, mode = 1 compare acc max
+            //g.assignRelationWithCorefConstraint(nb_classifier, 1);
+
+            //mode = 1, automatically set coreference to NO_RELATION
+            g.assignRelation(nb_classifier, 0);
+
         }
 
 
@@ -74,6 +76,12 @@ public class InferenceILP {
         }
 
         GISentence.printGiInformation (test_sentences);
+
+
+
+
+
+
 
         //summary
         int hit = 0;
@@ -99,7 +107,7 @@ public class InferenceILP {
             }
         }
 
-        System.out.println((float)hit/count);
+        System.out.println("\nacc"+ (float)hit/count);
         for(int i=0;i<labels_count;i++){
 
             System.out.print("Class "+i+" ");
@@ -109,6 +117,7 @@ public class InferenceILP {
             System.out.println((float)c_hit[i]/c_count[i]);
 
         }
+
 
 
 

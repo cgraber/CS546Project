@@ -87,8 +87,6 @@ public class GISentence {
                     sentence_instance.relationmap.put(p2,r);
 
                     //assign coreference group index
-                    //gold_coreferences.containsKey(p) || gold_coreferences.containsKey(p2)
-
                     boolean condition = gold_coreferences.containsKey(p) || gold_coreferences.containsKey(p2);
                     if(mode == 0)
                         condition = false;
@@ -215,6 +213,39 @@ public class GISentence {
 
     }
 
+    public void assignRelation(NaiveBayes clf, int mode){
+
+        //assign prediction without coref constraints
+        for(Relation r: this.relations){
+
+            EntityMention e1 = r.getArg1();
+            EntityMention e2 = r.getArg2();
+
+            FeatureVector f = ReFeatures.FeatureForOneInstance(e1,e2);
+            int prediction = clf.predict(f);
+            r.SetPrediction(prediction);
+
+        }
+
+        if(mode==1) {
+            List<List<EntityMention>> group = this.corefgroup;
+            //set NO_RELATION within the same corefgroup
+            for (int i = 0; i < group.size(); i++) {
+                List<EntityMention> g = group.get(i);
+                if (g.size() > 1) {
+                    for (int ii = 0; ii < g.size(); ii++) {
+                        for (int jj = ii + 1; jj < g.size(); jj++) {
+                            //0 standfor NO_RELATION
+                            Relation r = this.relationmap.get(new Pair(g.get(ii), g.get(jj)));
+                            r.SetPrediction(0);
+                        }
+                    }
+                }
+            }
+        }
+
+    }
+
     public void assignRelationWithCorefConstraint(NaiveBayes clf, int mode){
 
         List<List<EntityMention>> group=this.corefgroup;
@@ -244,10 +275,10 @@ public class GISentence {
             if (g.size() > 1) {
                 for (int ii = 0; ii < g.size(); ii++) {
                     for (int jj = ii+1; jj < g.size(); jj++) {
-
                         //0 standfor NO_RELATION
                         Relation r = this.relationmap.get(new Pair(g.get(ii), g.get(jj)));
                         r.SetPrediction(0);
+
                     }
                 }
             }
@@ -259,21 +290,68 @@ public class GISentence {
         Map<Pair<EntityMention, EntityMention>, Relation> map = g.document.getGoldRelationsByArgs();
 
         for(Relation r: g.relations){
+
             EntityMention e1=r.getArg1();
             EntityMention e2=r.getArg2();
+
             Pair<EntityMention,EntityMention> p1 = new Pair(e1, e2);
             Pair<EntityMention,EntityMention> p2 = new Pair(e2, e1);
-            Relation r1 = map.get(p1);
-            Relation r2 = map.get(p2);
-            if(r1!=null){
-                r.SetRelation(r1.type_num);
+
+            Relation relation = map.get(p1);
+            if(relation==null) {
+                relation = map.get(p2);
             }
-            if(r2!=null){
-                r.SetRelation(r2.type_num);
+
+            if(relation!=null) {
+                r.SetRelation(relation.type_num);
             }
         }
-
     }
+
+
+    public static void IncrementRelationFromCoref(List<GISentence> sentences){
+
+        for(GISentence g: sentences){
+
+            //add relation in dictionary
+            Map<Pair<EntityMention,EntityMention>, Relation> map = g.document.getGoldRelationsByArgs();
+
+            for(Relation r: g.relations){
+
+                EntityMention e1=r.getArg1();
+                EntityMention e2=r.getArg2();
+
+                Pair<EntityMention,EntityMention> p1 = new Pair(e1,e2);
+                Pair<EntityMention,EntityMention> p2 = new Pair(e2,e1);
+
+                Relation gold_relation=map.get(p1);
+                if(gold_relation==null) {
+                    gold_relation = map.get(p2);
+                }
+
+                if(gold_relation==null) {
+                    continue;
+                }
+
+                List<EntityMention> g1 = g.corefgroup.get(e1.corefGroupIndex);
+                List<EntityMention> g2 = g.corefgroup.get(e2.corefGroupIndex);
+
+                //System.out.println(gold_relation.type_num);
+                for (int i = 0; i < g1.size(); i++) {
+                    for (int j = 0; j < g2.size(); j++) {
+                        Pair<EntityMention, EntityMention> p = new Pair<>(g1.get(i), g2.get(j));
+                        map.put(p, new Relation(gold_relation.type, p.getFirst(), p.getSecond()));
+                    }
+                }
+            }
+
+
+
+        }
+    }
+
+
+
 
 
 }
