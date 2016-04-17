@@ -65,7 +65,7 @@ public class InferenceILP {
             //g.assignRelationWithCorefConstraint(nb_classifier, 1);
 
             //mode = 1, automatically set coreference to NO_RELATION
-            g.assignRelation(nb_classifier, 0);
+            g.assignRelation(nb_classifier, 1);
 
         }
 

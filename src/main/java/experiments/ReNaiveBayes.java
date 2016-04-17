@@ -273,11 +273,7 @@ public class ReNaiveBayes {
                     System.out.println("First:" + StringList.get(prediction));
                     System.out.println("Second:" + StringList.get(second_guess));
                     System.out.println("Truth:" + StringList.get(label));
-                    System.out.println(f.left.getExtent());
-                    System.out.println(f.left.getEntityType());
-                    System.out.println(f.right.getExtent());
-                    System.out.println(f.right.getEntityType());
-                    ACEAnnotation.printSentence(f.sentence);
+
 
 
                 }
@@ -289,11 +285,7 @@ public class ReNaiveBayes {
                     System.out.println("First:" + StringList.get(prediction));
                     System.out.println("Third:" + StringList.get(third_guess));
                     System.out.println("Truth:" + StringList.get(label));
-                    System.out.println(f.left.getExtent());
-                    System.out.println(f.left.getEntityType());
-                    System.out.println(f.right.getExtent());
-                    System.out.println(f.right.getEntityType());
-                    ACEAnnotation.printSentence(f.sentence);
+
 
 
                 }

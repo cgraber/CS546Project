@@ -221,7 +221,8 @@ public class GISentence {
             EntityMention e1 = r.getArg1();
             EntityMention e2 = r.getArg2();
 
-            FeatureVector f = ReFeatures.FeatureForOneInstance(e1,e2);
+            FeatureVector f = new FeatureVector();
+            ReFeatures.FeatureForOneInstance(e1,e2,f);
             int prediction = clf.predict(f);
             r.SetPrediction(prediction);
 

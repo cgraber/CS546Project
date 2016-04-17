@@ -14,8 +14,8 @@ import java.util.Map;
 public class Relation implements Serializable {
 
     private static final long serialVersionUID = 4L;
-    private static List<String> stringList;
-    private static Map<String, Integer> labelMap;
+    public static List<String> stringList;
+    public static Map<String, Integer> labelMap;
     public static Integer labels_count;
 
     static{
