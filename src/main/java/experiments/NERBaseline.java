@@ -118,7 +118,10 @@ public class NERBaseline implements PipelineStage {
                             end = sentOffset + tagLabelInd + 1;
                         }
                     }
-                    doc.addEntityMention(e.getMentionType(), start, end, e.getHeadStartOffset(), e.getHeadEndOffset());
+		if (e.getMentionType() == null){
+			System.out.println("ERROR: MENTION TYPE IS NULL!");
+		}
+                    doc.addEntityMention(e.getEntityType(), start, end, e.getHeadStartOffset(), e.getHeadEndOffset());
                     tagSentInd++;
                 }
 
