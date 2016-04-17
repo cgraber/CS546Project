@@ -45,14 +45,10 @@ public class InferenceILP {
 
 
 
-
-
         //training  stage
         NaiveBayes nb_classifier = new NaiveBayes();
         List<FeatureVector> train_extract_data = ReFeatures.generateFeatures(train_set, "train");
         nb_classifier.train(train_extract_data);
-
-
 
 
 
@@ -75,9 +71,7 @@ public class InferenceILP {
            GISentence.assignTrueLabel(g);
         }
 
-        //GISentence.printGiInformation (test_sentences);
-
-
+        GISentence.printGiInformation (test_sentences);
 
 
 
@@ -86,7 +80,6 @@ public class InferenceILP {
         //summary
         int hit = 0;
         int count = 0;
-
 
         int labels_count = Relation.labels_count;
         int [] c_pick = new int [labels_count];

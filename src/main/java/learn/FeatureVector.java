@@ -16,8 +16,6 @@ public class FeatureVector implements Serializable {
     private static final long serialVersionUID = 5L;
 
     private static Map<String, Integer> featureMap;
-    //private static Map<String, Integer> labelMap;
-    //private static List<String> stringList;
 
     static {
         featureMap = new HashMap<>();
