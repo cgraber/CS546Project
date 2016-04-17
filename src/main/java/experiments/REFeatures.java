@@ -13,7 +13,7 @@ import java.lang.*;
  * Created by sdq on 3/22/16.
  */
 
-public class ReFeatures {
+public class REFeatures {
 
     public static void main(String [] argv) throws IOException {
 

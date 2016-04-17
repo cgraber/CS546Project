@@ -4,10 +4,8 @@ import edu.illinois.cs.cogcomp.annotation.TextAnnotationBuilder;
 import edu.illinois.cs.cogcomp.core.datastructures.IntPair;
 import edu.illinois.cs.cogcomp.core.datastructures.Pair;
 import edu.illinois.cs.cogcomp.core.datastructures.ViewNames;
-import edu.illinois.cs.cogcomp.core.datastructures.textannotation.Constituent;
-import edu.illinois.cs.cogcomp.core.datastructures.textannotation.Sentence;
-import edu.illinois.cs.cogcomp.core.datastructures.textannotation.TextAnnotation;
-import edu.illinois.cs.cogcomp.core.datastructures.textannotation.View;
+import edu.illinois.cs.cogcomp.core.datastructures.textannotation.*;
+import edu.illinois.cs.cogcomp.nlp.corpusreaders.ACEReader;
 import edu.illinois.cs.cogcomp.nlp.corpusreaders.aceReader.annotationStructure.*;
 import edu.illinois.cs.cogcomp.nlp.tokenizer.IllinoisTokenizer;
 import edu.illinois.cs.cogcomp.nlp.utility.TokenizerTextAnnotationBuilder;
@@ -49,6 +47,9 @@ public class ACEAnnotation implements Serializable {
 
     private String id;
     private TextAnnotation ta;
+    private SpanLabelView entityView;
+    private CoreferenceView corefView;
+    private PredicateArgumentView relationView;
 
     // Each sentence is represented as a List of tokens - this is a list of those lists
     private List<List<String>> sentenceTokens = new ArrayList<>();
@@ -71,6 +72,7 @@ public class ACEAnnotation implements Serializable {
     private List<ACERelation> relationList;
     private List<Integer> sentenceIndex = new ArrayList<>();
 
+
     // Annotation info
     private List<List<String>> BIOencoding = null;
 
@@ -80,6 +82,13 @@ public class ACEAnnotation implements Serializable {
         ta = taBuilder.createTextAnnotation(null, id, doc.contentRemovingTags);
         int count=0;
         Pipeline.addAllViews(ta);
+        entityView = new SpanLabelView(ACEReader.ENTITYVIEW, ACEAnnotation.class.getCanonicalName(), ta, 1.0f, true);
+        ta.addView(ACEReader.ENTITYVIEW, entityView);
+        corefView = new CoreferenceView(ViewNames.COREF, ACEAnnotation.class.getCanonicalName(), ta, 1.0f);
+        ta.addView(ViewNames.COREF, corefView);
+        relationView = new PredicateArgumentView(ACEReader.RELATIONVIEW, ACEAnnotation.class.getCanonicalName(), ta, 1.0f);
+        ta.addView(ACEReader.RELATIONVIEW, relationView);
+
         for (Sentence sentence: ta.sentences()) {
             List<String> sentenceArray=Arrays.asList(sentence.getTokens());
             sentenceTokens.add(sentenceArray);
@@ -382,6 +391,13 @@ public class ACEAnnotation implements Serializable {
         EntityMention e = new EntityMention(type, null, extentStartOffset, extentEndOffset, headStartOffset, headEndOffset, FindSentenceIndex(extentStartOffset), this);
         testEntityMentions.add(e);
         testEntityMentionsBySpan.put(new IntPair(extentStartOffset, extentEndOffset), e);
+        Constituent entityConstituent = new Constituent(type, ACEReader.ENTITYVIEW, ta, extentStartOffset, extentEndOffset);
+        entityConstituent.addAttribute(ACEReader.EntityHeadStartCharOffset, ta.getTokenCharacterOffset(headStartOffset).getFirst()+"");
+        entityConstituent.addAttribute(ACEReader.EntityHeadEndCharOffset, ta.getTokenCharacterOffset(headEndOffset).getSecond()+"");
+        entityConstituent.addAttribute(ACEReader.EntityTypeAttribute, type);
+
+        entityView.addConstituent(entityConstituent);
+        e.setConstituent(entityConstituent);
     }
 
     /**
@@ -396,6 +412,19 @@ public class ACEAnnotation implements Serializable {
 
     public void addCoreferenceEdge(EntityMention e1, EntityMention e2) {
         testCoreferenceEdges.add(new CoreferenceEdge(e1, e2));
+    }
+
+    public void addCoreferentEntity(List<EntityMention> mentions) {
+        //Find canonical mention - according to the reader, this is the one with the longest span
+        Constituent canonical = null;
+        List<Constituent> constituents = new ArrayList<>();
+        for (EntityMention e: mentions) {
+            if (canonical == null || canonical.getSurfaceForm().length() < e.getConstituent().getSurfaceForm().length()) {
+                canonical = e.getConstituent();
+            }
+            constituents.add(e.getConstituent());
+        }
+        corefView.addCorefEdges(canonical, constituents);
     }
 
     public List<EntityMention> getGoldEntityMentions() {
@@ -653,13 +682,6 @@ public class ACEAnnotation implements Serializable {
         }
         System.out.println();
     }
-
-
-
-
-
-
-
 
 
     // Static methods - these are used to access global information relating to the dataset

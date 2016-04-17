@@ -1,5 +1,7 @@
 package data;
 
+import edu.illinois.cs.cogcomp.core.datastructures.textannotation.Constituent;
+
 import java.io.Serializable;
 import java.util.List;
 
@@ -21,6 +23,7 @@ public class EntityMention implements Serializable {
 
     public ACEAnnotation annotation;
     public GISentence sentence;
+    private Constituent constituent = null;
     public int corefGroupIndex;
 
     protected EntityMention(String entityType, String mentionType, int extentStartOffset, int extentEndOffset, int headStartOffset, int headEndOffset, int sentenceOffset, ACEAnnotation annotation) {
@@ -92,5 +95,13 @@ public class EntityMention implements Serializable {
         } else {
             return false;
         }
+    }
+
+    public void setConstituent(Constituent constituent) {
+        this.constituent = constituent;
+    }
+
+    public Constituent getConstituent() {
+        return constituent;
     }
 }
