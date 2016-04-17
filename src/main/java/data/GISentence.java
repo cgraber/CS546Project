@@ -3,6 +3,8 @@ package data;
 
 import edu.illinois.cs.cogcomp.core.datastructures.Pair;
 import experiments.NaiveBayes;
+import experiments.ReFeatures;
+import learn.FeatureVector;
 
 import java.util.*;
 

@@ -193,7 +193,7 @@ public class NaiveBayes {
         //generate feature vector for all possible pair between two group
         for(int i=0; i<g1.size(); i++){
             for(int j=0; j<g2.size(); j++){
-                list_vec.add(REFeatures.FeatureForOneInstance(g1.get(i), g2.get(j)));
+                list_vec.add(ReFeatures.FeatureForOneInstance(g1.get(i), g2.get(j)));
             }
         }
 
