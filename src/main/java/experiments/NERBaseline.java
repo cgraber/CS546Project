@@ -46,7 +46,6 @@ public class NERBaseline implements PipelineStage {
                     String tag = testTags.get(tagSentInd).get(tagLabelInd);
                     if (tag.startsWith(Consts.BIO_B)) {
                         if (currentType != null) {
-                            System.out.println("Sentence offset: "+tokenInd);
                             //IntPair extent = doc.findMentionExtent(currentStart, currentEnd);
                             doc.addEntityMention(currentType, currentStart, currentEnd, currentStart, currentEnd);
                             //System.out.println("Adding entity of type " + currentType + ", (" + currentStart + ", " + currentEnd + ")");
@@ -69,7 +68,6 @@ public class NERBaseline implements PipelineStage {
                         }
                     } else {
                         if (currentType != null) {
-                            System.out.println("Sentence offset: "+tokenInd);
 
                             //IntPair extent = doc.findMentionExtent(currentStart, currentEnd);
                             doc.addEntityMention(currentType, currentEnd, currentEnd, currentStart, currentEnd);
@@ -258,10 +256,29 @@ public class NERBaseline implements PipelineStage {
                         result.append(" ").append(Consts.IN_HEAD);
                     } else if (sentenceOffset + tokenInd < e.getHeadStartOffset()) {
                         result.append(" ").append(Consts.HEAD_OFFSET+(sentenceOffset+tokenInd-e.getHeadStartOffset()));
+                        String rootLabel = doc.getParseRootCovering(sentenceOffset + tokenInd, e.getHeadStartOffset(), e.getHeadEndOffset());
+                        result.append(" ").append(Consts.HEAD_OFFSET+(sentenceOffset+tokenInd-e.getHeadStartOffset())+"_"+rootLabel);
+                        String siblingLabel = doc.getSiblingParseLabel(sentenceOffset+tokenInd, e.getHeadStartOffset(), e.getHeadEndOffset());
+                        if (siblingLabel != null) {
+                            if (siblingLabel.equals(Consts.IN_SAME_SUBTREE)) {
+                                result.append(" ").append(siblingLabel);
+                            } else {
+                                result.append(" ").append(Consts.LEFT_SIBLING).append(siblingLabel);
+                            }
+                        }
                     } else {
-                        result.append(" ").append(Consts.HEAD_OFFSET+(sentenceOffset+tokenInd - e.getHeadEndOffset()));
+                        result.append(" ").append(Consts.HEAD_OFFSET + (sentenceOffset + tokenInd - e.getHeadEndOffset()));
+                        String rootLabel = doc.getParseRootCovering(sentenceOffset + tokenInd, e.getHeadStartOffset(), e.getHeadEndOffset());
+                        result.append(" ").append(Consts.HEAD_OFFSET+(sentenceOffset+tokenInd-e.getHeadStartOffset())+"_"+rootLabel);
+                        String siblingLabel = doc.getSiblingParseLabel(sentenceOffset + tokenInd, e.getHeadStartOffset(), e.getHeadEndOffset());
+                        if (siblingLabel != null) {
+                            if (siblingLabel.equals(Consts.IN_SAME_SUBTREE)) {
+                                result.append(" ").append(siblingLabel);
+                            } else {
+                                result.append(" ").append(Consts.RIGHT_SIBLING).append(siblingLabel);
+                            }
+                        }
                     }
-
                     //TODO: add Pronoun-based feature
 
                     //TODO: other features!

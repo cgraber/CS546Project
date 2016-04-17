@@ -44,4 +44,7 @@ public class Consts {
     public static final String ALL_CAPS = "__ALLCAPS";
     public static final String IN_HEAD = "_IN_HEAD";
     public static final String HEAD_OFFSET = "_HEAD_OFFSET_";
+    public static final String IN_SAME_SUBTREE = "_IN_SAME_SUBTREE";
+    public static final String LEFT_SIBLING = "_LEFT_SIBLING_";
+    public static final String RIGHT_SIBLING = "_RIGHT_SIBLING_";
 }

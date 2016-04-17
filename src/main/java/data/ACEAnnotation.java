@@ -4,9 +4,12 @@ import edu.illinois.cs.cogcomp.annotation.TextAnnotationBuilder;
 import edu.illinois.cs.cogcomp.core.datastructures.IntPair;
 import edu.illinois.cs.cogcomp.core.datastructures.Pair;
 import edu.illinois.cs.cogcomp.core.datastructures.ViewNames;
+import edu.illinois.cs.cogcomp.core.datastructures.textannotation.Constituent;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.Sentence;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.TextAnnotation;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.View;
+import edu.illinois.cs.cogcomp.core.datastructures.trees.Tree;
+import edu.illinois.cs.cogcomp.edison.features.helpers.ParseHelper;
 import edu.illinois.cs.cogcomp.nlp.tokenizer.IllinoisTokenizer;
 import edu.illinois.cs.cogcomp.nlp.corpusreaders.aceReader.annotationStructure.*;
 import edu.illinois.cs.cogcomp.nlp.tokenizer.IllinoisTokenizer;
@@ -422,6 +425,54 @@ public class ACEAnnotation implements Serializable {
         }*/
     }
 
+    public String getParseRootCovering(int token, int headStartOffset, int headEndOffset) {
+        int sentenceInd = findSentenceIndex(headStartOffset);
+        int sentenceOffset = getSentenceIndex(sentenceInd);
+        Tree<String> tree = ParseHelper.getParseTree(ViewNames.PARSE_STANFORD, ta, sentenceInd);
+
+        int start = headStartOffset - sentenceOffset;
+        int end = headEndOffset - sentenceOffset;
+        if (token < headStartOffset) {
+            start = token - sentenceOffset;
+        } else {
+            end = token + 1 - sentenceOffset;
+        }
+        Tree<Pair<String,IntPair>> coveringTree = ParseHelper.getTokenIndexedTreeCovering(tree, start, end);
+        return coveringTree.getLabel().getFirst();
+    }
+
+    public String getSiblingParseLabel(int token, int headStartOffset, int headEndOffset) {
+        int sentenceInd = findSentenceIndex(headStartOffset);
+        int sentenceOffset = getSentenceIndex(sentenceInd);
+        Tree<String> tree = ParseHelper.getParseTree(ViewNames.PARSE_STANFORD, ta, sentenceInd);
+        Tree<Pair<String,IntPair>> coveringTree = ParseHelper.getTokenIndexedTreeCovering(tree, headStartOffset, headEndOffset);
+        IntPair span = coveringTree.getLabel().getSecond();
+        if (token >= span.getFirst() && token < span.getSecond()) {
+            return Consts.IN_SAME_SUBTREE;
+        } else if (coveringTree.isRoot()) {
+            return null;
+        }else if (token < headStartOffset) {
+            if (coveringTree.getPositionAmongParentsChildren() == 0) {
+                return null;
+            }
+            Tree<Pair<String,IntPair>> sibling = coveringTree.getParent().getChild(coveringTree.getPositionAmongParentsChildren()-1);
+            span = sibling.getLabel().getSecond();
+            if (token >= span.getFirst() && token < span.getSecond()) {
+                return sibling.getLabel().getFirst();
+            }
+        } else {
+            if (coveringTree.getPositionAmongParentsChildren() == coveringTree.getParent().getChildren().size()-1) {
+                return null;
+            }
+            Tree<Pair<String,IntPair>> sibling = coveringTree.getParent().getChild(coveringTree.getPositionAmongParentsChildren()+1);
+            span = sibling.getLabel().getSecond();
+            if (token >= span.getFirst() && token < span.getSecond()) {
+                return sibling.getLabel().getFirst();
+            }
+        }
+        return null;
+    }
+
     /**
      * This is the function that should be called by the NER system to add an entity mention to the test labels
      *
@@ -578,7 +629,7 @@ public class ACEAnnotation implements Serializable {
                         goldCoreferenceEdgesByEntities.containsKey(new Pair<>(e2,e1))) {
                     isCoreferent = true;
                 }
-                if (!(e2.getMentionType().equals(Consts.PRONOUN) && !e1.getMentionType().equals(Consts.PRONOUN))){
+                if (!(e2.getMentionType().equals(Consts.PRONOUN) && !e1.getMentionType().equals(Consts.PRONOUN))) {
                     result.add(new CoreferenceEdge(e2, e1, isCoreferent));
                 }
             }

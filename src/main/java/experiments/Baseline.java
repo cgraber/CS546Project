@@ -19,7 +19,7 @@ public class Baseline {
             System.exit(1);
         }
         
-	/*
+        /*
         List<List<ACEAnnotation>> splits = DataUtils.loadDataSplits(argv[0]);
         try {
             ACEAnnotation.writeAlltoFile(splits);
@@ -42,7 +42,7 @@ public class Baseline {
             train.addAll(splits.get(i));
         }
         List<ACEAnnotation> test = splits.get(splits.size() - 1);
-        //ner.trainModel(train);
+        ner.trainModel(train);
         ner.test(train);
         Pair<Double,Double> results = ner.evaluateHead(train);
         System.out.println("HEAD PRECISION: "+results.getFirst());
