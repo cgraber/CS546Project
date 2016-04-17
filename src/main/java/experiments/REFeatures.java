@@ -82,8 +82,8 @@ public class ReFeatures {
                 Pair<EntityMention,EntityMention> pair_key=new Pair<>(left,right);
                 Pair<EntityMention, EntityMention> pair_key_r = new Pair<>(right, left);
 
+                //If gold_relation doesn't contain such pair, we take it as NO_RELATION
                 String relation = "NO_RELATION";
-
                 if (gold_relation.containsKey(pair_key)){
                     relation = gold_relation.get(pair_key).getType();
                 }
@@ -92,7 +92,7 @@ public class ReFeatures {
                     relation = gold_relation.get(pair_key_r).getType();
                 }
 
-                if(relation=="NO_RELATION"){
+                if(relation.equals("NO_RELATION")){
                     double random= Math.random();
                     //get rid of 95% of No-Relation
                     if(random < no_relation_block_rate)
