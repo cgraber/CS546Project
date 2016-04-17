@@ -75,7 +75,7 @@ public class InferenceILP {
            GISentence.assignTrueLabel(g);
         }
 
-        GISentence.printGiInformation (test_sentences);
+        //GISentence.printGiInformation (test_sentences);
 
 
 
