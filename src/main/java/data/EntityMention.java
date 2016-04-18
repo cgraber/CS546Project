@@ -10,7 +10,10 @@ import java.util.List;
  */
 public class EntityMention implements Serializable {
 
+
+
     private static final long serialVersionUID = 3L;
+
 
     public String entityType;
     public String mentionType;
@@ -25,6 +28,8 @@ public class EntityMention implements Serializable {
     public GISentence sentence;
     private Constituent constituent = null;
     public int corefGroupIndex;
+
+
 
     protected EntityMention(String entityType, String mentionType, int extentStartOffset, int extentEndOffset, int headStartOffset, int headEndOffset, int sentenceOffset, ACEAnnotation annotation) {
         this.entityType = entityType;

@@ -215,7 +215,10 @@ public class GISentence {
 
     }
 
-    public void assignRelation(NaiveBayes clf, int mode){
+    /**
+     * when mode = 0, original Naive Bayes, when mode = 1, Naive Bayes + no_relation in same coreference group
+     */
+    public void assignPrediction(NaiveBayes clf, int mode){
 
         //assign prediction without coref constraints
         for(Relation r: this.relations){
@@ -249,7 +252,10 @@ public class GISentence {
 
     }
 
-    public void assignRelationWithCorefConstraint(NaiveBayes clf, int mode){
+    /**
+     * predict relation by forcing same coreference group predict the same relations
+     */
+    public void assignPredictionWithCorefConstraint(NaiveBayes clf){
 
         List<List<EntityMention>> group=this.corefgroup;
 
@@ -260,7 +266,7 @@ public class GISentence {
                 //predict relation between two group
                 List<EntityMention> g1 = group.get(i);
                 List<EntityMention> g2 = group.get(j);
-                int prediction = NaiveBayes.RelationbetweenCorefGroup(g1,g2,clf,mode);
+                int prediction = NaiveBayes.RelationbetweenCorefGroup(g1,g2,clf);
 
                 //set relation for between two group
                 for(int ii=0; ii<g1.size(); ii++){
@@ -288,6 +294,10 @@ public class GISentence {
         }
     }
 
+
+    /**
+     * check the coresponding gold relations and assign true label on it
+     */
     public static void assignTrueLabel(GISentence g){
 
         Map<Pair<EntityMention, EntityMention>, Relation> map = g.document.getGoldRelationsByArgs();
@@ -312,6 +322,9 @@ public class GISentence {
     }
 
 
+    /**
+     * add relations based on coreference
+     */
     public static void IncrementRelationFromCoref(List<GISentence> sentences){
 
         for(GISentence g: sentences){
@@ -353,6 +366,75 @@ public class GISentence {
         }
     }
 
+    public static void ResultSummary(List<GISentence> test_sentences){
+
+        int labels_count = Relation.labels_count;
+        int [] c_pick = new int [labels_count];
+        int [] c_hit = new int [labels_count];
+        int [] c_count = new int [labels_count];
+
+        int tp=0;
+        int tn=0;
+        int fp=0;
+        int fn=0;
+
+        int hit=0;
+        int count=0;
+
+
+        for(GISentence g: test_sentences){
+            for(Relation r: g.relations){
+
+                if (r.pred_num == r.type_num) {
+
+                    c_hit[r.type_num]++;
+                    if(r.pred_num!=0) {
+                        hit++;
+                        tp++;
+                    }
+                    if(r.pred_num==0)
+                        tn++;
+                }
+                else{
+                    if(r.pred_num!=0)
+                        fp++;
+                    if(r.pred_num==0)
+                        fn++;
+                }
+
+                c_pick[r.pred_num]++;
+                c_count[r.type_num]++;
+                if(r.type_num!=0)
+                    count++;
+
+            }
+        }
+
+
+        float acc = (float)(tp+tn)/(tp+tn+fp+fn);
+        float precision = (float)tp/(tp+fp);
+        float recall = (float) tp/(tp+fn);
+        float true_acc = (float) hit/count;
+
+        System.out.println("\naccuracy: "+ acc);
+        System.out.println("true_accuracy: "+true_acc);
+        System.out.println("precision: "+ precision);
+        System.out.println("recall: "+ recall);
+        System.out.println("F1 score: " + (precision+recall)/2);
+
+
+        for(int i=0;i<labels_count;i++){
+
+            System.out.print("Class "+i+" ");
+            System.out.print("Count "+c_count[i]+" ");
+            System.out.print("Pick "+c_pick[i]+" ");
+            System.out.print("Hit "+c_hit[i]+" ");
+            System.out.println((float)c_hit[i]/c_count[i]);
+
+        }
+
+
+    }
 
 
 

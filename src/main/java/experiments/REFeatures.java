@@ -159,7 +159,9 @@ public class ReFeatures {
         //Syntactic features
         for(int i=leftend;i<rightstart;i++){
             String tag=pos_tags.get(i);
+            //String word=lemmas.get(i);
             fea_vec.addBinaryFeature("Pos:" + tag);
+            //fea_vec.addBinaryFeature("Word: "+ word);
         }
 
     }
