@@ -4,6 +4,11 @@ import data.ACEAnnotation;
 import data.EntityMention;
 import edu.illinois.cs.cogcomp.core.datastructures.IntPair;
 import edu.illinois.cs.cogcomp.core.datastructures.Pair;
+import edu.illinois.cs.cogcomp.core.datastructures.textannotation.TextAnnotation;
+import edu.illinois.cs.cogcomp.edison.features.Feature;
+import edu.illinois.cs.cogcomp.edison.features.NgramFeatureExtractor;
+import edu.illinois.cs.cogcomp.edison.features.factory.WordFeatureExtractorFactory;
+import edu.illinois.cs.cogcomp.edison.utilities.EdisonException;
 import learn.PipelineStage;
 import utils.Consts;
 
@@ -23,9 +28,10 @@ public class NERBaseline implements PipelineStage {
     private static final String NER_EXTENT_MODEL_FILE = "ner_model_extent";
 
 
+
     public void trainModel(List<ACEAnnotation> data) {
         buildHeadFeatureFile(data, true);
-        buildExtentFeatureFile(data, true);
+        //buildExtentFeatureFile(data, true);
         runMalletTrain();
     }
 
@@ -84,6 +90,7 @@ public class NERBaseline implements PipelineStage {
                 tagSentInd++;
             }
         }
+        /*
         buildExtentFeatureFile(data, false);
         testTags = runMalletTest(false);
         tagSentInd = 0;
@@ -128,6 +135,7 @@ public class NERBaseline implements PipelineStage {
             }
 
         }
+        */
     }
 
     private void buildHeadFeatureFile(List<ACEAnnotation> data, boolean isTrain) {
@@ -165,10 +173,20 @@ public class NERBaseline implements PipelineStage {
         List<List<String>> bioLabels = doc.getGoldBIOEncoding();
         System.out.println(bioLabels);
         List<List<String>> posTags = doc.getPOSTagsBySentence();
+        int sentenceOffset = 0;
 
         for (int sentInd = 0; sentInd < doc.getNumberOfSentences(); sentInd++) {
             List<String> sentence = doc.getSentence(sentInd);
+
             for (int tokenInd = 0; tokenInd < sentence.size(); tokenInd++) {
+                List<Feature> features = extractHeadFeatures(doc.getTA(), sentenceOffset+tokenInd);
+                result.append(convertFeaturesToMalletFormat(features));
+                if (isTrain) {
+                    result.append(" ").append(bioLabels.get(sentInd).get(tokenInd));
+                }
+                result.append("\n");
+
+                /*
                 String token = sentence.get(tokenInd);
                 result.append(Consts.WORD_FEATURE+token);
                 result.append(" ").append(Consts.POS_FEATURE+posTags.get(sentInd).get(tokenInd));
@@ -199,7 +217,9 @@ public class NERBaseline implements PipelineStage {
                     result.append(" ").append(bioLabels.get(sentInd).get(tokenInd));
                 }
                 result.append("\n");
+                */
             }
+            sentenceOffset += sentence.size();
             result.append("\n");
         }
         return result;
@@ -320,7 +340,7 @@ public class NERBaseline implements PipelineStage {
                 System.out.println(line);
             }
             System.out.println("Exit code: " + pr.waitFor());
-
+            /*
             toExecute = new String[] {"java", "-cp", ".:lib/mallet.jar:lib/mallet-deps.jar", "cc.mallet.fst.SimpleTagger",
                     "--train", "true", "--model-file", NER_EXTENT_MODEL_FILE, EXTENT_FEATURE_FILE};
             System.out.println(toExecute);
@@ -333,7 +353,7 @@ public class NERBaseline implements PipelineStage {
                 System.out.println(line);
             }
             System.out.println("Exit code: " + pr.waitFor());
-
+            */
         } catch (Exception e) {
             e.printStackTrace();
             System.exit(1);
@@ -408,5 +428,43 @@ public class NERBaseline implements PipelineStage {
             recallCount += counts.getSecond();
         }
         return new Pair<>(precisionCorrectCount/precisionCount, recallCorrectCount/recallCount);
+    }
+
+    private NgramFeatureExtractor bigrams = NgramFeatureExtractor.bigrams(WordFeatureExtractorFactory.word);
+    private NgramFeatureExtractor trigrams = NgramFeatureExtractor.trigrams(WordFeatureExtractorFactory.word);
+
+    public List<Feature> extractHeadFeatures(TextAnnotation ta, int index) {
+        List<Feature> features = new ArrayList<>();
+        try {
+            features.addAll(WordFeatureExtractorFactory.word.getWordFeatures(ta, index));
+            features.addAll(WordFeatureExtractorFactory.wordCase.getWordFeatures(ta, index));
+            features.addAll(WordFeatureExtractorFactory.dateMarker.getWordFeatures(ta, index));
+            features.addAll(WordFeatureExtractorFactory.wordCase.getWordFeatures(ta, index));
+            features.addAll(WordFeatureExtractorFactory.capitalization.getWordFeatures(ta, index));
+            features.addAll(WordFeatureExtractorFactory.conflatedPOS.getWordFeatures(ta, index));
+            features.addAll(WordFeatureExtractorFactory.lemma.getWordFeatures(ta, index));
+            features.addAll(WordFeatureExtractorFactory.numberNormalizer.getWordFeatures(ta, index));
+            features.addAll(WordFeatureExtractorFactory.pos.getWordFeatures(ta, index));
+            features.addAll(bigrams.getWordFeatures(ta, index));
+            features.addAll(trigrams.getWordFeatures(ta, index));
+
+
+
+        } catch (EdisonException e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+        return features;
+    }
+
+    public String convertFeaturesToMalletFormat(List<Feature> features) {
+        StringBuilder result = new StringBuilder();
+        for (Feature f: features) {
+            if (result.length() != 0) {
+                result.append(" ");
+            }
+            result.append(f.getName());
+        }
+        return result.toString();
     }
 }

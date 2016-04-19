@@ -196,6 +196,9 @@ public class ACEAnnotation implements Serializable {
 
     }
 
+    public TextAnnotation getTA() {
+        return ta;
+    }
 
     //NOTE: because of the (incorrect) tokenization, this introduces a bit of inaccuracy into the gold labels -
     // for the time being, we can't get around this.
