@@ -54,12 +54,15 @@ public class Relation implements Serializable {
     public String pred_type;
     public int pred_num;
 
+    public List<Integer> pred_vector;
+
 
     public Relation(String relation, EntityMention e1, EntityMention e2) {
         this.e1 = e1;
         this.e2 = e2;
         this.type = relation;
         this.type_num = labelMap.get(relation);
+        pred_vector=null;
     }
 
     public void SetPrediction(int pred_num){

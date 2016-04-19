@@ -178,36 +178,25 @@ public class GISentence {
 
         for(GISentence gs: gi_sentences){
 
-            if(gs.corefgroup.size()!=gs.mentions.size()) {
+                if (gs.corefgroup.size() != gs.mentions.size()) {
 
-                //ACEAnnotation.printSentence(gs.sentence);
-                //ACEAnnotation.printSentence(gs.lemmas);
-                //ACEAnnotation.printSentence(gs.postags);
+                    for (Relation r : gs.relations) {
+                        if (r.type_num != 0 && r.type_num != r.pred_num) {
+                            if (r.pred_vector != null) {
 
-                for (EntityMention m : gs.mentions) {
-                    //System.out.println(m.getExtent());
-                }
+                                ACEAnnotation.printSentence(gs.sentence);
+                                System.out.print(r.getArg1().getExtent() + " ");
+                                System.out.println(r.getArg2().getExtent());
+                                System.out.println("1st: " + Relation.stringList.get(r.pred_vector.get(0)) + " ");
+                                System.out.println("2nd: " + Relation.stringList.get(r.pred_vector.get(1)) + " ");
+                                System.out.println("3rd: " + Relation.stringList.get(r.pred_vector.get(2)) + " ");
+                                System.out.println("Truth: " + r.type + "\n");
 
-                for (Relation r : gs.relations) {
-                    if(r.type_num!=0 && r.type_num!=r.pred_num) {
-                        ACEAnnotation.printSentence(gs.sentence);
-                        System.out.print(r.getArg1().getExtent() + " ");
-                        System.out.print(r.pred_type + " ");
-                        System.out.print(r.type + " ");
-                        System.out.print(r.getArg2().getExtent() + "\n\n");
+                            }
+                        }
                     }
-                }
 
-
-                for (List<EntityMention> l : gs.corefgroup) {
-                    //System.out.print("coref group: ");
-                    for (EntityMention e : l) {
-                        //System.out.print(e.getExtent() + " ");
-                    }
-                    //System.out.println();
                 }
-                //System.out.println();
-            }
 
         }
 
@@ -228,8 +217,10 @@ public class GISentence {
 
             FeatureVector f = new FeatureVector();
             ReFeatures.FeatureForOneInstance(e1,e2,f);
-            int prediction = clf.predict(f);
+            List<Integer> pred_vec= clf.predict(f);
+            int prediction = pred_vec.get(0);
             r.SetPrediction(prediction);
+            r.pred_vector=pred_vec;
 
         }
 
@@ -266,13 +257,15 @@ public class GISentence {
                 //predict relation between two group
                 List<EntityMention> g1 = group.get(i);
                 List<EntityMention> g2 = group.get(j);
-                int prediction = NaiveBayes.RelationbetweenCorefGroup(g1,g2,clf);
+                List<Integer> pred_vector = NaiveBayes.RelationbetweenCorefGroup(g1,g2,clf);
+                int prediction = pred_vector.get(0);
 
                 //set relation for between two group
                 for(int ii=0; ii<g1.size(); ii++){
                     for(int jj=0; jj<g2.size(); jj++){
                         Relation r = this.relationmap.get(new Pair(g1.get(ii), g2.get(jj)));
                         r.SetPrediction(prediction);
+                        r.pred_vector=pred_vector;
                     }
                 }
             }
@@ -287,11 +280,12 @@ public class GISentence {
                         //0 standfor NO_RELATION
                         Relation r = this.relationmap.get(new Pair(g.get(ii), g.get(jj)));
                         r.SetPrediction(0);
-
                     }
                 }
             }
         }
+
+
     }
 
 
