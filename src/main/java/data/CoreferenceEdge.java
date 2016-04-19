@@ -11,9 +11,9 @@ public class CoreferenceEdge implements Serializable {
 
     private static final long serialVersionUID = 2L;
 
-    private EntityMention e1;
-    private EntityMention e2;
-    private boolean isCoreferent;
+    public EntityMention e1;
+    public EntityMention e2;
+    public boolean isCoreferent;
 
     public CoreferenceEdge(EntityMention e1, EntityMention e2) {
         this(e1, e2, true);

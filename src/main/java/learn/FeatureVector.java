@@ -1,6 +1,7 @@
 package learn;
 
 import data.EntityMention;
+import data.Relation;
 
 import java.io.*;
 import java.util.*;
@@ -15,31 +16,21 @@ public class FeatureVector implements Serializable {
     private static final long serialVersionUID = 5L;
 
     private static Map<String, Integer> featureMap;
-    private static Map<String, Integer> labelMap;
-    private static List<String> stringList;
 
     static {
         featureMap = new HashMap<>();
-        labelMap = new HashMap<>();
-        stringList=new ArrayList<>();
     }
 
     //All of the features default to zero
     private List<Integer> features = new ArrayList<>(Collections.nCopies(getFeatureCount(), 0));
 
-    public EntityMention left;
-    public EntityMention right;
-    public List<String> sentence;
+
 
     //-1 stand for no label for this instance
     private int label = -1;
     private String labelString;
 
-    public void addRelationMetadata(EntityMention left, EntityMention right, List<String> sentence) {
-        this.left=left;
-        this.right=right;
-        this.sentence=sentence;
-    }
+
 
     public void addBinaryFeature(String featureName) {
         if (!featureMap.containsKey(featureName)) {
@@ -51,12 +42,7 @@ public class FeatureVector implements Serializable {
 
     public void addLabel(String labelName){
         labelString =labelName;
-        if(!labelMap.containsKey(labelName)){
-            label = labelMap.size();
-            labelMap.put(labelName, label);
-            stringList.add(labelString);
-        }
-        label = labelMap.get(labelName);
+        label = Relation.labelMap.get(labelName);
     }
 
     public List<Integer> getFeatures() {
@@ -81,10 +67,8 @@ public class FeatureVector implements Serializable {
     }
 
     public int getFeatureCount(){return featureMap.size();}
-    public int getLabelCount(){return labelMap.size();}
-    public String getLabelString(){return labelString;}
-    public List<String> getStringList(){return stringList;}
-    public Map<String, Integer> getLabelMap(){return labelMap;}
-    public Map<String, Integer> getFeatureMap(){return featureMap;}
-    public List<String> getSentence(){return sentence;}
+    public int getLabelCount(){return Relation.labelMap.size();}
+    public List<String> getStringList(){return Relation.stringList;}
+    public Map<String, Integer> getLabelMap(){return Relation.labelMap;}
+
 }

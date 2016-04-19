@@ -11,6 +11,8 @@ import edu.illinois.cs.cogcomp.core.datastructures.textannotation.View;
 import edu.illinois.cs.cogcomp.core.datastructures.trees.Tree;
 import edu.illinois.cs.cogcomp.edison.features.helpers.ParseHelper;
 import edu.illinois.cs.cogcomp.nlp.tokenizer.IllinoisTokenizer;
+import edu.illinois.cs.cogcomp.core.datastructures.textannotation.*;
+import edu.illinois.cs.cogcomp.nlp.corpusreaders.ACEReader;
 import edu.illinois.cs.cogcomp.nlp.corpusreaders.aceReader.annotationStructure.*;
 import edu.illinois.cs.cogcomp.nlp.tokenizer.IllinoisTokenizer;
 import edu.illinois.cs.cogcomp.nlp.utility.TokenizerTextAnnotationBuilder;
@@ -52,6 +54,9 @@ public class ACEAnnotation implements Serializable {
 
     private String id;
     private TextAnnotation ta;
+    private SpanLabelView entityView;
+    private CoreferenceView corefView;
+    private PredicateArgumentView relationView;
 
     // Each sentence is represented as a List of tokens - this is a list of those lists
     private List<List<String>> sentenceTokens = new ArrayList<>();
@@ -67,11 +72,13 @@ public class ACEAnnotation implements Serializable {
     private List<Relation> goldRelations = new ArrayList<>();
     private Map<Pair<EntityMention,EntityMention>,Relation> goldRelationsByArgs = new HashMap<>();
     private List<Relation> testRelations = new ArrayList<>();
+
     private List<CoreferenceEdge> goldCoreferenceEdges = new ArrayList<>();
     private Map<Pair<EntityMention,EntityMention>,CoreferenceEdge> goldCoreferenceEdgesByEntities = new HashMap<>();
     private List<CoreferenceEdge> testCoreferenceEdges = new ArrayList<>();
     private List<ACERelation> relationList;
     private List<Integer> sentenceIndex = new ArrayList<>();
+
 
     // Annotation info
     private List<List<String>> BIOencoding = null;
@@ -82,6 +89,13 @@ public class ACEAnnotation implements Serializable {
         ta = taBuilder.createTextAnnotation(null, id, doc.contentRemovingTags);
         int count=0;
         Pipeline.addAllViews(ta);
+        entityView = new SpanLabelView(ACEReader.ENTITYVIEW, ACEAnnotation.class.getCanonicalName(), ta, 1.0f, true);
+        ta.addView(ACEReader.ENTITYVIEW, entityView);
+        corefView = new CoreferenceView(ViewNames.COREF, ACEAnnotation.class.getCanonicalName(), ta, 1.0f);
+        ta.addView(ViewNames.COREF, corefView);
+        relationView = new PredicateArgumentView(ACEReader.RELATIONVIEW, ACEAnnotation.class.getCanonicalName(), ta, 1.0f);
+        ta.addView(ACEReader.RELATIONVIEW, relationView);
+
         for (Sentence sentence: ta.sentences()) {
             List<String> sentenceArray=Arrays.asList(sentence.getTokens());
             sentenceTokens.add(sentenceArray);
@@ -119,6 +133,7 @@ public class ACEAnnotation implements Serializable {
                 }
             }
         }
+
         Collections.sort(goldEntityMentions, new Comparator<EntityMention>() {
             @Override
             public int compare(EntityMention e1, EntityMention e2) {
@@ -161,8 +176,16 @@ public class ACEAnnotation implements Serializable {
         testEntityMentionsBySpan = new HashMap<>();
     }
 
-    private int findSentenceIndex(int start){
+    /**
+     * This Constructor is meant to be used at test time
+     * @param ta the input text annotation
+     */
+    public ACEAnnotation(TextAnnotation ta) {
+        this.ta = ta;
 
+    }
+
+    private int findSentenceIndex(int start){
         for(int i=0;i<sentenceIndex.size()-1;i++){
             int index=sentenceIndex.get(i);
             int index2=sentenceIndex.get(i+1);
@@ -292,7 +315,7 @@ public class ACEAnnotation implements Serializable {
 
     public List<List<List<String>>> getGoldNERExtentBIOEncoding() {
         List<List<List<String>>> result = new ArrayList<>();
-        ArrayList<List<EntityMention>> entitiesPerSentence = splitMentionBySentence(goldEntityMentions);
+        List<List<EntityMention>> entitiesPerSentence = splitMentionBySentence(goldEntityMentions);
         int sentenceOffset = 0;
         for (int i = 0; i < entitiesPerSentence.size(); i++) {
             List<String> sentence = sentenceTokens.get(i);
@@ -484,6 +507,14 @@ public class ACEAnnotation implements Serializable {
         EntityMention e = new EntityMention(type, null, extentStartOffset, extentEndOffset, headStartOffset, headEndOffset, findSentenceIndex(extentStartOffset), this);
         testEntityMentions.add(e);
         testEntityMentionsBySpan.put(new IntPair(headStartOffset, headEndOffset), e);
+
+        Constituent entityConstituent = new Constituent(type, ACEReader.ENTITYVIEW, ta, extentStartOffset, extentEndOffset);
+        entityConstituent.addAttribute(ACEReader.EntityHeadStartCharOffset, ta.getTokenCharacterOffset(headStartOffset).getFirst()+"");
+        entityConstituent.addAttribute(ACEReader.EntityHeadEndCharOffset, ta.getTokenCharacterOffset(headEndOffset).getSecond()+"");
+        entityConstituent.addAttribute(ACEReader.EntityTypeAttribute, type);
+
+        entityView.addConstituent(entityConstituent);
+        e.setConstituent(entityConstituent);
     }
 
     /**
@@ -494,10 +525,34 @@ public class ACEAnnotation implements Serializable {
      */
     public void addRelation(String type, EntityMention e1, EntityMention e2) {
         testRelations.add(new Relation(type, e1, e2));
+        Constituent arg1 = e1.getConstituent().cloneForNewView(ACEReader.RELATIONVIEW);
+        arg1.addAttribute(ACEReader.RelationMentionArgumentRoleAttribute, Consts.ARG_1);
+        arg1.addAttribute(ACEReader.RelationTypeAttribute, type);
+
+        Constituent arg2 = e2.getConstituent().cloneForNewView(ACEReader.RELATIONVIEW);
+        arg2.addAttribute(ACEReader.RelationMentionArgumentRoleAttribute, Consts.ARG_2);
+        arg2.addAttribute(ACEReader.RelationTypeAttribute, type);
+
+
+        //TODO: in the reader, the String array argument uses subtype - do we need to do this as well?
+        relationView.addPredicateArguments(arg1, Collections.singletonList(arg2), new String[] {type}, new double[] {1.0f});
     }
 
     public void addCoreferenceEdge(EntityMention e1, EntityMention e2) {
         testCoreferenceEdges.add(new CoreferenceEdge(e1, e2));
+    }
+
+    public void addCoreferentEntity(List<EntityMention> mentions) {
+        //Find canonical mention - according to the reader, this is the one with the longest span
+        Constituent canonical = null;
+        List<Constituent> constituents = new ArrayList<>();
+        for (EntityMention e: mentions) {
+            if (canonical == null || canonical.getSurfaceForm().length() < e.getConstituent().getSurfaceForm().length()) {
+                canonical = e.getConstituent();
+            }
+            constituents.add(e.getConstituent());
+        }
+        corefView.addCorefEdges(canonical, constituents);
     }
 
     public List<EntityMention> getGoldEntityMentions() {
@@ -510,9 +565,10 @@ public class ACEAnnotation implements Serializable {
 
 
 
-    public static List<Pair<EntityMention,EntityMention>> getPossibleMentionPair(List<List<EntityMention>> MentionsBySentence){
+    public static List<Relation> getPossibleMentionPair(List<List<EntityMention>> MentionsBySentence){
 
-        List<Pair<EntityMention, EntityMention>> possible_pair=new ArrayList<>();
+        List<Relation> possible_pair=new ArrayList<>();
+
         for(int i=0;i<MentionsBySentence.size();i++){
             List<EntityMention> mention_in_sentence=MentionsBySentence.get(i);
 
@@ -528,7 +584,7 @@ public class ACEAnnotation implements Serializable {
             int length=mention_in_sentence.size();
             for(int j=0;j<length-1;j++){
                 for(int k=j+1;k<length;k++) {
-                    possible_pair.add(new Pair<>(mention_in_sentence.get(j),mention_in_sentence.get(k)));
+                    possible_pair.add(new Relation("NO_RELATION", mention_in_sentence.get(j), mention_in_sentence.get(k)));
                 }
             }
         }
@@ -537,10 +593,13 @@ public class ACEAnnotation implements Serializable {
 
     }
 
-    public ArrayList<List<EntityMention>> splitMentionBySentence(List<EntityMention> list){
+
+
+    public List<List<EntityMention>> splitMentionBySentence(List<EntityMention> list){
 
         int sentenceNum= sentenceIndex.size()-1;
-        ArrayList<List<EntityMention>> output=new ArrayList<>();
+        List<List<EntityMention>> output=new ArrayList<>();
+
         for(int i=0;i<sentenceNum;i++){
             output.add(new ArrayList<EntityMention>());
         }
@@ -548,6 +607,19 @@ public class ACEAnnotation implements Serializable {
         for(EntityMention e: list){
             output.get(e.getSentenceOffset()).add(e);
         }
+
+        for(List<EntityMention> l: output){
+
+            //sort the entity in each sentence by start offset
+            Collections.sort(l, new Comparator<EntityMention>() {
+                @Override
+                public int compare(EntityMention o1, EntityMention o2) {
+                    return o1.getExtentStartOffset()-o2.getExtentStartOffset();
+                }
+            });
+
+        }
+
         return output;
     }
 
@@ -750,14 +822,13 @@ public class ACEAnnotation implements Serializable {
         return new IntPair(ta.getTokenIdFromCharacterOffset(mentionStart), ta.getTokenIdFromCharacterOffset(mentionEnd)+1);
     }
 
+    public static void printSentence(List<String> sentence){
 
-
-
-
-
-
-
-
+        for(String token: sentence){
+            System.out.print(token+" ");
+        }
+        System.out.println();
+    }
 
 
     // Static methods - these are used to access global information relating to the dataset

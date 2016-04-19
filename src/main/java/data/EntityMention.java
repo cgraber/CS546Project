@@ -1,5 +1,7 @@
 package data;
 
+import edu.illinois.cs.cogcomp.core.datastructures.textannotation.Constituent;
+
 import java.io.Serializable;
 import java.util.List;
 
@@ -8,16 +10,26 @@ import java.util.List;
  */
 public class EntityMention implements Serializable {
 
+
+
     private static final long serialVersionUID = 3L;
 
-    private String entityType;
-    private int extentStartOffset;
-    private int extentEndOffset;
-    private int headStartOffset;
-    private int headEndOffset;
-    private int sentenceOffset;
-    private ACEAnnotation annotation;
-    private String mentionType;
+
+    public String entityType;
+    public String mentionType;
+
+    public int extentStartOffset;
+    public int extentEndOffset;
+    public int headStartOffset;
+    public int headEndOffset;
+    public int sentenceOffset;
+
+    public ACEAnnotation annotation;
+    public GISentence sentence;
+    private Constituent constituent = null;
+    public int corefGroupIndex;
+
+
 
     protected EntityMention(String entityType, String mentionType, int extentStartOffset, int extentEndOffset, int headStartOffset, int headEndOffset, int sentenceOffset, ACEAnnotation annotation) {
         this.entityType = entityType;
@@ -28,6 +40,7 @@ public class EntityMention implements Serializable {
         this.headEndOffset = headEndOffset;
         this.sentenceOffset = sentenceOffset;
         this.annotation = annotation;
+        this.corefGroupIndex=-1;
     }
 
     public String getEntityType() {
@@ -50,7 +63,7 @@ public class EntityMention implements Serializable {
         return headEndOffset;
     }
 
-    public int getSentenceOffset() {return sentenceOffset; }
+    public int getSentenceOffset() { return sentenceOffset; }
 
     //NOTE THAT THIS RETURNS THE INDEX OF THE END TOKEN + 1
     public int getExtentEndOffset() {
@@ -87,5 +100,13 @@ public class EntityMention implements Serializable {
         } else {
             return false;
         }
+    }
+
+    public void setConstituent(Constituent constituent) {
+        this.constituent = constituent;
+    }
+
+    public Constituent getConstituent() {
+        return constituent;
     }
 }

@@ -30,8 +30,9 @@ public class ReSoftmaxBaseline {
     private MultiLayerNetwork model = null;
 
     public static void main(String[] argv) throws IOException {
+
         List<ACEAnnotation> aceAnnotations = ACEAnnotation.readAllFromFileFlat();
-        List<FeatureVector> featureVectors = RelationExtraction.generateFeatures(aceAnnotations);
+        List<FeatureVector> featureVectors = REFeatures.generateFeatures(aceAnnotations, 0.97f);
 
         Collections.shuffle(featureVectors);
 

@@ -19,4 +19,16 @@ public class DataStorage{
     }
 
 
+    public static List<ACEAnnotation> LoadDocuments(){
+        List<List<ACEAnnotation>> splits = DataUtils.loadDataSplits("./ACE05_English");
+        List<ACEAnnotation> output = new ArrayList<>();
+
+        for(List<ACEAnnotation> l: splits){
+            for(ACEAnnotation a: l){
+                output.add(a);
+            }
+        }
+        return output;
+    }
+
 }
