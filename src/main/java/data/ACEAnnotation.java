@@ -126,6 +126,7 @@ public class ACEAnnotation implements Serializable {
                 }
             }
         }
+
         Collections.sort(goldEntityMentions, new Comparator<EntityMention>() {
             @Override
             public int compare(EntityMention e1, EntityMention e2) {
@@ -177,6 +178,15 @@ public class ACEAnnotation implements Serializable {
                 goldRelationsByArgs.put(new Pair<>(e1, e2), rel);
             }
         }
+    }
+
+    /**
+     * This Constructor is meant to be used at test time
+     * @param ta the input text annotation
+     */
+    public ACEAnnotation(TextAnnotation ta) {
+        this.ta = ta;
+
     }
 
     private int FindSentenceIndex(int start){
@@ -408,6 +418,17 @@ public class ACEAnnotation implements Serializable {
      */
     public void addRelation(String type, EntityMention e1, EntityMention e2) {
         testRelations.add(new Relation(type, e1, e2));
+        Constituent arg1 = e1.getConstituent().cloneForNewView(ACEReader.RELATIONVIEW);
+        arg1.addAttribute(ACEReader.RelationMentionArgumentRoleAttribute, Consts.ARG_1);
+        arg1.addAttribute(ACEReader.RelationTypeAttribute, type);
+
+        Constituent arg2 = e2.getConstituent().cloneForNewView(ACEReader.RELATIONVIEW);
+        arg2.addAttribute(ACEReader.RelationMentionArgumentRoleAttribute, Consts.ARG_2);
+        arg2.addAttribute(ACEReader.RelationTypeAttribute, type);
+
+
+        //TODO: in the reader, the String array argument uses subtype - do we need to do this as well?
+        relationView.addPredicateArguments(arg1, Collections.singletonList(arg2), new String[] {type}, new double[] {1.0f});
     }
 
     public void addCoreferenceEdge(EntityMention e1, EntityMention e2) {
