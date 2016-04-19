@@ -4,9 +4,16 @@ import data.ACEAnnotation;
 import data.EntityMention;
 import edu.illinois.cs.cogcomp.core.datastructures.IntPair;
 import edu.illinois.cs.cogcomp.core.datastructures.Pair;
+import edu.illinois.cs.cogcomp.core.datastructures.ViewNames;
+import edu.illinois.cs.cogcomp.core.datastructures.textannotation.Constituent;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.TextAnnotation;
+import edu.illinois.cs.cogcomp.core.io.IOUtils;
+import edu.illinois.cs.cogcomp.edison.annotators.GazetteerViewGenerator;
+import edu.illinois.cs.cogcomp.edison.features.ContextFeatureExtractor;
 import edu.illinois.cs.cogcomp.edison.features.Feature;
 import edu.illinois.cs.cogcomp.edison.features.NgramFeatureExtractor;
+import edu.illinois.cs.cogcomp.edison.features.WordFeatureExtractor;
+import edu.illinois.cs.cogcomp.edison.features.factory.ListFeatureFactory;
 import edu.illinois.cs.cogcomp.edison.features.factory.WordFeatureExtractorFactory;
 import edu.illinois.cs.cogcomp.edison.utilities.EdisonException;
 import learn.PipelineStage;
@@ -14,8 +21,10 @@ import utils.Consts;
 
 import javax.swing.text.html.parser.Entity;
 import java.io.*;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Created by Colin Graber on 3/29/16.
@@ -185,39 +194,6 @@ public class NERBaseline implements PipelineStage {
                     result.append(" ").append(bioLabels.get(sentInd).get(tokenInd));
                 }
                 result.append("\n");
-
-                /*
-                String token = sentence.get(tokenInd);
-                result.append(Consts.WORD_FEATURE+token);
-                result.append(" ").append(Consts.POS_FEATURE+posTags.get(sentInd).get(tokenInd));
-                result.append(" ").append(Consts.POS_WORD_FEATURE+token+"_"+posTags.get(sentInd).get(tokenInd));
-                String prevToken = "NULL";
-                String prevPrevToken = "NULL";
-                if (tokenInd > 0) {
-                    prevToken = sentence.get(tokenInd-1);
-                }
-                if (tokenInd > 1) {
-                    prevPrevToken = sentence.get(tokenInd-2);
-                }
-                result.append(" ").append(Consts.PREV_FEATURE+prevToken);
-                result.append(" ").append(Consts.WORD_PREV_FEATURE+token+"_"+prevToken);
-                result.append(" ").append(Consts.PREV_2_WORD+token+"_"+prevToken+"_"+prevPrevToken);
-                if (Character.isUpperCase(token.charAt(0))) {
-                    result.append(" ").append(Consts.CAPITALIZED);
-                }
-                if (token.toUpperCase().equals(token)) {
-                    result.append(" ").append(Consts.ALL_CAPS);
-                }
-
-                //TODO: add Pronoun-based feature
-
-                //TODO: other features!
-
-                if (isTrain) {
-                    result.append(" ").append(bioLabels.get(sentInd).get(tokenInd));
-                }
-                result.append("\n");
-                */
             }
             sentenceOffset += sentence.size();
             result.append("\n");
@@ -430,10 +406,27 @@ public class NERBaseline implements PipelineStage {
         return new Pair<>(precisionCorrectCount/precisionCount, recallCorrectCount/recallCount);
     }
 
-    private NgramFeatureExtractor bigrams = NgramFeatureExtractor.bigrams(WordFeatureExtractorFactory.word);
-    private NgramFeatureExtractor trigrams = NgramFeatureExtractor.trigrams(WordFeatureExtractorFactory.word);
+    private static NgramFeatureExtractor bigrams = NgramFeatureExtractor.bigrams(WordFeatureExtractorFactory.word);
+    private static NgramFeatureExtractor trigrams = NgramFeatureExtractor.trigrams(WordFeatureExtractorFactory.word);
+    private static ContextFeatureExtractor prev = new ContextFeatureExtractor(1, true, false);
+    private static ContextFeatureExtractor prevTwo = new ContextFeatureExtractor(2, true, false);
+    private static GazetteerViewGenerator gvg;
+    private static WordFeatureExtractor gazetteers;
+
+    static {
+        try {
+            gvg = GazetteerViewGenerator.gazetteersInstance;
+            gazetteers = WordFeatureExtractorFactory.getGazetteerFeatureExtractor(ViewNames.GAZETTEER, gvg);
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+    }
 
     public List<Feature> extractHeadFeatures(TextAnnotation ta, int index) {
+        List<Constituent> constituents = ta.getView(ViewNames.TOKENS).getConstituentsCoveringToken(index);
+        assert(constituents.size() == 1);
+        Constituent constituent = constituents.get(0);
         List<Feature> features = new ArrayList<>();
         try {
             features.addAll(WordFeatureExtractorFactory.word.getWordFeatures(ta, index));
@@ -447,9 +440,13 @@ public class NERBaseline implements PipelineStage {
             features.addAll(WordFeatureExtractorFactory.pos.getWordFeatures(ta, index));
             features.addAll(bigrams.getWordFeatures(ta, index));
             features.addAll(trigrams.getWordFeatures(ta, index));
-
-
-
+            features.addAll(ListFeatureFactory.daysOfTheWeek.getFeatures(constituent));
+            features.addAll(ListFeatureFactory.months.getFeatures(constituent));
+            features.addAll(ListFeatureFactory.possessivePronouns.getFeatures(constituent));
+            features.addAll(prev.getFeatures(constituent));
+            features.addAll(prevTwo.getFeatures(constituent));
+            features.addAll(gazetteers.getWordFeatures(ta, index));
+            Set<Feature> test = gazetteers.getWordFeatures(ta, index);
         } catch (EdisonException e) {
             e.printStackTrace();
             System.exit(1);

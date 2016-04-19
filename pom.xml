@@ -54,6 +54,11 @@
             <artifactId>nd4j-x86</artifactId>
             <version>0.4-rc3.8</version>
         </dependency>
+        <dependency>
+            <groupId>edu.illinois.cs.cogcomp</groupId>
+            <artifactId>cogcomp-common-resources</artifactId>
+            <version>1.2</version>
+        </dependency>
     </dependencies>
 
 </project>
