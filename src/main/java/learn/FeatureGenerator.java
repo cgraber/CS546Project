@@ -1,6 +1,7 @@
 package learn;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import data.ACEAnnotation;
@@ -23,6 +24,8 @@ public class FeatureGenerator {
     private static FastVector zeroOne;
     private static FastVector labels;
     public static List<String> testLabels;
+    public static List<String> sw  = Arrays.asList("a", "an", "the", "this", "these", "that", "those");
+    public static List<String> al = Arrays.asList( "corp.", "ltd.", "inc.", "co.", "corp", "ltd", "inc", "co");
     private static final boolean LOCATIONFEATURES=false;
     private static final boolean MENTIONFEATURES=false;
     private static final boolean STRINGFEATURES=true;
@@ -76,6 +79,37 @@ public class FeatureGenerator {
 		}
 		
 		if (FeatureGenerator.STRINGFEATURES){
+			attribute_name = "aliasPER";
+			a = new Attribute(attribute_name, zeroOne);
+			attribute_dict.put(attribute_name, a);
+			attributes.addElement(a);
+			
+			attribute_name = "aliasLOC";
+			a = new Attribute(attribute_name, zeroOne);
+			attribute_dict.put(attribute_name, a);
+			attributes.addElement(a);
+			
+			attribute_name = "headMatch";
+			a = new Attribute(attribute_name, zeroOne);
+			attribute_dict.put(attribute_name, a);
+			attributes.addElement(a);
+			
+			attribute_name = "headSubstring";
+			a = new Attribute(attribute_name, zeroOne);
+			attribute_dict.put(attribute_name, a);
+			attributes.addElement(a);
+			
+			
+			attribute_name = "modMatch";
+			a = new Attribute(attribute_name, zeroOne);
+			attribute_dict.put(attribute_name, a);
+			attributes.addElement(a);
+			
+			attribute_name = "modHeadMatch";
+			a = new Attribute(attribute_name, zeroOne);
+			attribute_dict.put(attribute_name, a);
+			attributes.addElement(a);
+			
 			// same extents
 			attribute_name = "extentMatch";
 			a = new Attribute(attribute_name, zeroOne);
@@ -178,6 +212,12 @@ public class FeatureGenerator {
 			}
 		}
 		if (FeatureGenerator.STRINGFEATURES){
+			instance.setValue(attribute_dict.get("aliasPER"), "0");
+			instance.setValue(attribute_dict.get("aliasLOC"), "0");
+			instance.setValue(attribute_dict.get("headMatch"),"0");
+			instance.setValue(attribute_dict.get("headSubstring"),"0");
+			instance.setValue(attribute_dict.get("modMatch"),"0");
+			instance.setValue(attribute_dict.get("modHeadMatch"), "0");
 			instance.setValue(attribute_dict.get("extentMatch"),"0");
 			instance.setValue(attribute_dict.get("extentSubstring"),"0");
 		}
@@ -282,6 +322,7 @@ public class FeatureGenerator {
 //    				System.out.println("test label negative");
 //    				testLabels.add("-1");
 //    			}
+    			// assuming label is available? 
     			testLabels.add(temp_labels.get(index));
     		}
     		
@@ -296,6 +337,12 @@ public class FeatureGenerator {
     	
     }
     
+    /** 
+     * This function sets the Instance Features for some given instance
+     * @param ce coreference edge which contains a pair of mentions. 
+     * @param instance the instance whose values we are modifying
+     * @param entry is the 'document' under which the instances will be constructed
+     */
     public static Instance setInstanceFeatures(CoreferenceEdge ce, Instance instance, ACEAnnotation  entry){
     	Pair<EntityMention, EntityMention> somePair = ce.getEntityMentions();
     	
@@ -309,8 +356,20 @@ public class FeatureGenerator {
 			e2 = somePair.getFirst();
 			e1 = somePair.getSecond();
 		}
-			
-		
+		// comparing two mentions
+//		System.out.println(">>>>> Comparing two mentions:");
+//		System.out.print("word1:");
+//		for (String someword: e1.getExtent()){
+//			System.out.print(someword + " ");
+//		}
+//		System.out.print( " word2:");
+//		for (String someword: e2.getExtent()){
+//			System.out.print(someword + " ");
+//		}
+//		
+//		System.out.println();
+//		System.out.flush();
+//		
 		String key;
 		// Adding features to instance
 		if(FeatureGenerator.MENTIONFEATURES){
@@ -329,11 +388,57 @@ public class FeatureGenerator {
 		}
 		
 		if (FeatureGenerator.STRINGFEATURES){
+			// Alias, need to check that e1 and e2 refer to the same named entity
+			if (e1.entityType.compareTo(e2.entityType) == 0){
+				//System.out.println(e1.entityType + " " + e2.entityType);
+				// person named entity 
+				if (e1.entityType.compareTo("PER") == 0 ){
+					System.out.println("PER");
+					instance.setValue(attribute_dict.get("aliasPER"), getPersonAlias(e1, e2));
+				}
+				if (e1.entityType.compareTo("LOC") == 0) {
+					System.out.println("LOC");
+					instance.setValue(attribute_dict.get("aliasLOC"), getLocationAlias(e1, e2));
+				}
+			}
+			// remove articles and demonstrative pronouns 
+			// sw = "a", "an", "the", "this", "these", "that", "those"
+			
+			// head features
+			String head1 = "";
+			String head2 = "";
+			for (String word1 : e1.getHead() ){
+				//if (!sw.contains(word1)){
+					head1 += word1 + " ";
+				//}
+			}
+			
+			for (String word1 : e2.getHead() ){
+				//if (!sw.contains(word1)){
+					head2 += word1 + " ";
+				//}
+			}
+			if ( (head1.trim().toLowerCase()).compareTo(head2.trim().toLowerCase()) == 0 ){
+				//System.out.println("headMatch:" + head1 + " " + head2);
+				instance.setValue(attribute_dict.get("headMatch"),"1");
+			}
+			
+			if (head1.trim().toLowerCase().contains(head2.trim().toLowerCase()) || head2.trim().toLowerCase().contains(head1.trim().toLowerCase()) ){
+				//System.out.println("headSubstring:\n" + head1 + "\n" + head2);
+				instance.setValue(attribute_dict.get("headSubstring"),"1");
+			}
+			
+		    List<String> res = detectCommonModifiers(e1, e2, entry);
+			instance.setValue(attribute_dict.get("modMatch"),res.get(0));
+			instance.setValue(attribute_dict.get("modHeadMatch"),res.get(1));
+			
+			// extent features
 			String extent1 = "";
 			String extent2 = "";
 			for (String word1 : e1.getExtent() ){
 				extent1 += word1 + " ";
 			}
+			
 			for (String word1: e2.getExtent()){
 				extent2 += word1 + " ";
 			}
@@ -369,6 +474,140 @@ public class FeatureGenerator {
 		return instance;
     }
     
+    private static String getLocationAlias(EntityMention e1, EntityMention e2) {
+		List<String> loc1 = e1.getHead();
+    	List<String> loc2 = e2.getHead();
+    	List<String> l1_clean = new ArrayList<String> ();
+    	List<String> l2_clean = new ArrayList<String> ();
+    	// first remove all post-modifiers
+    	for (String word : loc1){
+    		if (FeatureGenerator.al.contains(word.toLowerCase()) ) {
+    			l1_clean.add(word);
+    		}
+    	}
+    	for (String word : loc2){
+    		if (FeatureGenerator.al.contains(word) ) {
+    			l2_clean.add(word);
+    		}
+    	}
+    	if (l1_clean.size() == 0 || l2_clean.size() == 0){
+    		return "0";
+    	}
+    	// make sure l1 is the smaller of the two
+    	if ( l2_clean.size() == 1 && l1_clean.size() > 1){
+    		List<String> temp = l1_clean;
+    		l1_clean = l2_clean;
+    		l2_clean  = temp;
+    	} else if (l1_clean.size() == 1 && l2_clean.size() == 1){ // cannot be acronym of each other
+    		return "0";
+    	}
+    	String l1_loc = l1_clean.get(0).toLowerCase();
+    	System.out.println("l1:"+l1_loc);
+    	String accn = "";
+    	String accp = "";
+    	System.out.print("l2:");
+    	for (String word : l2_clean){
+    		System.out.println(word);
+    		if ( !Character.isLowerCase(word.charAt(0)) ){
+    			accn += word.charAt(0);
+    			accp += word.charAt(0) + ".";
+    		}
+    	}
+    	
+    	if ( l1_loc.equalsIgnoreCase(accn) || l1_loc.equalsIgnoreCase(accp)){
+    		System.out.println(l1_loc + " " + accn);
+    		return "1";
+    	}
+    	
+		return "0";
+	}
+
+	private static String getPersonAlias(EntityMention e1, EntityMention e2) {
+    	List<String> person1 = e1.getHead();
+    	List<String> person2 = e2.getHead();
+    	
+    	if (person1.get(person1.size()-1).toLowerCase().compareTo(person2.get(person2.size()-1).toLowerCase()) == 0){
+//    		String head1 = "";
+//    		String head2 = "";
+//    		for ( String hw: e1.getHead()){
+//    			//System.out.print(hw + " ");
+//    			head1 += hw + " ";
+//    		}
+//    		for ( String hw: e2.getHead()){
+//    			//System.out.print(hw + " ");
+//    			head2 += hw + " ";
+//    		}
+//    		if (!head1.toLowerCase().equals(head2.toLowerCase())){
+//	    		System.out.println("head1:" + head1 + " head2: " + head2);
+//	    		System.out.flush();	
+//    		}
+    		
+    		return "1";
+    	}
+    	return "0";
+	}
+
+	private static List<String> detectCommonModifiers(EntityMention first, EntityMention second, ACEAnnotation entry){
+    	List<String> pos_tags = entry.getPOSTags();
+    	int modifier1_index = first.getHeadStartOffset();
+		int modifier2_index = second.getHeadStartOffset();
+		List<String> extent1 = first.getExtent();
+		List<String> extent2 = second.getExtent();
+		List<String> mod_ret = new ArrayList<String> ();
+		mod_ret.add("0");
+		mod_ret.add("0");
+		// check all the words from entity mention start to head start
+		if ( modifier1_index > 0 && modifier2_index > 0){
+			List<String> modifiers1 = new ArrayList<String>();
+			List<String> modifiers2 = new ArrayList<String>();
+			// get all of the modifiers
+			for(int i = first.getExtentStartOffset(); i < first.getHeadStartOffset(); i++ ){
+				if (pos_tags.get(i).startsWith("JJ")){
+					String modifier = extent1.get(i - first.getExtentStartOffset());
+					modifiers1.add(modifier);
+				}
+			}
+			
+			for(int i = second.getExtentStartOffset(); i < second.getHeadStartOffset(); i++ ){
+				if (pos_tags.get(i).startsWith("JJ")){
+					String modifier = extent2.get(i - second.getExtentStartOffset());
+					modifiers2.add(modifier);
+				}
+			}
+			
+			
+			for (String m1 : modifiers1){
+				// looping over all common modifiers
+				for (String m2 : modifiers2 ){
+					if (m1.toLowerCase().compareTo(m2.toLowerCase()) == 0){
+						mod_ret.set(0, "1");
+						break;
+					}
+				}
+				// looping over common modifiers and head
+				for (int j = second.getHeadStartOffset(); j < second.getHeadEndOffset(); j++ ){
+					if (m1.toLowerCase().compareTo(entry.getToken(j)) == 0){
+						mod_ret.set(1,"1");
+						break;
+					}
+				}
+			}
+			
+			for (String m2 : modifiers2 ){
+				for (int j = first.getHeadStartOffset(); j < first.getHeadEndOffset(); j++ ){
+					if (m2.toLowerCase().compareTo(entry.getToken(j)) == 0){
+						mod_ret.set(1,"1");
+					}
+				}
+			}
+			
+			
+			//			if ( entry.getToken(modifier1_index).trim().toLowerCase().compareTo(entry.getToken(modifier2_index).trim().toLowerCase()) == 0)
+			//				return "1";
+			
+		}
+		return mod_ret;
+    }
     
 	private static String detectMentionSentence(EntityMention first,
 			EntityMention second, List<List<String>> sentences) {
