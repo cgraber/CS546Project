@@ -513,7 +513,8 @@ public class ACEAnnotation implements Serializable {
 
         Constituent entityConstituent = new Constituent(type, ACEReader.ENTITYVIEW, ta, extentStartOffset, extentEndOffset);
         entityConstituent.addAttribute(ACEReader.EntityHeadStartCharOffset, ta.getTokenCharacterOffset(headStartOffset).getFirst()+"");
-        entityConstituent.addAttribute(ACEReader.EntityHeadEndCharOffset, ta.getTokenCharacterOffset(headEndOffset).getSecond()+"");
+        //TODO: check that these offsets are correct
+        entityConstituent.addAttribute(ACEReader.EntityHeadEndCharOffset, ta.getTokenCharacterOffset(headEndOffset-1).getSecond()+"");
         entityConstituent.addAttribute(ACEReader.EntityTypeAttribute, type);
 
         entityView.addConstituent(entityConstituent);

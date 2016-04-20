@@ -9,10 +9,7 @@ import edu.illinois.cs.cogcomp.core.datastructures.textannotation.Constituent;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.TextAnnotation;
 import edu.illinois.cs.cogcomp.core.io.IOUtils;
 import edu.illinois.cs.cogcomp.edison.annotators.GazetteerViewGenerator;
-import edu.illinois.cs.cogcomp.edison.features.ContextFeatureExtractor;
-import edu.illinois.cs.cogcomp.edison.features.Feature;
-import edu.illinois.cs.cogcomp.edison.features.NgramFeatureExtractor;
-import edu.illinois.cs.cogcomp.edison.features.WordFeatureExtractor;
+import edu.illinois.cs.cogcomp.edison.features.*;
 import edu.illinois.cs.cogcomp.edison.features.factory.ListFeatureFactory;
 import edu.illinois.cs.cogcomp.edison.features.factory.WordFeatureExtractorFactory;
 import edu.illinois.cs.cogcomp.edison.utilities.EdisonException;
@@ -23,6 +20,7 @@ import javax.swing.text.html.parser.Entity;
 import java.io.*;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
@@ -188,7 +186,7 @@ public class NERBaseline implements PipelineStage {
             List<String> sentence = doc.getSentence(sentInd);
 
             for (int tokenInd = 0; tokenInd < sentence.size(); tokenInd++) {
-                List<Feature> features = extractHeadFeatures(doc.getTA(), sentenceOffset+tokenInd);
+                List<Feature> features = extractHeadFeatures(doc.getTA(), sentenceOffset+tokenInd, tokenInd > 0, tokenInd < (sentence.size()-1));
                 result.append(convertFeaturesToMalletFormat(features));
                 if (isTrain) {
                     result.append(" ").append(bioLabels.get(sentInd).get(tokenInd));
@@ -423,11 +421,11 @@ public class NERBaseline implements PipelineStage {
         }
     }
 
-    public List<Feature> extractHeadFeatures(TextAnnotation ta, int index) {
+    public List<Feature> extractHeadFeatures(TextAnnotation ta, int index, boolean usePrev, boolean useNext) {
         List<Constituent> constituents = ta.getView(ViewNames.TOKENS).getConstituentsCoveringToken(index);
         assert(constituents.size() == 1);
         Constituent constituent = constituents.get(0);
-        List<Feature> features = new ArrayList<>();
+        Set<Feature> features = new HashSet<>();
         try {
             features.addAll(WordFeatureExtractorFactory.word.getWordFeatures(ta, index));
             features.addAll(WordFeatureExtractorFactory.wordCase.getWordFeatures(ta, index));
@@ -446,12 +444,55 @@ public class NERBaseline implements PipelineStage {
             features.addAll(prev.getFeatures(constituent));
             features.addAll(prevTwo.getFeatures(constituent));
             features.addAll(gazetteers.getWordFeatures(ta, index));
-            Set<Feature> test = gazetteers.getWordFeatures(ta, index);
+            if (usePrev) {
+                String prefix = "__PREV__";
+                List<Feature> previous = new ArrayList<>();
+                Constituent prevConst = ta.getView(ViewNames.TOKENS).getConstituentsCoveringToken(index-1).get(0);
+                previous.addAll(WordFeatureExtractorFactory.word.getWordFeatures(ta, index-1));
+                previous.addAll(WordFeatureExtractorFactory.wordCase.getWordFeatures(ta, index-1));
+                previous.addAll(WordFeatureExtractorFactory.dateMarker.getWordFeatures(ta, index-1));
+                previous.addAll(WordFeatureExtractorFactory.wordCase.getWordFeatures(ta, index-1));
+                previous.addAll(WordFeatureExtractorFactory.capitalization.getWordFeatures(ta, index-1));
+                previous.addAll(WordFeatureExtractorFactory.conflatedPOS.getWordFeatures(ta, index-1));
+                previous.addAll(WordFeatureExtractorFactory.lemma.getWordFeatures(ta, index-1));
+                previous.addAll(WordFeatureExtractorFactory.numberNormalizer.getWordFeatures(ta, index-1));
+                previous.addAll(WordFeatureExtractorFactory.pos.getWordFeatures(ta, index-1));
+                previous.addAll(ListFeatureFactory.daysOfTheWeek.getFeatures(prevConst));
+                previous.addAll(ListFeatureFactory.months.getFeatures(prevConst));
+                previous.addAll(ListFeatureFactory.possessivePronouns.getFeatures(prevConst));
+                previous.addAll(gazetteers.getWordFeatures(ta, index-1));
+                for (Feature prevFeat: previous) {
+                    features.add(prevFeat.prefixWith(prefix));
+                }
+            }
+            if (useNext) {
+                String prefix = "__NEXT__";
+                List<Feature> next = new ArrayList<>();
+                Constituent nextConst = ta.getView(ViewNames.TOKENS).getConstituentsCoveringToken(index + 1).get(0);
+                next.addAll(WordFeatureExtractorFactory.word.getWordFeatures(ta, index + 1));
+                next.addAll(WordFeatureExtractorFactory.wordCase.getWordFeatures(ta, index + 1));
+                next.addAll(WordFeatureExtractorFactory.dateMarker.getWordFeatures(ta, index + 1));
+                next.addAll(WordFeatureExtractorFactory.wordCase.getWordFeatures(ta, index + 1));
+                next.addAll(WordFeatureExtractorFactory.capitalization.getWordFeatures(ta, index + 1));
+                next.addAll(WordFeatureExtractorFactory.conflatedPOS.getWordFeatures(ta, index + 1));
+                next.addAll(WordFeatureExtractorFactory.lemma.getWordFeatures(ta, index + 1));
+                next.addAll(WordFeatureExtractorFactory.numberNormalizer.getWordFeatures(ta, index + 1));
+                next.addAll(WordFeatureExtractorFactory.pos.getWordFeatures(ta, index + 1));
+                next.addAll(ListFeatureFactory.daysOfTheWeek.getFeatures(nextConst));
+                next.addAll(ListFeatureFactory.months.getFeatures(nextConst));
+                next.addAll(ListFeatureFactory.possessivePronouns.getFeatures(nextConst));
+                next.addAll(gazetteers.getWordFeatures(ta, index + 1));
+                for (Feature nextFeat : next) {
+                    features.add(nextFeat.prefixWith(prefix));
+                }
+            }
         } catch (EdisonException e) {
             e.printStackTrace();
             System.exit(1);
         }
-        return features;
+        List<Feature> result = new ArrayList<>();
+        result.addAll(FeatureUtilities.conjoin(features,features));
+        return result;
     }
 
     public String convertFeaturesToMalletFormat(List<Feature> features) {
