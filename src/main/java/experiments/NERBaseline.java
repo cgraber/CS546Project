@@ -6,12 +6,12 @@ import edu.illinois.cs.cogcomp.core.datastructures.IntPair;
 import edu.illinois.cs.cogcomp.core.datastructures.Pair;
 import edu.illinois.cs.cogcomp.core.datastructures.ViewNames;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.Constituent;
+import edu.illinois.cs.cogcomp.core.datastructures.textannotation.Relation;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.TextAnnotation;
 import edu.illinois.cs.cogcomp.core.io.IOUtils;
 import edu.illinois.cs.cogcomp.edison.annotators.GazetteerViewGenerator;
 import edu.illinois.cs.cogcomp.edison.features.*;
-import edu.illinois.cs.cogcomp.edison.features.factory.ListFeatureFactory;
-import edu.illinois.cs.cogcomp.edison.features.factory.WordFeatureExtractorFactory;
+import edu.illinois.cs.cogcomp.edison.features.factory.*;
 import edu.illinois.cs.cogcomp.edison.utilities.EdisonException;
 import learn.PipelineStage;
 import utils.Consts;
@@ -38,7 +38,7 @@ public class NERBaseline implements PipelineStage {
 
     public void trainModel(List<ACEAnnotation> data) {
         buildHeadFeatureFile(data, true);
-        //buildExtentFeatureFile(data, true);
+        buildExtentFeatureFile(data, true);
         runMalletTrain();
     }
 
@@ -97,7 +97,7 @@ public class NERBaseline implements PipelineStage {
                 tagSentInd++;
             }
         }
-        /*
+
         buildExtentFeatureFile(data, false);
         testTags = runMalletTest(false);
         tagSentInd = 0;
@@ -142,7 +142,7 @@ public class NERBaseline implements PipelineStage {
             }
 
         }
-        */
+
     }
 
     private void buildHeadFeatureFile(List<ACEAnnotation> data, boolean isTrain) {
@@ -224,62 +224,17 @@ public class NERBaseline implements PipelineStage {
                 }
                 EntityMention e = mentionsPerSentence.get(sentInd).get(mentionInd);
                 for (int tokenInd = 0; tokenInd < sentence.size(); tokenInd++) {
-                    String token = sentence.get(tokenInd);
-                    result.append(Consts.WORD_FEATURE + token);
-                    result.append(" ").append(Consts.POS_FEATURE + posTags.get(sentInd).get(tokenInd));
-                    result.append(" ").append(Consts.POS_WORD_FEATURE + token + "_" + posTags.get(sentInd).get(tokenInd));
-                    String prevToken = "NULL";
-                    String prevPrevToken = "NULL";
-                    if (tokenInd > 0) {
-                        prevToken = sentence.get(tokenInd - 1);
-                    }
-                    if (tokenInd > 1) {
-                        prevPrevToken = sentence.get(tokenInd - 2);
-                    }
-                    result.append(" ").append(Consts.PREV_FEATURE + prevToken);
-                    result.append(" ").append(Consts.WORD_PREV_FEATURE + token + "_" + prevToken);
-                    result.append(" ").append(Consts.PREV_2_WORD + token + "_" + prevToken + "_" + prevPrevToken);
-                    if (Character.isUpperCase(token.charAt(0))) {
-                        result.append(" ").append(Consts.CAPITALIZED);
-                    }
-                    if (token.toUpperCase().equals(token)) {
-                        result.append(" ").append(Consts.ALL_CAPS);
-                    }
+                    List<Feature> features = extractExtentFeatures(doc.getTA(), sentenceOffset + tokenInd, e.getHeadStartOffset(), e.getHeadEndOffset());
+                    result.append(convertFeaturesToMalletFormat(features));
 
-                    if (sentenceOffset+tokenInd >= e.getHeadStartOffset() && sentenceOffset+tokenInd < e.getHeadEndOffset()) {
-                        result.append(" ").append(Consts.IN_HEAD);
-                    } else if (sentenceOffset + tokenInd < e.getHeadStartOffset()) {
-                        result.append(" ").append(Consts.HEAD_OFFSET+(sentenceOffset+tokenInd-e.getHeadStartOffset()));
-                        String rootLabel = doc.getParseRootCovering(sentenceOffset + tokenInd, e.getHeadStartOffset(), e.getHeadEndOffset());
-                        result.append(" ").append(Consts.HEAD_OFFSET+(sentenceOffset+tokenInd-e.getHeadStartOffset())+"_"+rootLabel);
-                        String siblingLabel = doc.getSiblingParseLabel(sentenceOffset+tokenInd, e.getHeadStartOffset(), e.getHeadEndOffset());
-                        if (siblingLabel != null) {
-                            if (siblingLabel.equals(Consts.IN_SAME_SUBTREE)) {
-                                result.append(" ").append(siblingLabel);
-                            } else {
-                                result.append(" ").append(Consts.LEFT_SIBLING).append(siblingLabel);
-                            }
-                        }
-                    } else {
-                        result.append(" ").append(Consts.HEAD_OFFSET + (sentenceOffset + tokenInd - e.getHeadEndOffset()));
-                        String rootLabel = doc.getParseRootCovering(sentenceOffset + tokenInd, e.getHeadStartOffset(), e.getHeadEndOffset());
-                        result.append(" ").append(Consts.HEAD_OFFSET+(sentenceOffset+tokenInd-e.getHeadStartOffset())+"_"+rootLabel);
-                        String siblingLabel = doc.getSiblingParseLabel(sentenceOffset + tokenInd, e.getHeadStartOffset(), e.getHeadEndOffset());
-                        if (siblingLabel != null) {
-                            if (siblingLabel.equals(Consts.IN_SAME_SUBTREE)) {
-                                result.append(" ").append(siblingLabel);
-                            } else {
-                                result.append(" ").append(Consts.RIGHT_SIBLING).append(siblingLabel);
-                            }
-                        }
-                    }
                     //TODO: add Pronoun-based feature
 
                     //TODO: other features!
-
+                    */
                     if (isTrain) {
                         result.append(" ").append(bio.get(tokenInd));
                     }
+
                     result.append("\n");
                 }
                 result.append("\n");
@@ -314,7 +269,7 @@ public class NERBaseline implements PipelineStage {
                 System.out.println(line);
             }
             System.out.println("Exit code: " + pr.waitFor());
-            /*
+
             toExecute = new String[] {"java", "-cp", ".:lib/mallet.jar:lib/mallet-deps.jar", "cc.mallet.fst.SimpleTagger",
                     "--train", "true", "--model-file", NER_EXTENT_MODEL_FILE, EXTENT_FEATURE_FILE};
             System.out.println(toExecute);
@@ -327,7 +282,7 @@ public class NERBaseline implements PipelineStage {
                 System.out.println(line);
             }
             System.out.println("Exit code: " + pr.waitFor());
-            */
+
         } catch (Exception e) {
             e.printStackTrace();
             System.exit(1);
@@ -490,6 +445,67 @@ public class NERBaseline implements PipelineStage {
             e.printStackTrace();
             System.exit(1);
         }
+        List<Feature> result = new ArrayList<>();
+        result.addAll(FeatureUtilities.conjoin(features,features));
+        return result;
+    }
+
+    public List<Feature> extractExtentFeatures(TextAnnotation ta, int index, int headStartOffset, int headEndOffset) {
+        List<Constituent> constituents = ta.getView(ViewNames.TOKENS).getConstituentsCoveringToken(index);
+        assert(constituents.size() == 1);
+        Constituent constituent = constituents.get(0);
+        Set<Feature> features = new HashSet<>();
+        try {
+            features.addAll(WordFeatureExtractorFactory.word.getWordFeatures(ta, index));
+            features.addAll(WordFeatureExtractorFactory.wordCase.getWordFeatures(ta, index));
+            features.addAll(WordFeatureExtractorFactory.dateMarker.getWordFeatures(ta, index));
+            features.addAll(WordFeatureExtractorFactory.wordCase.getWordFeatures(ta, index));
+            features.addAll(WordFeatureExtractorFactory.capitalization.getWordFeatures(ta, index));
+            features.addAll(WordFeatureExtractorFactory.conflatedPOS.getWordFeatures(ta, index));
+            features.addAll(WordFeatureExtractorFactory.lemma.getWordFeatures(ta, index));
+            features.addAll(WordFeatureExtractorFactory.numberNormalizer.getWordFeatures(ta, index));
+            features.addAll(WordFeatureExtractorFactory.pos.getWordFeatures(ta, index));
+            features.addAll(bigrams.getWordFeatures(ta, index));
+            features.addAll(trigrams.getWordFeatures(ta, index));
+            features.addAll(ListFeatureFactory.daysOfTheWeek.getFeatures(constituent));
+            features.addAll(ListFeatureFactory.months.getFeatures(constituent));
+            features.addAll(ListFeatureFactory.possessivePronouns.getFeatures(constituent));
+            features.addAll(prev.getFeatures(constituent));
+            features.addAll(prevTwo.getFeatures(constituent));
+            features.addAll(gazetteers.getWordFeatures(ta, index));
+
+            Constituent headConst = new Constituent(null, null, ta, headStartOffset, headEndOffset);
+            Constituent fullConst = null;
+            Constituent wordConst = new Constituent(null, null, ta, index, index+1);
+            Relation rel = new Relation(null, headConst, wordConst, 0.0f);
+            features.addAll(ParsePath.STANFORD.getFeatures(wordConst));
+            features.addAll(ParseSiblings.STANFORD.getFeatures(wordConst));
+            Set<Feature> parseFeats = ParsePhraseType.STANFORD.getFeatures(wordConst);
+            features.addAll(parseFeats);
+            String prefix;
+            if (index < headStartOffset) {
+                prefix = "__BEFORE_HEAD__";
+                fullConst = new Constituent(null, null, ta, index, headEndOffset);
+            } else if (index >= headEndOffset) {
+                prefix = "__IN_HEAD__";
+                fullConst = new Constituent(null, null, ta, headStartOffset, index+1);
+            } else {
+                prefix = "__AFTER_HEAD__";
+            }
+            if (fullConst != null) {
+                features.addAll(FeatureUtilities.prefix("__WITH_HEAD__", ParseHeadWordPOS.STANFORD.getFeatures(fullConst)));
+                Set<Feature> parseFeatsWithHead = FeatureUtilities.prefix("__WITH_HEAD__", ParsePhraseType.STANFORD.getFeatures(fullConst)));
+                features.addAll(parseFeatsWithHead);
+                features.addAll(FeatureUtilities.conjoin(parseFeats, parseFeatsWithHead));
+            }
+
+
+            features.addAll(FeatureUtilities.prefix(prefix, features));
+        } catch (EdisonException e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+
         List<Feature> result = new ArrayList<>();
         result.addAll(FeatureUtilities.conjoin(features,features));
         return result;
