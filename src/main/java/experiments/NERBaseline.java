@@ -8,7 +8,6 @@ import edu.illinois.cs.cogcomp.core.datastructures.ViewNames;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.Constituent;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.Relation;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.TextAnnotation;
-import edu.illinois.cs.cogcomp.core.io.IOUtils;
 import edu.illinois.cs.cogcomp.edison.annotators.GazetteerViewGenerator;
 import edu.illinois.cs.cogcomp.edison.features.*;
 import edu.illinois.cs.cogcomp.edison.features.factory.*;
@@ -16,9 +15,7 @@ import edu.illinois.cs.cogcomp.edison.utilities.EdisonException;
 import learn.PipelineStage;
 import utils.Consts;
 
-import javax.swing.text.html.parser.Entity;
 import java.io.*;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
@@ -31,20 +28,23 @@ public class NERBaseline implements PipelineStage {
 
     private static final String HEAD_FEATURE_FILE = "ner_mallet_head_features";
     private static final String EXTENT_FEATURE_FILE = "ner_mallet_extent_features";
+    private static final String EXTENT_FEATURE_FILE_VECTORS = "ner_mallet_extent_feature_vectors";
     private static final String NER_HEAD_MODEL_FILE = "ner_model_head";
     private static final String NER_EXTENT_MODEL_FILE = "ner_model_extent";
 
+    private static final String POS = "POS";
+    private static final String NEG = "NEG";
 
 
     public void trainModel(List<ACEAnnotation> data) {
-        buildHeadFeatureFile(data, true);
-        buildExtentFeatureFile(data, true);
-        runMalletTrain();
+        //buildHeadFeatureFile(data, true);
+        //runMalletTrainHead();
+        trainExtentClassifier(data);
     }
 
     public void test(List<ACEAnnotation> data) {
         buildHeadFeatureFile(data, false);
-        List<List<String>> testTags = runMalletTest(true);
+        List<List<String>> testTags = runMalletTestHead();
         System.out.println(testTags);
         int tagSentInd = 0;
         for (ACEAnnotation doc: data) {
@@ -98,49 +98,22 @@ public class NERBaseline implements PipelineStage {
             }
         }
 
-        buildExtentFeatureFile(data, false);
-        testTags = runMalletTest(false);
+        testTags = runMalletTestHead();
         tagSentInd = 0;
         for (ACEAnnotation doc: data) {
-            List<List<EntityMention>> headMentions = doc.splitMentionBySentence(doc.getTestEntityMentions());
+            List<EntityMention> mentions = doc.getTestEntityMentions();
             doc.clearTestEntityMentions();
-            int sentOffset = 0;
-            for (int sentInd = 0; sentInd < doc.getNumberOfSentences(); sentInd++) {
-                List<EntityMention> headsInSentence = headMentions.get(sentInd);
-                List<String> sentence = doc.getSentence(sentInd);
+            for (EntityMention e: mentions) {
+                boolean foundStart = false;
+                boolean foundEnd = false;
+                List<String> sentence = doc.getSentence(e.getSentenceOffset());
+                int sentenceOffset = doc.getSentenceIndex(e.getSentenceOffset());
+                int extentStart = e.getHeadStartOffset() - 1;
+                int extentEnd = e.getHeadEndOffset();
+                while (!foundStart && extentStart >= sentenceOffset) {
 
-                for (EntityMention e: headsInSentence) {
-                    int start = 0;
-                    int end = 0;
-                    boolean foundMention = false;
-                    System.out.println(sentence);
-                    System.out.println(testTags.get(tagSentInd));
-                    for (int tagLabelInd = 0; tagLabelInd < sentence.size(); tagLabelInd++) {
-                        String tag = testTags.get(tagSentInd).get(tagLabelInd);
-
-                        if (tag.startsWith(Consts.BIO_B)) {
-                            start = sentOffset + tagLabelInd;
-                            foundMention = true;
-                            if (tagLabelInd == sentence.size() - 1) {
-                                end = sentOffset + tagLabelInd + 1;
-                            }
-                        } else if (tag.startsWith(Consts.BIO_O) && foundMention) {
-                            end = sentOffset + tagLabelInd;
-                        } else if (tagLabelInd == sentence.size() - 1 && tag.startsWith(Consts.BIO_I)) {
-                            end = sentOffset + tagLabelInd + 1;
-                        }
-                    }
-		if (e.getMentionType() == null){
-			System.out.println("ERROR: MENTION TYPE IS NULL!");
-		}
-                    doc.addEntityMention(e.getEntityType(), start, end, e.getHeadStartOffset(), e.getHeadEndOffset());
-                    tagSentInd++;
                 }
-
-
-                sentOffset += sentence.size();
             }
-
         }
 
     }
@@ -199,6 +172,82 @@ public class NERBaseline implements PipelineStage {
         return result;
     }
 
+    private void trainExtentClassifier(List<ACEAnnotation> docs) {
+        List<Pair<List<Feature>, Boolean>> examples = new ArrayList<>();
+        for (ACEAnnotation doc: docs) {
+            for (EntityMention e: doc.getGoldEntityMentions()) {
+                List<String> sentence = doc.getSentence(e.getSentenceOffset());
+                int sentenceOffset = doc.getSentenceIndex(e.getSentenceOffset());
+                for (int i = e.getHeadEndOffset(); i < e.getExtentEndOffset(); i++) {
+                    examples.add(new Pair(extractExtentFeatures(doc.getTA(), i, e.getHeadStartOffset(), e.getHeadEndOffset()), true));
+                }
+                if (e.getExtentEndOffset() < sentenceOffset + sentence.size()) {
+                    examples.add(new Pair(extractExtentFeatures(doc.getTA(), e.getExtentEndOffset(), e.getHeadStartOffset(), e.getHeadEndOffset()), false));
+                }
+                for (int i = e.getHeadStartOffset() - 1; i >= e.getExtentStartOffset(); i--) {
+                    examples.add(new Pair(extractExtentFeatures(doc.getTA(), i, e.getHeadStartOffset(), e.getHeadEndOffset()), true));
+                }
+                if (e.getExtentStartOffset() - 1 > sentenceOffset) {
+                    examples.add(new Pair(extractExtentFeatures(doc.getTA(), e.getExtentStartOffset()-1, e.getHeadStartOffset(), e.getHeadEndOffset()), false));
+                }
+            }
+        }
+        writeTrainClassifierFile(examples);
+        runMalletTrainExtent();
+    }
+
+    private void writeTrainClassifierFile(List<Pair<List<Feature>, Boolean>> examples) {
+        try (Writer writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(EXTENT_FEATURE_FILE)))) {
+            for (int i = 0; i < examples.size(); i++) {
+                Pair<List<Feature>, Boolean> example = examples.get(i);
+                writer.write(i + " ");
+                if (example.getSecond()) {
+                    writer.write(POS+ " ");
+                } else {
+                    writer.write(NEG+ " ");
+                }
+                writer.write(convertFeaturesToMalletFormat(example.getFirst()));
+                writer.write("\n");
+            }
+            writer.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+
+    }
+
+    private void getExtentTestLabel(List<Feature> example) {
+        try (Writer writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(EXTENT_FEATURE_FILE)))) {
+            writer.write(convertFeaturesToMalletFormat(example));
+            writer.write("\n");
+            writer.close();
+        } catch(IOException e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+        Runtime rt = Runtime.getRuntime();
+        try {
+
+            String[] toExecute = new String[]{"java", "-cp", ".:lib/mallet.jar:lib/mallet-deps.jar", "cc.mallet.classify.tui.Csv2Classify",
+                    "--input", EXTENT_FEATURE_FILE, "--output", "-", "--classifier", NER_EXTENT_MODEL_FILE};
+            System.out.println(toExecute);
+            Process pr = rt.exec(toExecute);
+            BufferedReader input = new BufferedReader(new InputStreamReader(pr.getErrorStream()));
+
+            String line = null;
+
+            while ((line = input.readLine()) != null) {
+                System.out.println(line);
+            }
+            System.out.println("Exit code: " + pr.waitFor());
+            System.exit(1);
+        } catch(Exception e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+    }
+
     private StringBuilder extractExtentFeatures(ACEAnnotation doc, List<List<EntityMention>> mentionsPerSentence, boolean isTrain) {
         StringBuilder result = new StringBuilder();
         List<List<List<String>>> bioLabels = null;
@@ -253,25 +302,12 @@ public class NERBaseline implements PipelineStage {
         }
     }
 
-    private void runMalletTrain() {
+    private void runMalletTrainHead() {
         Runtime rt = Runtime.getRuntime();
         try {
-	/*
+
             String [] toExecute = new String[] {"java", "-cp", ".:lib/mallet.jar:lib/mallet-deps.jar", "cc.mallet.fst.SimpleTagger",
                     "--train", "true", "--model-file", NER_HEAD_MODEL_FILE, HEAD_FEATURE_FILE};
-            System.out.println(toExecute);
-            Process pr = rt.exec(toExecute);
-            BufferedReader input = new BufferedReader(new InputStreamReader(pr.getErrorStream()));
-
-            String line=null;
-
-            while ((line =input.readLine()) != null) {
-                System.out.println(line);
-            }
-            System.out.println("Exit code: " + pr.waitFor());
-*/
-            String [] toExecute = new String[] {"java", "-cp", ".:lib/mallet.jar:lib/mallet-deps.jar", "cc.mallet.fst.SimpleTagger",
-                    "--train", "true", "--model-file", NER_EXTENT_MODEL_FILE, EXTENT_FEATURE_FILE};
             System.out.println(toExecute);
             Process pr = rt.exec(toExecute);
             BufferedReader input = new BufferedReader(new InputStreamReader(pr.getErrorStream()));
@@ -289,18 +325,41 @@ public class NERBaseline implements PipelineStage {
         }
     }
 
-    private List<List<String>> runMalletTest(boolean isHead) {
+    private void runMalletTrainExtent() {
+        Runtime rt = Runtime.getRuntime();
+        try {
+
+            String [] toExecute = new String[] {"java", "-cp", ".:lib/mallet.jar:lib/mallet-deps.jar", "cc.mallet.classify.tui.Csv2Vectors",
+                    "--input", EXTENT_FEATURE_FILE, "--output", EXTENT_FEATURE_FILE_VECTORS};
+            System.out.println(toExecute);
+            Process pr = rt.exec(toExecute);
+            BufferedReader input = new BufferedReader(new InputStreamReader(pr.getErrorStream()));
+
+            String line=null;
+
+            while ((line =input.readLine()) != null) {
+                System.out.println(line);
+            }
+            System.out.println("Exit code: " + pr.waitFor());
+
+            toExecute = new String[] {"java", "-cp", ".:lib/mallet.jar:lib/mallet-deps.jar", "cc.mallet.classify.tui.Vectors2Classify",
+                    "--input", EXTENT_FEATURE_FILE_VECTORS, "--output", NER_EXTENT_MODEL_FILE};
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+    }
+
+    private List<List<String>> runMalletTestHead() {
         Runtime rt = Runtime.getRuntime();
         try {
             String[] toExecute = null;
-            if (isHead) {
-                toExecute = new String[]{"java", "-cp", ".:lib/mallet.jar:lib/mallet-deps.jar", "cc.mallet.fst.SimpleTagger",
+
+            toExecute = new String[]{"java", "-cp", ".:lib/mallet.jar:lib/mallet-deps.jar", "cc.mallet.fst.SimpleTagger",
                         "--model-file", NER_HEAD_MODEL_FILE, HEAD_FEATURE_FILE};
-            } else {
-                toExecute = new String[]{"java", "-cp", ".:lib/mallet.jar:lib/mallet-deps.jar", "cc.mallet.fst.SimpleTagger",
-                        "--model-file", NER_EXTENT_MODEL_FILE, EXTENT_FEATURE_FILE};
-            }
-            System.out.println(toExecute);
+
+
             Process pr = rt.exec(toExecute);
             BufferedReader input = new BufferedReader(new InputStreamReader(pr.getInputStream()));
 
@@ -463,13 +522,9 @@ public class NERBaseline implements PipelineStage {
             features.addAll(WordFeatureExtractorFactory.lemma.getWordFeatures(ta, index));
             features.addAll(WordFeatureExtractorFactory.numberNormalizer.getWordFeatures(ta, index));
             features.addAll(WordFeatureExtractorFactory.pos.getWordFeatures(ta, index));
-            features.addAll(bigrams.getWordFeatures(ta, index));
-            features.addAll(trigrams.getWordFeatures(ta, index));
             features.addAll(ListFeatureFactory.daysOfTheWeek.getFeatures(constituent));
             features.addAll(ListFeatureFactory.months.getFeatures(constituent));
             features.addAll(ListFeatureFactory.possessivePronouns.getFeatures(constituent));
-            features.addAll(prev.getFeatures(constituent));
-            features.addAll(prevTwo.getFeatures(constituent));
             features.addAll(gazetteers.getWordFeatures(ta, index));
         } catch (EdisonException e) {
         }
