@@ -230,7 +230,6 @@ public class NERBaseline implements PipelineStage {
                     //TODO: add Pronoun-based feature
 
                     //TODO: other features!
-                    */
                     if (isTrain) {
                         result.append(" ").append(bio.get(tokenInd));
                     }
@@ -257,6 +256,7 @@ public class NERBaseline implements PipelineStage {
     private void runMalletTrain() {
         Runtime rt = Runtime.getRuntime();
         try {
+	/*
             String [] toExecute = new String[] {"java", "-cp", ".:lib/mallet.jar:lib/mallet-deps.jar", "cc.mallet.fst.SimpleTagger",
                     "--train", "true", "--model-file", NER_HEAD_MODEL_FILE, HEAD_FEATURE_FILE};
             System.out.println(toExecute);
@@ -269,14 +269,14 @@ public class NERBaseline implements PipelineStage {
                 System.out.println(line);
             }
             System.out.println("Exit code: " + pr.waitFor());
-
-            toExecute = new String[] {"java", "-cp", ".:lib/mallet.jar:lib/mallet-deps.jar", "cc.mallet.fst.SimpleTagger",
+*/
+            String [] toExecute = new String[] {"java", "-cp", ".:lib/mallet.jar:lib/mallet-deps.jar", "cc.mallet.fst.SimpleTagger",
                     "--train", "true", "--model-file", NER_EXTENT_MODEL_FILE, EXTENT_FEATURE_FILE};
             System.out.println(toExecute);
-            pr = rt.exec(toExecute);
-            input = new BufferedReader(new InputStreamReader(pr.getErrorStream()));
+            Process pr = rt.exec(toExecute);
+            BufferedReader input = new BufferedReader(new InputStreamReader(pr.getErrorStream()));
 
-            line=null;
+            String line=null;
 
             while ((line =input.readLine()) != null) {
                 System.out.println(line);
@@ -459,9 +459,7 @@ public class NERBaseline implements PipelineStage {
             features.addAll(WordFeatureExtractorFactory.word.getWordFeatures(ta, index));
             features.addAll(WordFeatureExtractorFactory.wordCase.getWordFeatures(ta, index));
             features.addAll(WordFeatureExtractorFactory.dateMarker.getWordFeatures(ta, index));
-            features.addAll(WordFeatureExtractorFactory.wordCase.getWordFeatures(ta, index));
             features.addAll(WordFeatureExtractorFactory.capitalization.getWordFeatures(ta, index));
-            features.addAll(WordFeatureExtractorFactory.conflatedPOS.getWordFeatures(ta, index));
             features.addAll(WordFeatureExtractorFactory.lemma.getWordFeatures(ta, index));
             features.addAll(WordFeatureExtractorFactory.numberNormalizer.getWordFeatures(ta, index));
             features.addAll(WordFeatureExtractorFactory.pos.getWordFeatures(ta, index));
@@ -473,41 +471,47 @@ public class NERBaseline implements PipelineStage {
             features.addAll(prev.getFeatures(constituent));
             features.addAll(prevTwo.getFeatures(constituent));
             features.addAll(gazetteers.getWordFeatures(ta, index));
-
-            Constituent headConst = new Constituent(null, null, ta, headStartOffset, headEndOffset);
-            Constituent fullConst = null;
-            Constituent wordConst = new Constituent(null, null, ta, index, index+1);
-            Relation rel = new Relation(null, headConst, wordConst, 0.0f);
-            features.addAll(ParsePath.STANFORD.getFeatures(wordConst));
+        } catch (EdisonException e) {
+        }
+        
+        Constituent headConst = new Constituent(null, null, ta, headStartOffset, headEndOffset);
+        Constituent fullConst = null;
+        Constituent wordConst = new Constituent(null, null, ta, index, index+1);
+        Relation rel = new Relation(null, headConst, wordConst, 0.0f);
+        try {
             features.addAll(ParseSiblings.STANFORD.getFeatures(wordConst));
+        }catch (Exception e) {
+        }
+        try {
+            features.addAll(ParsePath.STANFORD.getFeatures(wordConst));
+        } catch (Exception e) {
+        }
+
+        String prefix;
+        if (index < headStartOffset) {
+	    prefix = "_BH_";
+	    fullConst = new Constituent(null, null, ta, index, headEndOffset);
+        } else if (index >= headEndOffset) {
+	    prefix = "_IH_";
+	    fullConst = new Constituent(null, null, ta, headStartOffset, index+1);
+        } else {
+	    prefix = "_AH_";
+        }
+        try {
             Set<Feature> parseFeats = ParsePhraseType.STANFORD.getFeatures(wordConst);
             features.addAll(parseFeats);
-            String prefix;
-            if (index < headStartOffset) {
-                prefix = "__BEFORE_HEAD__";
-                fullConst = new Constituent(null, null, ta, index, headEndOffset);
-            } else if (index >= headEndOffset) {
-                prefix = "__IN_HEAD__";
-                fullConst = new Constituent(null, null, ta, headStartOffset, index+1);
-            } else {
-                prefix = "__AFTER_HEAD__";
-            }
             if (fullConst != null) {
-                features.addAll(FeatureUtilities.prefix("__WITH_HEAD__", ParseHeadWordPOS.STANFORD.getFeatures(fullConst)));
-                Set<Feature> parseFeatsWithHead = FeatureUtilities.prefix("__WITH_HEAD__", ParsePhraseType.STANFORD.getFeatures(fullConst)));
+                features.addAll(FeatureUtilities.prefix("_WH_", ParseHeadWordPOS.STANFORD.getFeatures(fullConst)));
+                Set<Feature> parseFeatsWithHead = FeatureUtilities.prefix("_WH_", ParsePhraseType.STANFORD.getFeatures(fullConst));
                 features.addAll(parseFeatsWithHead);
                 features.addAll(FeatureUtilities.conjoin(parseFeats, parseFeatsWithHead));
             }
-
-
-            features.addAll(FeatureUtilities.prefix(prefix, features));
-        } catch (EdisonException e) {
-            e.printStackTrace();
-            System.exit(1);
+        } catch (Exception e) {
         }
 
+        features = FeatureUtilities.prefix(prefix, features);
         List<Feature> result = new ArrayList<>();
-        result.addAll(FeatureUtilities.conjoin(features,features));
+        result.addAll(features);
         return result;
     }
 
