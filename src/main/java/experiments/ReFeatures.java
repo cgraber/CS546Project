@@ -13,7 +13,7 @@ import java.lang.*;
  * Created by sdq on 3/22/16.
  */
 
-public class REFeatures {
+public class ReFeatures {
 
     public static void main(String [] argv) throws IOException {
 
@@ -91,7 +91,7 @@ public class REFeatures {
 
                 fea_vec.addLabel(relation);
                 extracted_data.add(fea_vec);
-                REFeatures.FeatureForOneInstance(left, right, fea_vec);
+                ReFeatures.FeatureForOneInstance(left, right, fea_vec);
 
             }
 
