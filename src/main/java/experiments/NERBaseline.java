@@ -64,7 +64,7 @@ public class NERBaseline implements PipelineStage {
                     if (tag.startsWith(Consts.BIO_B)) {
                         if (currentType != null) {
                             //IntPair extent = doc.findMentionExtent(currentStart, currentEnd);
-                            doc.addEntityMention(currentType, currentStart, currentEnd, currentStart, currentEnd);
+                            doc.addEntityMention(currentType, currentStart, currentEnd, currentStart, currentEnd, false);
                             //System.out.println("Adding entity of type " + currentType + ", (" + currentStart + ", " + currentEnd + ")");
 
                             currentStart = currentEnd;
@@ -75,19 +75,19 @@ public class NERBaseline implements PipelineStage {
                         currentType = tag.split("_")[1];
                         if (tagLabelInd == doc.getSentence(sentInd).size() - 1) {
                             //Case when unit-sized mention at end of sentence
-                            doc.addEntityMention(currentType, currentStart, currentEnd, currentStart, currentEnd);
+                            doc.addEntityMention(currentType, currentStart, currentEnd, currentStart, currentEnd, false);
                         }
                     } else if (tag.startsWith(Consts.BIO_I)) {
                         currentEnd++;
                         if (tagLabelInd == doc.getSentence(sentInd).size() - 1) {
                             //Case when mention boundary is end of sentence
-                            doc.addEntityMention(currentType, currentStart, currentEnd, currentStart, currentEnd);
+                            doc.addEntityMention(currentType, currentStart, currentEnd, currentStart, currentEnd, false);
                         }
                     } else {
                         if (currentType != null) {
 
                             //IntPair extent = doc.findMentionExtent(currentStart, currentEnd);
-                            doc.addEntityMention(currentType, currentStart, currentEnd, currentStart, currentEnd);
+                            doc.addEntityMention(currentType, currentStart, currentEnd, currentStart, currentEnd, false);
                             //System.out.println("Adding entity of type " + currentType + ", (" + currentStart + ", " + currentEnd + ")");
 
                             currentType = null;
@@ -148,7 +148,7 @@ public class NERBaseline implements PipelineStage {
                         extentEnd++;
                     }   
                 }
-                doc.addEntityMention(e.getEntityType(), extentStart, extentEnd, e.getHeadStartOffset(), e.getHeadEndOffset());
+                doc.addEntityMention(e.getEntityType(), extentStart, extentEnd, e.getHeadStartOffset(), e.getHeadEndOffset(), true);
                 listOffset += sentence.size() - (e.getHeadEndOffset() - e.getHeadStartOffset());
             }
         }
@@ -165,22 +165,6 @@ public class NERBaseline implements PipelineStage {
             fullFeatures.append("\n");
         }
         writeFeatureFile(fullFeatures.toString(), HEAD_FEATURE_FILE);
-    }
-
-    private void buildExtentFeatureFile(List<ACEAnnotation> data, boolean isTrain) {
-        StringBuilder fullFeatures = new StringBuilder();
-        for (ACEAnnotation doc: data) {
-            List<List<EntityMention>> entitiesPerSentence = null;
-            if (isTrain) {
-                entitiesPerSentence = doc.splitMentionBySentence(doc.getGoldEntityMentions());
-            } else {
-                entitiesPerSentence = doc.splitMentionBySentence(doc.getTestEntityMentions());
-            }
-            fullFeatures.append(extractExtentFeatures(doc, entitiesPerSentence, isTrain));
-            fullFeatures.append("\n");
-        }
-
-        writeFeatureFile(fullFeatures.toString(), EXTENT_FEATURE_FILE);
     }
 
     /**
@@ -295,49 +279,6 @@ public class NERBaseline implements PipelineStage {
         return results;
     }
 
-    private StringBuilder extractExtentFeatures(ACEAnnotation doc, List<List<EntityMention>> mentionsPerSentence, boolean isTrain) {
-        StringBuilder result = new StringBuilder();
-        List<List<List<String>>> bioLabels = null;
-        if (isTrain) {
-            bioLabels  = doc.getGoldNERExtentBIOEncoding();
-        }
-        List<List<String>> posTags = doc.getPOSTagsBySentence();
-        int sentenceOffset = 0;
-        for (int sentInd = 0; sentInd < doc.getNumberOfSentences(); sentInd++) {
-            List<String> sentence = doc.getSentence(sentInd);
-            List<List<String>> bioForSentence = null;
-            if (isTrain) {
-                bioForSentence = bioLabels.get(sentInd);
-            }
-            List<EntityMention> mentions = mentionsPerSentence.get(sentInd);
-            for (int mentionInd = 0; mentionInd < mentions.size(); mentionInd++) {
-                List<String> bio = null;
-                if (isTrain) {
-                     bio = bioForSentence.get(mentionInd);
-                }
-                if (mentionsPerSentence.get(sentInd).isEmpty()) {
-                    continue;
-                }
-                EntityMention e = mentionsPerSentence.get(sentInd).get(mentionInd);
-                for (int tokenInd = 0; tokenInd < sentence.size(); tokenInd++) {
-                    List<Feature> features = extractExtentFeatures(doc.getTA(), sentenceOffset + tokenInd, e.getHeadStartOffset(), e.getHeadEndOffset());
-                    result.append(convertFeaturesToMalletFormat(features));
-
-                    //TODO: add Pronoun-based feature
-
-                    //TODO: other features!
-                    if (isTrain) {
-                        result.append(" ").append(bio.get(tokenInd));
-                    }
-
-                    result.append("\n");
-                }
-                result.append("\n");
-            }
-            sentenceOffset += sentence.size();
-        }
-        return result;
-    }
 
     private void writeFeatureFile(String info, String path) {
         try (Writer writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(path)))) {

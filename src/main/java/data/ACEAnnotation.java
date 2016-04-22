@@ -506,19 +506,21 @@ public class ACEAnnotation implements Serializable {
      * @param extentStartOffset The index of the first token of the span containing the entity
      * @param extentEndOffset The index of the last token + 1 (e.g. if the last token is #3, the value here should be 4)
      */
-    public void addEntityMention(String type, int extentStartOffset, int extentEndOffset, int headStartOffset, int headEndOffset) {
+    public void addEntityMention(String type, int extentStartOffset, int extentEndOffset, int headStartOffset, int headEndOffset, boolean addTAInfo) {
         EntityMention e = new EntityMention(type, null, extentStartOffset, extentEndOffset, headStartOffset, headEndOffset, findSentenceIndex(extentStartOffset), this);
         testEntityMentions.add(e);
         testEntityMentionsBySpan.put(new IntPair(headStartOffset, headEndOffset), e);
 
-        Constituent entityConstituent = new Constituent(type, ACEReader.ENTITYVIEW, ta, extentStartOffset, extentEndOffset);
-        entityConstituent.addAttribute(ACEReader.EntityHeadStartCharOffset, ta.getTokenCharacterOffset(headStartOffset).getFirst()+"");
-        //TODO: check that these offsets are correct
-        entityConstituent.addAttribute(ACEReader.EntityHeadEndCharOffset, ta.getTokenCharacterOffset(headEndOffset-1).getSecond()+"");
-        entityConstituent.addAttribute(ACEReader.EntityTypeAttribute, type);
+        if (addTAInfo) {
+            Constituent entityConstituent = new Constituent(type, ACEReader.ENTITYVIEW, ta, extentStartOffset, extentEndOffset);
+            entityConstituent.addAttribute(ACEReader.EntityHeadStartCharOffset, ta.getTokenCharacterOffset(headStartOffset).getFirst() + "");
+            //TODO: check that these offsets are correct
+            entityConstituent.addAttribute(ACEReader.EntityHeadEndCharOffset, ta.getTokenCharacterOffset(headEndOffset - 1).getSecond() + "");
+            entityConstituent.addAttribute(ACEReader.EntityTypeAttribute, type);
 
-        entityView.addConstituent(entityConstituent);
-        e.setConstituent(entityConstituent);
+            entityView.addConstituent(entityConstituent);
+            e.setConstituent(entityConstituent);
+        }
     }
 
     /**
