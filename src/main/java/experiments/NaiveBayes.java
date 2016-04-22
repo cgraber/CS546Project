@@ -191,7 +191,7 @@ public class NaiveBayes {
         for(int i=0; i<g1.size(); i++){
             for(int j=0; j<g2.size(); j++){
                 FeatureVector f = new FeatureVector();
-                REFeatures.FeatureForOneInstance(g1.get(i), g2.get(j), f);
+                ReFeatures.FeatureForOneInstance(g1.get(i), g2.get(j), f);
                 list_vec.add(f);
             }
         }

@@ -3,7 +3,7 @@ package data;
 
 import edu.illinois.cs.cogcomp.core.datastructures.Pair;
 import experiments.NaiveBayes;
-import experiments.REFeatures;
+import experiments.ReFeatures;
 import learn.FeatureVector;
 
 import java.util.*;
@@ -216,7 +216,7 @@ public class GISentence {
             EntityMention e2 = r.getArg2();
 
             FeatureVector f = new FeatureVector();
-            REFeatures.FeatureForOneInstance(e1, e2, f);
+            ReFeatures.FeatureForOneInstance(e1, e2, f);
             List<Integer> pred_vec= clf.predict(f);
             int prediction = pred_vec.get(0);
             r.SetPrediction(prediction);

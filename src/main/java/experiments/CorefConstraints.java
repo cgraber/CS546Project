@@ -57,7 +57,7 @@ public class CorefConstraints {
 
         //training  stage
         NaiveBayes nb_classifier = new NaiveBayes();
-        List<FeatureVector> train_extract_data = REFeatures.generateFeatures(train_set, 0.97f);
+        List<FeatureVector> train_extract_data = ReFeatures.generateFeatures(train_set, 0.97f);
         nb_classifier.train(train_extract_data);
 
 

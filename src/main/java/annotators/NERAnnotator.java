@@ -7,7 +7,9 @@ import edu.illinois.cs.cogcomp.core.datastructures.ViewNames;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.TextAnnotation;
 import edu.illinois.cs.cogcomp.nlp.corpusreaders.ACEReader;
 import experiments.NERBaseline;
+import edu.illinois.cs.cogcomp.openeval.learner.Server;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,5 +36,13 @@ public class NERAnnotator extends Annotator {
 
         //As long as your code adds the NER, coreference, or relation information to the ACEAnnotation document, the
         //correct information will be automatically added to the TextAnnotation!
+    }
+
+    public static void main(String[] argv) throws IOException {
+        Annotator annotator = new NERAnnotator();
+
+        Server server = new Server(5757, null, annotator);
+
+        fi.iki.elonen.util.ServerRunner.executeInstance(server);
     }
 }
