@@ -108,19 +108,28 @@ public class NERBaseline implements PipelineStage {
         for (ACEAnnotation doc: data) {
             System.out.println("\ttest extent info for doc "+(ind++));
             List<EntityMention> mentions = doc.getTestEntityMentions();
+
             doc.clearTestEntityMentions();
             int entityInd = 0;
             for (EntityMention e: mentions) {
                 System.out.println("\t\ttext extent info for entity "+(entityInd++));
-                boolean foundStart = false;
-                boolean foundEnd = false;
+
+                List<List<Feature>> features = new ArrayList<>();
                 List<String> sentence = doc.getSentence(e.getSentenceOffset());
                 int sentenceOffset = doc.getSentenceIndex(e.getSentenceOffset());
+                for (int i = sentenceOffset; i < e.getHeadStartOffset(); i++) {
+                    features.add(extractExtentFeatures(doc.getTA(), i, e.getHeadStartOffset(), e.getHeadEndOffset()));
+                }
+                for (int i = e.getHeadEndOffset(); i < sentenceOffset+sentence.size(); i++) {
+                    features.add(extractExtentFeatures(doc.getTA(), i, e.getHeadStartOffset(), e.getHeadEndOffset()))
+                }
+                List<String> labels = getExtentTestLabels(features);
+                boolean foundStart = false;
+                boolean foundEnd = false;
                 int extentStart = e.getHeadStartOffset() - 1;
                 int extentEnd = e.getHeadEndOffset();
                 while (!foundStart && extentStart >= sentenceOffset) {
-                    List<Feature> features = extractExtentFeatures(doc.getTA(), extentStart, e.getHeadStartOffset(), e.getHeadEndOffset());
-                    String label = getExtentTestLabel(features);
+                    String label = labels.get(extentStart - sentenceOffset);
                     if (label.equals(NEG)) {
                         foundStart = true;
                     } else {
@@ -128,10 +137,8 @@ public class NERBaseline implements PipelineStage {
                     }
                 }
                 extentStart++;
-
                 while (!foundEnd && extentEnd < sentenceOffset + sentence.size()) {
-                    List<Feature> features = extractExtentFeatures(doc.getTA(), extentEnd, e.getHeadStartOffset(), e.getHeadEndOffset());
-                    String label = getExtentTestLabel(features);
+                    String label = labels.get((extentEnd - e.getHeadEndOffset()) + (e.getHeadStartOffset() - sentenceOffset));
                     if (label.equals(NEG)) {
                         foundEnd = true;
                     } else {
@@ -248,16 +255,19 @@ public class NERBaseline implements PipelineStage {
 
     }
 
-    private String getExtentTestLabel(List<Feature> example) {
+    private List<String> getExtentTestLabels(List<List<Feature>> examples) {
         try (Writer writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(EXTENT_FEATURE_FILE)))) {
-            writer.write(convertFeaturesToMalletFormat(example));
-            writer.write("\n");
+            for (List<Feature> example: examples) {
+                writer.write(convertFeaturesToMalletFormat(example));
+                writer.write("\n");
+            }
             writer.close();
         } catch(IOException e) {
             e.printStackTrace();
             System.exit(1);
         }
         Runtime rt = Runtime.getRuntime();
+        List<String> results = new ArrayList<String>();
         try {
 
             String[] toExecute = new String[]{"java", "-cp", ".:lib/mallet.jar:lib/mallet-deps.jar", "cc.mallet.classify.tui.Csv2Classify",
@@ -266,20 +276,19 @@ public class NERBaseline implements PipelineStage {
             BufferedReader input = new BufferedReader(new InputStreamReader(pr.getInputStream()));
 
             String line = null;
-            String result = null;
+            results = new ArrayList<String>();
             while ((line = input.readLine()) != null) {
-                result = line;
+                String[] args = line.split("\\s+");
+                Map<String, Double> vals = new HashMap<>();
+                vals.put(args[1], Double.parseDouble(args[2]));
+                vals.put(args[3], Double.parseDouble(args[4]));
+                results.add(vals.get(POS) > vals.get(NEG) ? POS : NEG);
             }
-            String [] args = result.split("\\s+");
-            Map<String,Double> vals = new HashMap<>();
-            vals.put(args[1], Double.parseDouble(args[2]));
-            vals.put(args[3], Double.parseDouble(args[4]));
-            return vals.get(POS) > vals.get(NEG) ? POS : NEG;
         } catch(Exception e) {
             e.printStackTrace();
             System.exit(1);
         }
-        return null;
+        return results;
     }
 
     private StringBuilder extractExtentFeatures(ACEAnnotation doc, List<List<EntityMention>> mentionsPerSentence, boolean isTrain) {
