@@ -20,6 +20,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.Map;
+import java.util.HashMap;
 
 /**
  * Created by Colin Graber on 3/29/16.
@@ -45,9 +47,11 @@ public class NERBaseline implements PipelineStage {
     public void test(List<ACEAnnotation> data) {
         buildHeadFeatureFile(data, false);
         List<List<String>> testTags = runMalletTestHead();
-        System.out.println(testTags);
         int tagSentInd = 0;
+        System.out.println("Finding test head labels...");
+        int ind = 0;
         for (ACEAnnotation doc: data) {
+            System.out.println("\tFinding head labels for doc " + (ind++));
             int tokenInd = 0;
 
             //System.out.println("NEW DOC: "+doc.getNumberOfSentences());
@@ -83,7 +87,7 @@ public class NERBaseline implements PipelineStage {
                         if (currentType != null) {
 
                             //IntPair extent = doc.findMentionExtent(currentStart, currentEnd);
-                            doc.addEntityMention(currentType, currentEnd, currentEnd, currentStart, currentEnd);
+                            doc.addEntityMention(currentType, currentStart, currentEnd, currentStart, currentEnd);
                             //System.out.println("Adding entity of type " + currentType + ", (" + currentStart + ", " + currentEnd + ")");
 
                             currentType = null;
@@ -98,12 +102,16 @@ public class NERBaseline implements PipelineStage {
             }
         }
 
-        testTags = runMalletTestHead();
         tagSentInd = 0;
+        System.out.println("Finding test extent information...");
+        ind = 0;
         for (ACEAnnotation doc: data) {
+            System.out.println("\ttest extent info for doc "+(ind++));
             List<EntityMention> mentions = doc.getTestEntityMentions();
             doc.clearTestEntityMentions();
+            int entityInd = 0;
             for (EntityMention e: mentions) {
+                System.out.println("\t\ttext extent info for entity "+(entityInd++));
                 boolean foundStart = false;
                 boolean foundEnd = false;
                 List<String> sentence = doc.getSentence(e.getSentenceOffset());
@@ -111,16 +119,37 @@ public class NERBaseline implements PipelineStage {
                 int extentStart = e.getHeadStartOffset() - 1;
                 int extentEnd = e.getHeadEndOffset();
                 while (!foundStart && extentStart >= sentenceOffset) {
-
+                    List<Feature> features = extractExtentFeatures(doc.getTA(), extentStart, e.getHeadStartOffset(), e.getHeadEndOffset());
+                    String label = getExtentTestLabel(features);
+                    if (label.equals(NEG)) {
+                        foundStart = true;
+                    } else {
+                        extentStart--;
+                    }
                 }
+                extentStart++;
+
+                while (!foundEnd && extentEnd < sentenceOffset + sentence.size()) {
+                    List<Feature> features = extractExtentFeatures(doc.getTA(), extentEnd, e.getHeadStartOffset(), e.getHeadEndOffset());
+                    String label = getExtentTestLabel(features);
+                    if (label.equals(NEG)) {
+                        foundEnd = true;
+                    } else {
+                        extentEnd++;
+                    }   
+                }
+                doc.addEntityMention(e.getEntityType(), extentStart, extentEnd, e.getHeadStartOffset(), e.getHeadEndOffset());
             }
         }
 
     }
 
     private void buildHeadFeatureFile(List<ACEAnnotation> data, boolean isTrain) {
+        System.out.println("Extracting head features...");
         StringBuilder fullFeatures = new StringBuilder();
+        int ind = 0;
         for (ACEAnnotation doc: data) {
+            System.out.println("\textracting head features for doc "+(ind++));
             fullFeatures.append(extractHeadFeatures(doc, isTrain));
             fullFeatures.append("\n");
         }
@@ -151,7 +180,6 @@ public class NERBaseline implements PipelineStage {
     private StringBuilder extractHeadFeatures(ACEAnnotation doc, boolean isTrain) {
         StringBuilder result = new StringBuilder();
         List<List<String>> bioLabels = doc.getGoldBIOEncoding();
-        System.out.println(bioLabels);
         List<List<String>> posTags = doc.getPOSTagsBySentence();
         int sentenceOffset = 0;
 
@@ -173,8 +201,11 @@ public class NERBaseline implements PipelineStage {
     }
 
     private void trainExtentClassifier(List<ACEAnnotation> docs) {
+        System.out.println("Training extent classifier...");
         List<Pair<List<Feature>, Boolean>> examples = new ArrayList<>();
+        int ind = 0;
         for (ACEAnnotation doc: docs) {
+            System.out.println("\tExtracting extent features for doc "+(ind++));
             for (EntityMention e: doc.getGoldEntityMentions()) {
                 List<String> sentence = doc.getSentence(e.getSentenceOffset());
                 int sentenceOffset = doc.getSentenceIndex(e.getSentenceOffset());
@@ -217,7 +248,7 @@ public class NERBaseline implements PipelineStage {
 
     }
 
-    private void getExtentTestLabel(List<Feature> example) {
+    private String getExtentTestLabel(List<Feature> example) {
         try (Writer writer = new BufferedWriter(new OutputStreamWriter(new FileOutputStream(EXTENT_FEATURE_FILE)))) {
             writer.write(convertFeaturesToMalletFormat(example));
             writer.write("\n");
@@ -231,21 +262,24 @@ public class NERBaseline implements PipelineStage {
 
             String[] toExecute = new String[]{"java", "-cp", ".:lib/mallet.jar:lib/mallet-deps.jar", "cc.mallet.classify.tui.Csv2Classify",
                     "--input", EXTENT_FEATURE_FILE, "--output", "-", "--classifier", NER_EXTENT_MODEL_FILE};
-            System.out.println(toExecute);
             Process pr = rt.exec(toExecute);
-            BufferedReader input = new BufferedReader(new InputStreamReader(pr.getErrorStream()));
+            BufferedReader input = new BufferedReader(new InputStreamReader(pr.getInputStream()));
 
             String line = null;
-
+            String result = null;
             while ((line = input.readLine()) != null) {
-                System.out.println(line);
+                result = line;
             }
-            System.out.println("Exit code: " + pr.waitFor());
-            System.exit(1);
+            String [] args = result.split("\\s+");
+            Map<String,Double> vals = new HashMap<>();
+            vals.put(args[1], Double.parseDouble(args[2]));
+            vals.put(args[3], Double.parseDouble(args[4]));
+            return vals.get(POS) > vals.get(NEG) ? POS : NEG;
         } catch(Exception e) {
             e.printStackTrace();
             System.exit(1);
         }
+        return null;
     }
 
     private StringBuilder extractExtentFeatures(ACEAnnotation doc, List<List<EntityMention>> mentionsPerSentence, boolean isTrain) {
@@ -343,7 +377,16 @@ public class NERBaseline implements PipelineStage {
             System.out.println("Exit code: " + pr.waitFor());
 
             toExecute = new String[] {"java", "-cp", ".:lib/mallet.jar:lib/mallet-deps.jar", "cc.mallet.classify.tui.Vectors2Classify",
-                    "--input", EXTENT_FEATURE_FILE_VECTORS, "--output", NER_EXTENT_MODEL_FILE};
+                    "--input", EXTENT_FEATURE_FILE_VECTORS, "--output-classifier", NER_EXTENT_MODEL_FILE};
+            pr = rt.exec(toExecute);
+            input = new BufferedReader(new InputStreamReader(pr.getErrorStream()));
+
+            line=null;
+
+            while ((line =input.readLine()) != null) {
+                System.out.println(line);
+            }
+            System.out.println("Exit code: " + pr.waitFor());
 
         } catch (Exception e) {
             e.printStackTrace();
@@ -352,6 +395,7 @@ public class NERBaseline implements PipelineStage {
     }
 
     private List<List<String>> runMalletTestHead() {
+        System.out.println("Running mallet to get test head labels...");
         Runtime rt = Runtime.getRuntime();
         try {
             String[] toExecute = null;
