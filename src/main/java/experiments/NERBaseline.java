@@ -106,30 +106,33 @@ public class NERBaseline implements PipelineStage {
         System.out.println("Finding test extent information...");
         ind = 0;
         for (ACEAnnotation doc: data) {
-            System.out.println("\ttest extent info for doc "+(ind++));
+            System.out.println("\ttest extent info for doc " + (ind++));
             List<EntityMention> mentions = doc.getTestEntityMentions();
 
             doc.clearTestEntityMentions();
             int entityInd = 0;
+            List<List<Feature>> features = new ArrayList<>();
             for (EntityMention e: mentions) {
-                System.out.println("\t\ttext extent info for entity "+(entityInd++));
-
-                List<List<Feature>> features = new ArrayList<>();
                 List<String> sentence = doc.getSentence(e.getSentenceOffset());
                 int sentenceOffset = doc.getSentenceIndex(e.getSentenceOffset());
                 for (int i = sentenceOffset; i < e.getHeadStartOffset(); i++) {
                     features.add(extractExtentFeatures(doc.getTA(), i, e.getHeadStartOffset(), e.getHeadEndOffset()));
                 }
-                for (int i = e.getHeadEndOffset(); i < sentenceOffset+sentence.size(); i++) {
-                    features.add(extractExtentFeatures(doc.getTA(), i, e.getHeadStartOffset(), e.getHeadEndOffset()))
+                for (int i = e.getHeadEndOffset(); i < sentenceOffset + sentence.size(); i++) {
+                    features.add(extractExtentFeatures(doc.getTA(), i, e.getHeadStartOffset(), e.getHeadEndOffset()));
                 }
-                List<String> labels = getExtentTestLabels(features);
+            }
+            List<String> labels = getExtentTestLabels(features);
+            int listOffset = 0;
+            for (EntityMention e: mentions) {
+                List<String> sentence = doc.getSentence(e.getSentenceOffset());
+                int sentenceOffset = doc.getSentenceIndex(e.getSentenceOffset());
                 boolean foundStart = false;
                 boolean foundEnd = false;
                 int extentStart = e.getHeadStartOffset() - 1;
                 int extentEnd = e.getHeadEndOffset();
                 while (!foundStart && extentStart >= sentenceOffset) {
-                    String label = labels.get(extentStart - sentenceOffset);
+                    String label = labels.get(extentStart - sentenceOffset + listOffset);
                     if (label.equals(NEG)) {
                         foundStart = true;
                     } else {
@@ -138,7 +141,7 @@ public class NERBaseline implements PipelineStage {
                 }
                 extentStart++;
                 while (!foundEnd && extentEnd < sentenceOffset + sentence.size()) {
-                    String label = labels.get((extentEnd - e.getHeadEndOffset()) + (e.getHeadStartOffset() - sentenceOffset));
+                    String label = labels.get((extentEnd - e.getHeadEndOffset()) + (e.getHeadStartOffset() - sentenceOffset) + listOffset);
                     if (label.equals(NEG)) {
                         foundEnd = true;
                     } else {
@@ -146,6 +149,7 @@ public class NERBaseline implements PipelineStage {
                     }   
                 }
                 doc.addEntityMention(e.getEntityType(), extentStart, extentEnd, e.getHeadStartOffset(), e.getHeadEndOffset());
+                listOffset += sentence.size() - (e.getHeadEndOffset() - e.getHeadStartOffset());
             }
         }
 
