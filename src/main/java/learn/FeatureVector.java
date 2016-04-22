@@ -67,6 +67,7 @@ public class FeatureVector implements Serializable {
     }
 
     public int getFeatureCount(){return featureMap.size();}
+    public Map<String, Integer> getFeatureMap(){return featureMap;}
     public int getLabelCount(){return Relation.labelMap.size();}
     public List<String> getStringList(){return Relation.stringList;}
     public Map<String, Integer> getLabelMap(){return Relation.labelMap;}
