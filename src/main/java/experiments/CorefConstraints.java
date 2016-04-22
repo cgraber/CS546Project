@@ -35,8 +35,24 @@ public class CorefConstraints {
         }
 
 
+
         //build GIsentence for coreference
         List<GISentence> test_sentences = GISentence.BreakDocumentIntoSentence(test_set, 1);
+
+
+        //A2 force mention in same coreference group have the same relation with other coreference group
+        //A1 force mention within same group have no_relaiton
+        //A2 include A1
+        boolean coref_A1=false;
+        boolean coref_A2=false;
+
+
+        //Add more relation from coreference group
+        if(coref_A2){
+            List<GISentence> train_sentences = GISentence.BreakDocumentIntoSentence(train_set, 1);
+            GISentence.IncrementRelationFromCoref(train_sentences);
+            GISentence.IncrementRelationFromCoref(test_sentences);
+        }
 
 
         //training  stage
@@ -45,14 +61,15 @@ public class CorefConstraints {
         nb_classifier.train(train_extract_data);
 
 
-
         //iterate through all sentence instance
         for(GISentence g: test_sentences){
 
-            g.assignPredictionWithCorefConstraint(nb_classifier);
-
-            //mode = 1, automatically set coreference to NO_RELATION
-            //g.assignPrediction(nb_classifier, 1);
+            if(coref_A2)
+                g.assignPredictionWithCorefConstraint(nb_classifier);
+            else if(coref_A1)
+                g.assignPrediction(nb_classifier, 1);
+            else
+                g.assignPrediction(nb_classifier,0);
 
         }
 

@@ -104,7 +104,7 @@ public class NaiveBayes {
      * predict on one instance of FeatureVector
      */
 
-    public int predict(FeatureVector f){
+    public List<Integer> predict(FeatureVector f){
 
         final double [] score_class= new double [labels_count];
         new_features_count=f.getFeatureCount();
@@ -145,8 +145,7 @@ public class NaiveBayes {
             }
         });
 
-        int prediction=index_array.get(0);
-        return prediction;
+        return index_array;
 
     }
 
@@ -183,7 +182,7 @@ public class NaiveBayes {
     /**
      * get the most likely relation between two reference group
      */
-    public static int RelationbetweenCorefGroup(List<EntityMention> g1, List<EntityMention> g2, NaiveBayes clf){
+    public static List<Integer> RelationbetweenCorefGroup(List<EntityMention> g1, List<EntityMention> g2, NaiveBayes clf){
 
         //mode = 0 compare max, mode = 1 compare acc max
         List<FeatureVector> list_vec = new ArrayList<>();
@@ -237,8 +236,7 @@ public class NaiveBayes {
             }
         });
 
-        int prediction=index_array.get(0);
-        return prediction;
+        return index_array;
 
     }
 

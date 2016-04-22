@@ -189,24 +189,10 @@ public class CorefBaseline implements PipelineStage{
 			// Following standard that we are not relating a later entity mention to an earlier entityMention??
 			Pair<List<CoreferenceEdge>, List<CoreferenceEdge>> temp = a.getAllPairsGoldCoreferenceEdges();
 			List<CoreferenceEdge> examples = temp.getFirst();
-			
-//			for(CoreferenceEdge edge: temp.getFirst()){
-//				if (edge.isCoreferent() == false){
-//					System.out.println("should only be true: " + edge.isCoreferent());
-//					break;
-//				}
-//			}
-			
+		
 			ap += temp.getFirst().size();
-			//an += temp.getSecond().size();
 			examples.addAll(temp.getSecond());
 			
-//			for(CoreferenceEdge edge: temp.getSecond() ){
-//				if (edge.isCoreferent() == true){
-//					System.out.println("should only be false: " + edge.isCoreferent());
-//					break;
-//				}
-//			}
 			EntityMention em1 = null;
 			EntityMention em2 = null;
 			
@@ -220,11 +206,6 @@ public class CorefBaseline implements PipelineStage{
 					em2 = mentions_pair.getFirst();
 					em1 = mentions_pair.getSecond();
 				}
-				//System.out.println("first ("+em1.getExtentStartOffset() +"-"+ em1.getExtentEndOffset()+"):"+ em1.getExtent() + " second ("+em2.getExtentStartOffset() +"-"+ em2.getExtentEndOffset()+"):" + em2.getExtent());
-//				if( positive_examples.contains(  )  ){
-//					System.out.println("contains duplicate");
-//				}
-				//candidate_map.put(em2, item);
 				
 				if( candidate_best.containsKey(em2) ){
 					if ( this.prediction_scores.get(index) > candidate_best.get(em2)){
@@ -239,15 +220,9 @@ public class CorefBaseline implements PipelineStage{
 			}
 		}
 		// up to here we don't assume that we know the labels
-		
-		
 		int tp = 0;
 		int fp = 0;
 		for ( CoreferenceEdge predicted_positive: candidate_map.values()){
-			//Pair<EntityMention, EntityMention> temp = predicted_positive.getEntityMentions();
-			//EntityMention em1 = temp.getFirst();
-			//EntityMention em2 = temp.getSecond();
-			//System.out.println("em1:" + em1.getExtent() + " em2:" + em2.getExtent());
 			if ( predicted_positive.isCoreferent() ){
 				tp++;
 			} else{
