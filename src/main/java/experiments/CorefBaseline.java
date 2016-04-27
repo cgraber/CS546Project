@@ -14,6 +14,10 @@ import data.DataUtils;
 import data.EntityMention;
 import edu.illinois.cs.cogcomp.core.datastructures.Pair;
 import weka.classifiers.functions.Logistic;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 
 /**
  * The baseline coreference class using simple features and binary classification setup.
@@ -108,6 +112,21 @@ public class CorefBaseline implements PipelineStage{
 		} catch (Exception e) {
 			// TODO Auto-generated catch block
 			System.err.println("Unable to build Classifier...\n");
+			e.printStackTrace();
+		}
+		try{
+			File file = new File("arff/trainData.arff");
+	
+			// if file doesnt exists, then create it
+			if (!file.exists()) {
+				file.createNewFile();
+			}
+	
+			FileWriter fw = new FileWriter(file.getAbsoluteFile());
+			BufferedWriter bw = new BufferedWriter(fw);
+			bw.write(trainInstances.toString());
+			bw.close();
+		} catch (IOException e){
 			e.printStackTrace();
 		}
 	}
@@ -207,6 +226,12 @@ public class CorefBaseline implements PipelineStage{
 					em1 = mentions_pair.getSecond();
 				}
 				
+				// threshold
+//				if ( this.prediction_scores.get(index) < 0.10){
+//					System.out.println(this.prediction_scores.get(index));
+//					continue;
+//				}
+				
 				if( candidate_best.containsKey(em2) ){
 					if ( this.prediction_scores.get(index) > candidate_best.get(em2)){
 						candidate_best.put(em2, this.prediction_scores.get(index));
@@ -230,7 +255,7 @@ public class CorefBaseline implements PipelineStage{
 			}
 		}
 		double precision = tp/(double)(tp+fp);
-		double recall = tp / (double)ap;
+		double recall = tp /(double)ap;
 		double f1 = 2*(precision*recall)/(precision+ recall);
 		System.out.println("precision:" + precision);
 		System.out.println("recall:" + recall);
@@ -255,14 +280,26 @@ public class CorefBaseline implements PipelineStage{
 		List<String> predictions = new ArrayList<String> ();
 		System.out.println("predict ...");
 		Instances testInstances = FeatureGenerator.readData(this.test, false, true); // assuming we have ground truth label?
+		// saving file
+		try{
+			File file = new File("arff/estData.arff");
+	
+			// if file doesnt exists, then create it
+			if (!file.exists()) {
+				file.createNewFile();
+			}
+	
+			FileWriter fw = new FileWriter(file.getAbsoluteFile());
+			BufferedWriter bw = new BufferedWriter(fw);
+			bw.write(testInstances.toString());
+			bw.close();
+		} catch (IOException e){
+			e.printStackTrace();
+		}
+		
+		
 		int classIndex = testInstances.numAttributes() - 1;
 		testInstances.setClassIndex(classIndex);
-//		int ap = 0;
-//		int an = 0;
-//		int tp = 0;
-//		int tn = 0;
-//		int fp = 0;
-//		int fn = 0;
 		System.out.println("number of testing instances:" + testInstances.numInstances());
 		for (int i = 0; i < testInstances.numInstances(); i++){
 			double predClass = classifier.classifyInstance(testInstances.instance(i));
@@ -271,59 +308,11 @@ public class CorefBaseline implements PipelineStage{
 			// int pred = Integer.parseInt(testInstances.instance(i).attribute(testInstances.instance(i).numAttributes()-1).value((int)predClass));
 			String c = testInstances.instance(i).attribute(classIndex).value((int) predClass);
 			
-			int pred = Integer.parseInt(c);
-			//double max_prob = 0;;
-//			for(int j=0; j<prediction_distribution.length; j++)
-//	        {
-//				if ( prediction_distribution[j] > max_prob ){
-//					max_prob = prediction_distribution[j];
-//				}
-//	        }
-			//this.prediction_scores.add(max_prob);'
-			// P(label == 1 )
+			//System.out.println("prediction distribution label==0:" + prediction_distribution[0] + " label==1" + prediction_distribution[1]);
 			this.prediction_scores.add(prediction_distribution[1]);
-			
 			// assuming we have the labels
-			//int actual = Integer.parseInt( FeatureGenerator.testLabels.get(i));
-			//System.out.println("predicted class: " + pred + " actual class: " + actual);
-//			if (actual > 0){
-//				if (pred > 0){
-//					tp = tp + 1;
-//				} else{
-//					fn = fn + 1;
-//				}
-//				ap = ap + 1;
-//			}
-//			else{
-//				if (pred < 0){
-//					//System.out.println("predicted class: " + pred + " actual class: " + actual);
-//					tn = tn + 1;
-//				} else {
-//					fp = fp + 1;
-//				}
-//				an = an + 1;
-//			}
-			//predictions.add((double)pred);
 			predictions.add(c);
-			//break;
 		}
-//		double precision = (tp/(double)(fp + tp));
-//		double recall = (tp/(double)ap);
-//		System.out.println(" true positive: " + tp);
-//		System.out.println(" true negative: " + tn);
-//		System.out.println(" false positive: " + fp);
-//		System.out.println(" false negative: " + fn);
-//		System.out.println(" actual positive: " + ap);
-//		System.out.println(" actual negative: " + an);
-//		System.out.println("precision: " + precision );		
-//		System.out.println("recall: " + recall );
-//		System.out.println("F1 score: " + (2*precision*recall/ (precision + recall)) );
-//		System.out.println("specificity: " + (tn/(double)an) );
-//		System.out.println("accuracy:" + (tp + tn)/(double)(ap + an));
-//		
-//		Map<String,List<Double>> map = new HashMap<String, List<Double>>();
-//		map.put("predictions", predictions);
-//		map.put("probability", prediction_scores);
 		stitchGold();
 		return predictions;
 	}
