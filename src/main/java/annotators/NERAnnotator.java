@@ -25,6 +25,7 @@ public class NERAnnotator extends Annotator {
 
     @Override
     public void addView(TextAnnotation ta) throws AnnotatorException {
+
         //When writing an annotator for our system, there are two main steps:
         //First, you need to make an ACEAnnotation from the text annotation. There's a constructor to do this:
         ACEAnnotation doc = new ACEAnnotation(ta);
