@@ -19,7 +19,7 @@ import java.util.List;
 public class NERAnnotator extends Annotator {
 
     public NERAnnotator() {
-        super(ACEReader.ENTITYVIEW, new String[] {ViewNames.POS, ViewNames.LEMMA});
+        super(ACEReader.ENTITYVIEW, new String[] {ViewNames.POS, ViewNames.LEMMA, ViewNames.PARSE_STANFORD});
     }
 
     @Override
