@@ -182,6 +182,7 @@ public class ACEAnnotation implements Serializable {
      */
     public ACEAnnotation(TextAnnotation ta) {
         this.ta = ta;
+        Pipeline.addAllViews(ta);
 
     }
 
