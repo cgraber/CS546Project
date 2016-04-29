@@ -174,7 +174,10 @@ public class NERBaseline implements PipelineStage {
      */
     private StringBuilder extractHeadFeatures(ACEAnnotation doc, boolean isTrain) {
         StringBuilder result = new StringBuilder();
-        List<List<String>> bioLabels = doc.getGoldBIOEncoding();
+        List<List<String>> bioLabels = null;
+        if (isTrain) {
+            bioLabels = doc.getGoldBIOEncoding();
+        }
         List<List<String>> posTags = doc.getPOSTagsBySentence();
         int sentenceOffset = 0;
 

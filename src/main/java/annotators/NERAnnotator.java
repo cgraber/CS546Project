@@ -6,6 +6,7 @@ import edu.illinois.cs.cogcomp.annotation.AnnotatorException;
 import edu.illinois.cs.cogcomp.core.datastructures.ViewNames;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.TextAnnotation;
 import edu.illinois.cs.cogcomp.nlp.corpusreaders.ACEReader;
+import edu.illinois.cs.cogcomp.openeval.learner.ServerPreferences;
 import experiments.NERBaseline;
 import edu.illinois.cs.cogcomp.openeval.learner.Server;
 
@@ -41,7 +42,7 @@ public class NERAnnotator extends Annotator {
     public static void main(String[] argv) throws IOException {
         Annotator annotator = new NERAnnotator();
 
-        Server server = new Server(5757, null, annotator);
+        Server server = new Server(5757, new ServerPreferences(0, 50), annotator);
 
         fi.iki.elonen.util.ServerRunner.executeInstance(server);
     }
