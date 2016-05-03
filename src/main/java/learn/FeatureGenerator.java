@@ -84,7 +84,7 @@ public class FeatureGenerator {
 			attribute_dict.put(attribute_name, a);
 			attributes.addElement(a);
 			
-			attribute_name = "aliasLOC";
+			attribute_name = "aliasORG";
 			a = new Attribute(attribute_name, zeroOne);
 			attribute_dict.put(attribute_name, a);
 			attributes.addElement(a);
@@ -98,7 +98,6 @@ public class FeatureGenerator {
 			a = new Attribute(attribute_name, zeroOne);
 			attribute_dict.put(attribute_name, a);
 			attributes.addElement(a);
-			
 			
 			attribute_name = "modMatch";
 			a = new Attribute(attribute_name, zeroOne);
@@ -213,7 +212,7 @@ public class FeatureGenerator {
 		}
 		if (FeatureGenerator.STRINGFEATURES){
 			instance.setValue(attribute_dict.get("aliasPER"), "0");
-			instance.setValue(attribute_dict.get("aliasLOC"), "0");
+			instance.setValue(attribute_dict.get("aliasORG"), "0");
 			instance.setValue(attribute_dict.get("headMatch"),"0");
 			instance.setValue(attribute_dict.get("headSubstring"),"0");
 			instance.setValue(attribute_dict.get("modMatch"),"0");
@@ -268,8 +267,8 @@ public class FeatureGenerator {
 	    	
 	    	List<CoreferenceEdge> mylist = myLabels.getSecond();
 	    	//Collections.shuffle(mylist);
-	    	//for (int k = 0; k < positive_count & k < mylist.size(); k++){
-	    	for (int k = 0; k < mylist.size(); k++){
+	    	for (int k = 0; k < positive_count & k < mylist.size(); k++){
+	    	//for (int k = 0; k < mylist.size(); k++){
 	    		temp.add(mylist.get(k));
 	    		temp_labels.add("-1");
 	    	}
@@ -390,15 +389,12 @@ public class FeatureGenerator {
 		if (FeatureGenerator.STRINGFEATURES){
 			// Alias, need to check that e1 and e2 refer to the same named entity
 			if (e1.entityType.compareTo(e2.entityType) == 0){
-				//System.out.println(e1.entityType + " " + e2.entityType);
 				// person named entity 
 				if (e1.entityType.compareTo("PER") == 0 ){
-					System.out.println("PER");
-					instance.setValue(attribute_dict.get("aliasPER"), getPersonAlias(e1, e2));
+					instance.setValue(attribute_dict.get("aliasPER"), FeatureGenerator.getPersonAlias(e1, e2));
 				}
-				if (e1.entityType.compareTo("LOC") == 0) {
-					System.out.println("LOC");
-					instance.setValue(attribute_dict.get("aliasLOC"), getLocationAlias(e1, e2));
+				if (e1.entityType.compareTo("ORG") == 0) {
+					instance.setValue(attribute_dict.get("aliasORG"), FeatureGenerator.getOrganizationAlias(e1, e2));
 				}
 			}
 			// remove articles and demonstrative pronouns 
@@ -408,13 +404,13 @@ public class FeatureGenerator {
 			String head1 = "";
 			String head2 = "";
 			for (String word1 : e1.getHead() ){
-				//if (!sw.contains(word1)){
+				//if (!sw.contains(word1.toLowerCase())){
 					head1 += word1 + " ";
 				//}
 			}
 			
 			for (String word1 : e2.getHead() ){
-				//if (!sw.contains(word1)){
+				//if (!sw.contains(word1.toLowerCase())){
 					head2 += word1 + " ";
 				//}
 			}
@@ -474,25 +470,26 @@ public class FeatureGenerator {
 		return instance;
     }
     
-    private static String getLocationAlias(EntityMention e1, EntityMention e2) {
+    private static String getOrganizationAlias(EntityMention e1, EntityMention e2) {
 		List<String> loc1 = e1.getHead();
     	List<String> loc2 = e2.getHead();
     	List<String> l1_clean = new ArrayList<String> ();
     	List<String> l2_clean = new ArrayList<String> ();
     	// first remove all post-modifiers
     	for (String word : loc1){
-    		if (FeatureGenerator.al.contains(word.toLowerCase()) ) {
+    		if (!FeatureGenerator.al.contains(word) ) {
     			l1_clean.add(word);
     		}
     	}
     	for (String word : loc2){
-    		if (FeatureGenerator.al.contains(word) ) {
+    		if (!FeatureGenerator.al.contains(word) ) {
     			l2_clean.add(word);
     		}
     	}
     	if (l1_clean.size() == 0 || l2_clean.size() == 0){
     		return "0";
     	}
+    	
     	// make sure l1 is the smaller of the two
     	if ( l2_clean.size() == 1 && l1_clean.size() > 1){
     		List<String> temp = l1_clean;
@@ -502,12 +499,9 @@ public class FeatureGenerator {
     		return "0";
     	}
     	String l1_loc = l1_clean.get(0).toLowerCase();
-    	System.out.println("l1:"+l1_loc);
     	String accn = "";
     	String accp = "";
-    	System.out.print("l2:");
     	for (String word : l2_clean){
-    		System.out.println(word);
     		if ( !Character.isLowerCase(word.charAt(0)) ){
     			accn += word.charAt(0);
     			accp += word.charAt(0) + ".";
@@ -515,7 +509,7 @@ public class FeatureGenerator {
     	}
     	
     	if ( l1_loc.equalsIgnoreCase(accn) || l1_loc.equalsIgnoreCase(accp)){
-    		System.out.println(l1_loc + " " + accn);
+    		//System.out.println(l1_loc + " " + accn);
     		return "1";
     	}
     	
@@ -527,21 +521,6 @@ public class FeatureGenerator {
     	List<String> person2 = e2.getHead();
     	
     	if (person1.get(person1.size()-1).toLowerCase().compareTo(person2.get(person2.size()-1).toLowerCase()) == 0){
-//    		String head1 = "";
-//    		String head2 = "";
-//    		for ( String hw: e1.getHead()){
-//    			//System.out.print(hw + " ");
-//    			head1 += hw + " ";
-//    		}
-//    		for ( String hw: e2.getHead()){
-//    			//System.out.print(hw + " ");
-//    			head2 += hw + " ";
-//    		}
-//    		if (!head1.toLowerCase().equals(head2.toLowerCase())){
-//	    		System.out.println("head1:" + head1 + " head2: " + head2);
-//	    		System.out.flush();	
-//    		}
-    		
     		return "1";
     	}
     	return "0";
@@ -600,11 +579,6 @@ public class FeatureGenerator {
 					}
 				}
 			}
-			
-			
-			//			if ( entry.getToken(modifier1_index).trim().toLowerCase().compareTo(entry.getToken(modifier2_index).trim().toLowerCase()) == 0)
-			//				return "1";
-			
 		}
 		return mod_ret;
     }

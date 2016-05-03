@@ -697,6 +697,29 @@ public class ACEAnnotation implements Serializable {
         return new Pair<>(posEdges, negEdges);
     }
 
+    public Pair<List<CoreferenceEdge>, List<CoreferenceEdge>> getSampledGoldCoreferenceEdges() {
+        List<CoreferenceEdge> posEdges = new ArrayList<>();
+        List<CoreferenceEdge> negEdges = new ArrayList<>();
+        for (int e1Ind = goldEntityMentions.size()-1; e1Ind >=0; e1Ind--) {
+            for (int e2Ind = e1Ind - 1; e2Ind >= 0; e2Ind--) {
+                EntityMention e1 = goldEntityMentions.get(e1Ind);
+                EntityMention e2 = goldEntityMentions.get(e2Ind);
+                if (goldCoreferenceEdgesByEntities.containsKey(new Pair<>(e1,e2)) ||
+                        goldCoreferenceEdgesByEntities.containsKey(new Pair<>(e2,e1))) {
+                    if (goldCoreferenceEdgesByEntities.containsKey(new Pair<>(e1,e2))) {
+                        posEdges.add(goldCoreferenceEdgesByEntities.get(new Pair<>(e1,e2)));
+                    } else {
+                        posEdges.add(goldCoreferenceEdgesByEntities.get(new Pair<>(e2,e1)));
+                    }
+                    break;
+                } else if (!(e2.getMentionType().equals(Consts.PRONOUN) && !e1.getMentionType().equals(Consts.PRONOUN))){
+                    negEdges.add(new CoreferenceEdge(e2, e1, false));
+                }
+            }
+        }
+        return new Pair<>(posEdges, negEdges);
+    }
+
     public List<CoreferenceEdge> getAllPairsTestCoreferenceEdges() {
         List<CoreferenceEdge> result = new ArrayList<>();
         for (int e1Ind = goldEntityMentions.size()-1; e1Ind >= 0; e1Ind--) {
