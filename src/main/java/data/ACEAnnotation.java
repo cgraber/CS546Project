@@ -215,7 +215,10 @@ public class ACEAnnotation implements Serializable {
         }
 
         int sentenceOffset= findSentenceIndex(extentOffsets.getFirst());
-        return new EntityMention(type, mention.type, extentOffsets.getFirst(), extentOffsets.getSecond(), headOffsets.getFirst(), headOffsets.getSecond(), sentenceOffset, this);
+        EntityMention result = new EntityMention(type, mention.type, extentOffsets.getFirst(), extentOffsets.getSecond(), headOffsets.getFirst(), headOffsets.getSecond(), sentenceOffset, this);
+        Constituent entityConst = createEntityConstituent(type, extentOffsets.getFirst(), extentOffsets.getSecond(), headOffsets.getFirst(), headOffsets.getSecond());
+        result.setConstituent(entityConst);
+        return result;
     }
 
     public int getNumberOfSentences() {
@@ -513,17 +516,21 @@ public class ACEAnnotation implements Serializable {
         testEntityMentionsBySpan.put(new IntPair(headStartOffset, headEndOffset), e);
 
         if (addTAInfo) {
-            Constituent entityConstituent = new Constituent(type, ACEReader.ENTITYVIEW, ta, extentStartOffset, extentEndOffset);
-            entityConstituent.addAttribute(ACEReader.EntityHeadStartCharOffset, ta.getTokenCharacterOffset(headStartOffset).getFirst() + "");
-            //TODO: check that these offsets are correct
-            entityConstituent.addAttribute(ACEReader.EntityHeadEndCharOffset, ta.getTokenCharacterOffset(headEndOffset - 1).getSecond() + "");
-            entityConstituent.addAttribute(ACEReader.EntityTypeAttribute, type);
+            Constituent entityConstituent = createEntityConstituent(type, extentStartOffset, extentEndOffset, headStartOffset, headEndOffset);
 
             entityView.addConstituent(entityConstituent);
             e.setConstituent(entityConstituent);
         }
     }
 
+    public Constituent createEntityConstituent(String type, int extentStartOffset, int extentEndOffset, int headStartOffset, int headEndOffset) {
+        Constituent entityConstituent = new Constituent(type, ACEReader.ENTITYVIEW, ta, extentStartOffset, extentEndOffset);
+        entityConstituent.addAttribute(ACEReader.EntityHeadStartCharOffset, ta.getTokenCharacterOffset(headStartOffset).getFirst() + "");
+        //TODO: check that these offsets are correct
+        entityConstituent.addAttribute(ACEReader.EntityHeadEndCharOffset, ta.getTokenCharacterOffset(headEndOffset - 1).getSecond() + "");
+        entityConstituent.addAttribute(ACEReader.EntityTypeAttribute, type);
+        return entityConstituent;
+    }
     /**
      * This is the function that should be called by the relation extraction system to add a relation to the test labels
      * @param type The type of the relation
