@@ -43,6 +43,9 @@ public class NERAnnotator extends Annotator {
     public static void main(String[] argv) throws IOException {
         Annotator annotator = new NERAnnotator();
 
+        //The second number in the ServerPreferences constructor is the number of TextAnnotations sent at a time to
+        //be annotated. Because of the slow speed of NER labeling, this was set to 1; setting it to 50 (as listed in
+        //the documentation) caused the connection to time out.
         Server server = new Server(5757, new ServerPreferences(0, 50), annotator);
 
         fi.iki.elonen.util.ServerRunner.executeInstance(server);
