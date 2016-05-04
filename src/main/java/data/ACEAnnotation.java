@@ -182,6 +182,22 @@ public class ACEAnnotation implements Serializable {
     public ACEAnnotation(TextAnnotation ta) {
         this.ta = ta;
         Pipeline.addAllViews(ta);
+        int count=0;
+
+        for (Sentence sentence: ta.sentences()) {
+            List<String> sentenceArray=Arrays.asList(sentence.getTokens());
+            sentenceTokens.add(sentenceArray);
+            tokens.addAll(sentenceArray);
+            sentenceIndex.add(count);
+            count+=sentenceArray.size();
+        }
+        sentenceIndex.add(count);
+        entityView = new SpanLabelView(ACEReader.ENTITYVIEW, ACEAnnotation.class.getCanonicalName(), ta, 1.0f, true);
+        ta.addView(ACEReader.ENTITYVIEW, entityView);
+        corefView = new CoreferenceView(ViewNames.COREF, ACEAnnotation.class.getCanonicalName(), ta, 1.0f);
+        ta.addView(ViewNames.COREF, corefView);
+        relationView = new PredicateArgumentView(ACEReader.RELATIONVIEW, ACEAnnotation.class.getCanonicalName(), ta, 1.0f);
+        ta.addView(ACEReader.RELATIONVIEW, relationView);
 
     }
 
