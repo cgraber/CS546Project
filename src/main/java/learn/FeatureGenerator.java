@@ -26,8 +26,8 @@ public class FeatureGenerator {
     public static List<String> testLabels;
     public static List<String> sw  = Arrays.asList("a", "an", "the", "this", "these", "that", "those");
     public static List<String> al = Arrays.asList( "corp.", "ltd.", "inc.", "co.", "corp", "ltd", "inc", "co");
-    private static final boolean LOCATIONFEATURES=false;
-    private static final boolean MENTIONFEATURES=false;
+    private static final boolean LOCATIONFEATURES=true;
+    private static final boolean MENTIONFEATURES=true;
     private static final boolean STRINGFEATURES=true;
     private static final boolean SEMANTICFEATURES=false;
     ///public static final int NUM_CHARS_PER_NAME = 5;
@@ -49,10 +49,12 @@ public class FeatureGenerator {
 		String attribute_name;
 		Attribute a;
 		
+		int m = 0;
 		if(FeatureGenerator.MENTIONFEATURES){
 			String attr_name_prefix = "mentionsType1-";
+			System.out.println("ACEAnnotation size:" +  ACEAnnotation.getMentionTypes().size());
 			for (String entityType: ACEAnnotation.getMentionTypes()){
-				System.out.println(attr_name_prefix + entityType);
+				System.out.println(m++ + ": "+ attr_name_prefix + entityType);
 				a = new Attribute(attr_name_prefix + entityType, zeroOne);
 				attribute_dict.put(attr_name_prefix + entityType, a);
 				attributes.addElement(a);
@@ -60,7 +62,7 @@ public class FeatureGenerator {
 			
 			attr_name_prefix = "mentionsType2-";
 			for (String entityType: ACEAnnotation.getMentionTypes()){
-				System.out.println(attr_name_prefix + entityType);
+				System.out.println(m++ + ": "+ attr_name_prefix + entityType);
 				a = new Attribute(attr_name_prefix + entityType, zeroOne);
 				attribute_dict.put(attr_name_prefix + entityType, a);
 				attributes.addElement(a);
@@ -69,7 +71,7 @@ public class FeatureGenerator {
 			attr_name_prefix = "mentionTypePAIR-";
 			for (String entityType: ACEAnnotation.getMentionTypes()){
 				a = new Attribute(attr_name_prefix + entityType, zeroOne);
-				System.out.println(attr_name_prefix + entityType);
+				System.out.println(m++ + ": "+ attr_name_prefix + entityType);
 				attribute_dict.put(attr_name_prefix + entityType, a);
 				attributes.addElement(a);
 			}
@@ -80,43 +82,51 @@ public class FeatureGenerator {
 		
 		if (FeatureGenerator.STRINGFEATURES){
 			attribute_name = "aliasPER";
+			System.out.println(m++ + ": "+ attribute_name);
 			a = new Attribute(attribute_name, zeroOne);
 			attribute_dict.put(attribute_name, a);
 			attributes.addElement(a);
 			
 			attribute_name = "aliasORG";
+			System.out.println(m++ + ": "+ attribute_name);
 			a = new Attribute(attribute_name, zeroOne);
 			attribute_dict.put(attribute_name, a);
 			attributes.addElement(a);
 			
 			attribute_name = "headMatch";
+			System.out.println(m++ + ": "+ attribute_name);
 			a = new Attribute(attribute_name, zeroOne);
 			attribute_dict.put(attribute_name, a);
 			attributes.addElement(a);
 			
 			attribute_name = "headSubstring";
+			System.out.println(m++ + ": "+ attribute_name);
 			a = new Attribute(attribute_name, zeroOne);
 			attribute_dict.put(attribute_name, a);
 			attributes.addElement(a);
 			
 			attribute_name = "modMatch";
+			System.out.println(m++ + ": "+ attribute_name);
 			a = new Attribute(attribute_name, zeroOne);
 			attribute_dict.put(attribute_name, a);
 			attributes.addElement(a);
 			
 			attribute_name = "modHeadMatch";
+			System.out.println(m++ + ": "+ attribute_name);
 			a = new Attribute(attribute_name, zeroOne);
 			attribute_dict.put(attribute_name, a);
 			attributes.addElement(a);
 			
 			// same extents
 			attribute_name = "extentMatch";
+			System.out.println(m++ + ": " + attribute_name);
 			a = new Attribute(attribute_name, zeroOne);
 			attribute_dict.put(attribute_name, a);
 			attributes.addElement(a);
 			
 			// one extent substring of another
 			attribute_name = "extentSubstring";
+			System.out.println(m++ + ": " + attribute_name);
 			a = new Attribute(attribute_name, zeroOne);
 			attribute_dict.put(attribute_name, a);
 			attributes.addElement(a);
@@ -136,6 +146,7 @@ public class FeatureGenerator {
 		//generic feature construction
 		if(FeatureGenerator.LOCATIONFEATURES){
 			attribute_name = "mentionDistances";
+			System.out.println(m++ + ": " + attribute_name);
 			//String FeatureType = "numeric";
 			a = new Attribute(attribute_name);
 			attribute_dict.put(attribute_name, a);
@@ -144,21 +155,23 @@ public class FeatureGenerator {
 			// apposition
 			for (int k = 1; k < FeatureGenerator.APPOSITIONDISTANCE; k++ ){
 				attribute_name = "mentionApposition"+k+"-";
+				System.out.println(m++ + ": " + attribute_name);
 				a = new Attribute(attribute_name, zeroOne);
 				attribute_dict.put(attribute_name, a);
 				attributes.addElement(a);
 			}
 
 			attribute_name = "mentionSameSentence";
+			System.out.println(m++ + ": " + attribute_name);
 			a = new Attribute(attribute_name, zeroOne);
 			attribute_dict.put(attribute_name, a);
 			attributes.addElement(a);
 			
 			attribute_name = "mentionRelativePronoun";
+			System.out.println(m++ + ": " + attribute_name);
 			a = new Attribute(attribute_name, zeroOne);
 			attribute_dict.put(attribute_name, a);
 			attributes.addElement(a);
-			
 			
 		}
 		
@@ -220,6 +233,7 @@ public class FeatureGenerator {
 			instance.setValue(attribute_dict.get("extentMatch"),"0");
 			instance.setValue(attribute_dict.get("extentSubstring"),"0");
 		}
+		
 		if (FeatureGenerator.SEMANTICFEATURES){
 			
 		}
@@ -254,7 +268,9 @@ public class FeatureGenerator {
     	
     	if (labeled){
     		// only for training
-	    	Pair<List<CoreferenceEdge>, List<CoreferenceEdge>> myLabels = entry.getAllPairsGoldCoreferenceEdges();
+	    	// Pair<List<CoreferenceEdge>, List<CoreferenceEdge>> myLabels = entry.getAllPairsGoldCoreferenceEdges();
+	    	Pair<List<CoreferenceEdge>, List<CoreferenceEdge>> myLabels = entry.getSampledGoldCoreferenceEdges();
+	    	
 	    	// Positive Labels only
 	    	int positive_count = myLabels.getFirst().size();
 	    	temp.addAll(myLabels.getFirst());
@@ -267,8 +283,8 @@ public class FeatureGenerator {
 	    	
 	    	List<CoreferenceEdge> mylist = myLabels.getSecond();
 	    	//Collections.shuffle(mylist);
-	    	for (int k = 0; k < positive_count & k < mylist.size(); k++){
-	    	//for (int k = 0; k < mylist.size(); k++){
+	    	//for (int k = 0; k < positive_count & k < mylist.size(); k++){
+	    	for (int k = 0; k < mylist.size(); k++){
 	    		temp.add(mylist.get(k));
 	    		temp_labels.add("-1");
 	    	}
@@ -381,7 +397,7 @@ public class FeatureGenerator {
 			attr_name_prefix = "mentionTypePAIR-";
     		String val = e1.getMentionType().compareTo(e2.getMentionType()) == 0  ? "1" : "0"; 
     		
-    		if (val.compareTo("0") == 0)
+    		if (val.compareTo("1") == 0)
     			instance.setValue(attribute_dict.get(attr_name_prefix + e1.getMentionType()), val);
     		
 		}
