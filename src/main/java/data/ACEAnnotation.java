@@ -37,7 +37,6 @@ public class ACEAnnotation implements Serializable {
     // The following two lists hold all of the relation types/subtypes seen
     private static Set<String> relationTypes;
     private static Set<String> entityTypes;
-    private static Set<String> entitySubtypes;
     private static Set<String> mentionTypes;
     private static Set<String> bioLabels;
 
@@ -46,7 +45,6 @@ public class ACEAnnotation implements Serializable {
         relationTypes.add(Consts.NO_REL);
         entityTypes = new HashSet<>();
         mentionTypes = new HashSet<>();
-        entitySubtypes = new HashSet<>();
 
         taBuilder = new TokenizerTextAnnotationBuilder(new IllinoisTokenizer());
     }
@@ -111,10 +109,11 @@ public class ACEAnnotation implements Serializable {
 
         for (ACEEntity entity: doc.aceAnnotation.entityList) {
             entityTypes.add(entity.type);
-            entitySubtypes.add(entity.subtype);
+            //entitySubtypes.add(entity.subtype);
             List<EntityMention> coreferentEntities = new ArrayList<>();
             for (ACEEntityMention mention: entity.entityMentionList) {
                 mentionTypes.add(mention.type);
+                System.out.println(mention.type);
                 EntityMention e = makeEntityMention(mention, entity.type);
                 goldEntityMentions.add(e);
                 coreferentEntities.add(e);
@@ -878,10 +877,6 @@ public class ACEAnnotation implements Serializable {
         return entityTypes;
     }
 
-    public static Set<String> getEntitySubtypes() {
-        return entitySubtypes;
-    }
-
     public static Set<String> getMentionTypes() {
         return mentionTypes;
     }
@@ -924,6 +919,13 @@ public class ACEAnnotation implements Serializable {
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
             System.exit(1);
+        }
+        for (Relation relation: result.goldRelations) {
+            relationTypes.add(relation.getType());
+        }
+        for (EntityMention e: result.goldEntityMentions) {
+            entityTypes.add(e.getEntityType());
+            mentionTypes.add(e.getMentionType());
         }
         return result;
     }
