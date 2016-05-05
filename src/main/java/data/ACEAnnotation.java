@@ -113,7 +113,6 @@ public class ACEAnnotation implements Serializable {
             List<EntityMention> coreferentEntities = new ArrayList<>();
             for (ACEEntityMention mention: entity.entityMentionList) {
                 mentionTypes.add(mention.type);
-                System.out.println(mention.type);
                 EntityMention e = makeEntityMention(mention, entity.type);
                 goldEntityMentions.add(e);
                 coreferentEntities.add(e);

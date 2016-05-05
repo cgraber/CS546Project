@@ -34,24 +34,40 @@ public class DataUtils {
 
     public static List<List<ACEAnnotation>> loadDataSplits(String dataDir) {
         List<List<ACEAnnotation>> splits = new ArrayList<List<ACEAnnotation>>();
-        for (int i = 0; i < 5; i++) {
-            File splitFile = new File("config/splits/split"+i+".txt");
-            try (BufferedReader br = new BufferedReader(new FileReader(splitFile))) {
-                String line;
-                List<File> paths = new ArrayList<File>();
-                while ((line = br.readLine()) != null) {
-                    if (line.isEmpty() || line.startsWith("//")) {
-                        continue;
-                    }
-
-                    paths.add(new File(dataDir, line));
+        File trainFile = new File("config/splits/training_files.txt");
+        try (BufferedReader br = new BufferedReader(new FileReader(trainFile))) {
+            String line;
+            List<File> paths = new ArrayList<File>();
+            while ((line = br.readLine()) != null) {
+                if (line.isEmpty() || line.startsWith("//")) {
+                    continue;
                 }
-                splits.add(loadCorpusFiles(paths));
-            } catch (Exception e) {
-                e.printStackTrace();
-                System.exit(1);
+
+                paths.add(new File(dataDir, line));
             }
+            splits.add(loadCorpusFiles(paths));
+        }catch (Exception e) {
+            e.printStackTrace();
+            System.exit(1);
         }
+
+        File testFile = new File("config/splits/test_files.txt");
+        try (BufferedReader br = new BufferedReader(new FileReader(testFile))) {
+            String line;
+            List<File> paths = new ArrayList<File>();
+            while ((line = br.readLine()) != null) {
+                if (line.isEmpty() || line.startsWith("//")) {
+                    continue;
+                }
+
+                paths.add(new File(dataDir, line));
+            }
+            splits.add(loadCorpusFiles(paths));
+        }catch (Exception e) {
+            e.printStackTrace();
+            System.exit(1);
+        }
+
 
         return splits;
     }
