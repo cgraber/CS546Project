@@ -23,7 +23,7 @@ public class FeatureGenerator {
     private static Attribute classLabel;	
     private static FastVector zeroOne;
     private static FastVector labels;
-    public static List<String> testLabels;
+    //public static List<String> testLabels;
     public static List<String> sw  = Arrays.asList("a", "an", "the", "this", "these", "that", "those");
     public static List<String> al = Arrays.asList( "corp.", "ltd.", "inc.", "co.", "corp", "ltd", "inc", "co");
     private static final boolean LOCATIONFEATURES=true;
@@ -34,7 +34,7 @@ public class FeatureGenerator {
     private static final int APPOSITIONDISTANCE=3;
 
     static {
-    	testLabels = new ArrayList<String>();
+    	//testLabels = new ArrayList<String>();
     	// used for binary features ( when constructing new attributes: new Attribute(featureName, zeroOne);)
     	zeroOne = new FastVector(2);
 		zeroOne.addElement("1"); // yes
@@ -254,12 +254,64 @@ public class FeatureGenerator {
 		return instance;
     }
     
+    private static ArrayList<Instance> getDocInstancePipeline(Instances instances, ACEAnnotation entry, Boolean labeled, Boolean gold){
+    	ArrayList<Instance> ret = new ArrayList<Instance>();
+    	List< CoreferenceEdge > temp = new ArrayList< CoreferenceEdge >();
+    	List<String> temp_labels = new ArrayList<String>();
+    	
+    	if (labeled){
+    		
+    	}
+    	// Testing with gold labels.
+		else if (gold){
+			Pair<List<CoreferenceEdge>, List<CoreferenceEdge>> myLabels = entry.getAllPairsGoldCoreferenceEdges();
+	    	// Positive Labels only
+	    	temp.addAll(myLabels.getFirst());
+	    	int positive_count = myLabels.getFirst().size();
+
+	    	for (int k = 0; k < positive_count; k++){
+	    		temp_labels.add("1");
+	    	}
+	    	// Sample Negative examples ?
+	    	List<CoreferenceEdge> mylist = myLabels.getSecond();
+	    	//Collections.shuffle(mylist);
+	    	//for (int k = 0; k < positive_count & k < mylist.size(); k++){
+	    	for (int k = 0; k < mylist.size(); k++){
+	    		temp.add(mylist.get(k));
+	    		temp_labels.add("-1");
+	    	}
+	    	//System.out.println("all testing examples" + temp.size() );
+    	} else { // testing with pipeline
+    		//temp.addAll( entry.getAllPairsTestCoreferenceEdges() );
+    		
+    		temp.addAll(entry.getAllPairsPipelineCoreferenceEdges());
+    		System.out.println("testing entry with " + temp.size() + " Coreference Edges");
+    	}
+    	
+    	int index = 0;
+    	for (CoreferenceEdge ce : temp ){
+    		Instance instance = create_empty_instance(instances);
+    		// Adding label to instance
+    		if (labeled){
+    			instance.setClassValue(temp_labels.get(index));
+    		}    		
+    		
+    		instance = setInstanceFeatures(ce, instance, entry);
+    		
+    		ret.add(instance);
+    		index++;
+    	}	
+    	
+		return ret;
+    	
+    }
+    
     /** 
      * This function constructs the Instances for classification.
      * @param instances the set of instances for which the instances will be added to
      * @param entry is the 'document' under which the instances will be constructed
      * @param labeled indicates the training/testing entity
-     * @param gold indicates whether we know the gold labels or not.
+     * @param gold indicates whether we know the gold labels or not. (pipeline or gold data)
      */
     private static ArrayList<Instance> getDocInstance(Instances instances, ACEAnnotation entry, Boolean labeled, Boolean gold){
     	ArrayList<Instance> ret = new ArrayList<Instance>();
@@ -267,9 +319,12 @@ public class FeatureGenerator {
     	List<String> temp_labels = new ArrayList<String>();
     	
     	if (labeled){
-    		// only for training
+    		//if ( gold ){
+	    	// only for training
 	    	// Pair<List<CoreferenceEdge>, List<CoreferenceEdge>> myLabels = entry.getAllPairsGoldCoreferenceEdges();
 	    	Pair<List<CoreferenceEdge>, List<CoreferenceEdge>> myLabels = entry.getSampledGoldCoreferenceEdges();
+	    	
+	    	entry.getAllPairsPipelineCoreferenceEdges();
 	    	
 	    	// Positive Labels only
 	    	int positive_count = myLabels.getFirst().size();
@@ -288,6 +343,17 @@ public class FeatureGenerator {
 	    		temp.add(mylist.get(k));
 	    		temp_labels.add("-1");
 	    	}
+//    		}else{// if not gold ( i.e. pipeline )
+//    			// only for training
+//    	    	temp.addAll(entry.getAllPairsPipelineCoreferenceEdges());
+//    	    	for (int k = 0; k < temp.size(); k++){
+//    	    		if (temp.get(k).isCoreferent()){
+//    	    			temp_labels.add("1");
+//    	    		}else{
+//    	    			temp_labels.add("-1");
+//    	    		}
+//    	    	}
+//    		}
 	    	//System.out.println("Number of training instances:" + temp.size());
     	}
     	// Testing with gold labels.
@@ -309,9 +375,11 @@ public class FeatureGenerator {
 	    		temp.add(mylist.get(k));
 	    		temp_labels.add("-1");
 	    	}
-	    	//System.out.println("all testing examples" + temp.size() );
+	    	System.out.println("entry testing examples:" + temp.size() );
     	} else {
-    		temp.addAll( entry.getAllPairsTestCoreferenceEdges() );
+    		//temp.addAll( entry.getAllPairsTestCoreferenceEdges() );
+    		
+    		temp.addAll(entry.getAllPairsPipelineCoreferenceEdges());
     		System.out.println("testing entry with " + temp.size() + " Coreference Edges");
     	}
     	
@@ -338,7 +406,7 @@ public class FeatureGenerator {
 //    				testLabels.add("-1");
 //    			}
     			// assuming label is available? 
-    			testLabels.add(temp_labels.get(index));
+    			//testLabels.add(temp_labels.get(index));
     		}
     		
     		

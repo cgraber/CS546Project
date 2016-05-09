@@ -88,10 +88,20 @@ public class CorefBaseline implements PipelineStage{
 		// TODO Auto-generated method stub
 		this.train = new ArrayList<ACEAnnotation>();
 		this.train.addAll(data);
-		
+		this.classifier = new Logistic();
+
 		this.learn();
 	}
 
+	public void trainModelPipeline(List<ACEAnnotation> data) {
+		// TODO Auto-generated method stub
+		this.train = new ArrayList<ACEAnnotation>();
+		this.train.addAll(data);
+		this.classifier = new Logistic();
+
+		this.learnPipeline();
+	}
+	
 	@Override
 	public void test(List<ACEAnnotation> data) {
 		// add all data to test list
@@ -102,6 +112,20 @@ public class CorefBaseline implements PipelineStage{
 		//System.out.println("constituents data:" + data.get(0).getTestEntityMentions().get(0).getConstituent());
 		try {
 			this.predict();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+	}
+	
+	public void testPipeline(List<ACEAnnotation> data) {
+		// add all data to test list
+		this.test = new ArrayList<ACEAnnotation>();
+		this.test.addAll(data);
+		// why not this.test = data?
+		//System.out.println("constituents test:" + this.test.get(0).getTestEntityMentions().get(0).getMentionType());
+		//System.out.println("constituents data:" + data.get(0).getTestEntityMentions().get(0).getConstituent());
+		try {
+			this.predictPipeline();
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
@@ -153,28 +177,54 @@ public class CorefBaseline implements PipelineStage{
 		}
 	}
 	
-	// Predicting with Weka
-	private List<String> predict() throws Exception{
-		List<String> predictions = new ArrayList<String> ();
-		this.prediction_scores = new ArrayList<Double>();
-		System.out.println("predict ...");
-		Instances testInstances = FeatureGenerator.readData(this.test, false, false); // assuming we have ground truth label?
-		int classIndex = testInstances.numAttributes() - 1;
-		testInstances.setClassIndex(classIndex);
-		
-		System.out.println("number of testing instances:" + testInstances.numInstances());
-		for (int i = 0; i < testInstances.numInstances(); i++){
-			double predClass = classifier.classifyInstance(testInstances.instance(i));
-			String c = testInstances.instance(i).attribute(classIndex).value((int) predClass);
-			double[] prediction_distribution =  classifier.distributionForInstance(testInstances.instance(i));
-			this.prediction_scores.add(prediction_distribution[1]);
-			predictions.add(c);
+	// learning using pipeline
+	private void learnPipeline(){
+		Instances trainInstances = FeatureGenerator.readData(this.train, true, false);
+		trainInstances.setClassIndex(trainInstances.numAttributes() - 1);
+		System.out.println("number of training instances:" + trainInstances.numInstances());
+		System.out.println("number of attributes in instances:" + (trainInstances.numAttributes()-1));
+		System.out.println("building classifier");
+		try {
+			classifier.buildClassifier(trainInstances);
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			System.err.println("Unable to build Classifier...\n");
+			e.printStackTrace();
 		}
-		stitch();
-		return predictions;
+		
+		if (CorefBaseline.DEBUG){
+			System.out.println(classifier.getTechnicalInformation());
+			System.out.println("learned coefficients:"); 
+			int i = 0;
+			System.out.println(classifier.toString());
+			System.out.println(classifier.ridgeTipText());
+			System.out.println("classifier coefficient lenghts:" + classifier.coefficients().length);
+			for (int j = 0 ; j < classifier.coefficients().length; j++){
+				for ( int k = 0; k < classifier.coefficients()[j].length ; k++){
+					System.out.print(i++ + ": " + classifier.coefficients()[j][k] + " (j,k):" + j + "," + k);
+				}
+				System.out.println();
+			}
+			try{
+				File file = new File("arff/trainData.arff");
+		
+				// if file doesnt exists, then create it
+				if (!file.exists()) {
+					file.createNewFile();
+				}
+		
+				FileWriter fw = new FileWriter(file.getAbsoluteFile());
+				BufferedWriter bw = new BufferedWriter(fw);
+				bw.write(trainInstances.toString());
+				bw.close();
+			} catch (IOException e){
+				e.printStackTrace();
+			}
+		}
 	}
 	
-	private Map<EntityMention, CoreferenceEdge> stitch(){
+	// old stitch method for testing data.
+	private Map<EntityMention, CoreferenceEdge> stitch2(){
 		int index = 0;
 		Map <EntityMention, CoreferenceEdge > candidate_map = new HashMap<EntityMention, CoreferenceEdge>();
 		Map <EntityMention, Double > candidate_best = new HashMap<EntityMention, Double>();
@@ -208,6 +258,193 @@ public class CorefBaseline implements PipelineStage{
 				}
 				index++;
 			}
+		}
+		return candidate_map;
+	}
+	
+	// new stitch method for testing data
+	private Map<EntityMention, CoreferenceEdge> stitch(){
+		int index = 0;
+		Map <EntityMention, CoreferenceEdge > candidate_map = null;
+		Map <EntityMention, Double > candidate_best = null;
+		
+		// first need to find all of the possible mapping? and the best mapping
+		for (ACEAnnotation a : this.test){
+			// candidate map should be different for each ace annotation
+			candidate_map = new HashMap<EntityMention, CoreferenceEdge>();
+			candidate_best = new HashMap<EntityMention, Double>();
+			
+			// Following standard that we are not relating a later entity mention to an earlier entityMention??
+			List<CoreferenceEdge> examples  = a.getAllPairsPipelineCoreferenceEdges();
+			
+			EntityMention em1 = null;
+			EntityMention em2 = null;
+			Pair<EntityMention, EntityMention> mentions_pair = null;
+			for ( CoreferenceEdge item : examples){
+				mentions_pair = item.getEntityMentions();
+				if (mentions_pair.getFirst().getHeadStartOffset() < mentions_pair.getSecond().getHeadStartOffset() ){
+					em1 = mentions_pair.getFirst();
+					em2 = mentions_pair.getSecond();
+				}
+				else{
+					if( CorefBaseline.DEBUG ){
+						System.out.println("ERROR: shouldn't have em1 > em2");
+						System.out.println("current example first head: " + mentions_pair.getFirst().getHeadStartOffset() + " first extent: " 
+								+ mentions_pair.getFirst().getExtentStartOffset()+ " second: " + mentions_pair.getSecond().getHeadStartOffset()
+								 + " second extent: " + mentions_pair.getSecond().getExtentStartOffset());
+					}
+							
+					em2 = mentions_pair.getFirst();
+					em1 = mentions_pair.getSecond();
+				}
+				
+				// threshold
+				if ( this.prediction_scores.get(index) < 0.10){
+					//System.out.println(this.prediction_scores.get(index));
+					index++;
+					continue;
+				}
+				
+				if( candidate_best.containsKey(em2) ){
+					if ( this.prediction_scores.get(index) > candidate_best.get(em2)){
+						candidate_best.put(em2, this.prediction_scores.get(index));
+						candidate_map.put(em2, item);
+					}
+				}else{
+					candidate_best.put(em2, this.prediction_scores.get(index));
+					candidate_map.put(em2, item);
+				}
+				index++;	
+			}
+			
+			List<CoreferenceEdge> pred_edges = new ArrayList<CoreferenceEdge>();
+			// Before sorting
+			for ( CoreferenceEdge predicted_positive: candidate_map.values()){
+				pred_edges.add(predicted_positive);
+			}
+			
+			//sort the candidate edges in each sentence by start offset
+            Collections.sort(pred_edges, new Comparator<CoreferenceEdge>() {
+                @Override
+                public int compare(CoreferenceEdge o1, CoreferenceEdge o2) {
+                	// first compare entity mention e1, unless they are the same then look at e2.
+                	if ( o1.e1.getHeadStartOffset() - o2.e1.getHeadStartOffset() == 0 ){
+                		return o1.e2.getHeadStartOffset() - o2.e2.getHeadStartOffset();
+                	}
+                    return o1.e1.getHeadStartOffset() - o2.e1.getHeadStartOffset();
+                }
+            });
+			
+            // After sorting
+            if (CorefBaseline.DEBUG){
+            	System.out.println("Sorted coreference list");
+            	for (  CoreferenceEdge pp: pred_edges){
+            		System.out.println(pp.e1.getHeadStartOffset() + ":" + pp.e1.getConstituent()+ " " + pp.e2.getHeadStartOffset() + ":" + pp.e1.getConstituent());
+            	}
+            }
+            
+            // inverted index of mentions
+			// then need to assign if its coreferent or not.
+			// up to here we don't assume that we know the labels
+			ArrayList < List<EntityMention> > equivalence_classes = new ArrayList< List<EntityMention> >();
+			for ( CoreferenceEdge predicted_positive: pred_edges){
+				// constructing equivalence classes
+				Boolean found = false;
+				mentions_pair = predicted_positive.getEntityMentions();
+				if ( mentions_pair.getFirst().getHeadStartOffset() < mentions_pair.getSecond().getHeadStartOffset() ){
+					em1 = mentions_pair.getFirst();
+					em2 = mentions_pair.getSecond();
+				}
+				else{
+					if (CorefBaseline.DEBUG){
+						System.out.println("ERROR: shouldn't have em1 > em2");
+						System.out.println("current example first head: " + mentions_pair.getFirst().getHeadStartOffset() + " first extent: " 
+								+ mentions_pair.getFirst().getExtentStartOffset()+ " second: " + mentions_pair.getSecond().getHeadStartOffset()
+								 + " second extent: " + mentions_pair.getSecond().getExtentStartOffset());
+					}
+					em2 = mentions_pair.getFirst();
+					em1 = mentions_pair.getSecond();
+				}
+				
+				int eq_index = 0;
+				for ( List<EntityMention> ec : equivalence_classes){
+					if (ec.contains(em1)){
+						if (!ec.contains(em2)){
+							ec.add(em2);
+							if (CorefBaseline.DEBUG){
+								System.out.println("found [em1] ( "+em1.getHeadStartOffset()  + ") adding (" + em2.getHeadStartOffset() + "):" + em2.getConstituent() + " \t to ec: " + eq_index);
+							}
+						}
+						found = true;
+						break;
+					}
+					else if (ec.contains(em2)){
+						if (!ec.contains(em1)){
+							ec.add(em1);
+							if (CorefBaseline.DEBUG){
+								System.out.println("found [em2] ( "+em2.getHeadStartOffset()  + ") adding (" + em1.getHeadStartOffset() + "):"  + em1.getConstituent() + " \t to ec: " + eq_index);
+							}
+						}
+						found = true;
+						break;
+					}
+					eq_index++;
+				}
+				
+				if (!found){
+					if (CorefBaseline.DEBUG){
+						System.out.println("not found (" + em1.getHeadStartOffset() + "):" + em1.getConstituent() + " or (" + em2.getHeadStartOffset() + "):" + em2.getConstituent());
+					}
+					List<EntityMention> ec = new ArrayList<EntityMention>();
+					ec.add(em1);
+					ec.add(em2);
+					equivalence_classes.add(ec);
+				}
+			}
+			
+			if (CorefBaseline.DEBUG){
+				int len = 0;
+				for (List<String> sentence :a.getSentences()){
+					System.out.print(len + ":");
+					for ( String word : sentence){
+						System.out.print(word + " ");
+					}
+					System.out.println();
+					len += sentence.size();
+				}
+				System.out.println();
+			}
+			
+			// add the equivalence classes
+			int k = 0;
+			for ( List<EntityMention> ec : equivalence_classes){
+				if (CorefBaseline.DEBUG){
+					System.out.print("equivilence classes:");
+					System.out.println("ec:" + k++ );
+					for (EntityMention em :ec){
+						System.out.print(em.getHeadStartOffset() + ": ");
+						for (String word : em.getHead()){
+							System.out.print(word + " ");
+						}
+						// printing candidate map
+						if ( candidate_map.containsKey(em)){
+							System.out.print( "\t\t (" + candidate_map.get(em).e1.getHeadStartOffset() + " " + candidate_map.get(em).e2.getHeadStartOffset() + ")" );
+							System.out.print("\t\t score: " + this.prediction_scores.get(index - examples.indexOf(candidate_map.get(em)) - 1));
+						}
+						else{
+							System.out.print("\t\t");
+						}
+						
+						System.out.println("\t\t constituent:" + em.getConstituent());
+					}
+					System.out.println();
+				}
+				// adding the equivalence classes
+				a.addCoreferentEntity(ec);
+				
+			}
+			// Collect all ACE annotations?
+			//
 		}
 		return candidate_map;
 	}
@@ -428,10 +665,50 @@ public class CorefBaseline implements PipelineStage{
 		return candidate_map;
 	}
 	
+	// Predicting with Logistic Regression
+	// assumes we do not have label information
+	private List<String> predict() throws Exception{
+		List<String> predictions = new ArrayList<String> ();
+		this.prediction_scores = new ArrayList<Double>();
+		//System.out.println("predict ...");
+		Instances testInstances = FeatureGenerator.readData(this.test, false, true); // assuming we have ground truth label?
+		int classIndex = testInstances.numAttributes() - 1;
+		testInstances.setClassIndex(classIndex);
+		
+		//System.out.println("number of testing instances:" + testInstances.numInstances());
+		for (int i = 0; i < testInstances.numInstances(); i++){
+			double predClass = classifier.classifyInstance(testInstances.instance(i));
+			String c = testInstances.instance(i).attribute(classIndex).value((int) predClass);
+			double[] prediction_distribution =  classifier.distributionForInstance(testInstances.instance(i));
+			this.prediction_scores.add(prediction_distribution[1]);
+			predictions.add(c);
+		}
+		stitch();
+		return predictions;
+	}
 	
+	// Predicting with Logistic Regression
+    private List<String> predictPipeline() throws Exception{
+		List<String> predictions = new ArrayList<String> ();
+		this.prediction_scores = new ArrayList<Double>();
+		//System.out.println("predict ...");
+		Instances testInstances = FeatureGenerator.readData(this.test, false, false); // assuming we have ground truth label?
+		int classIndex = testInstances.numAttributes() - 1;
+		testInstances.setClassIndex(classIndex);
+		
+		//System.out.println("number of testing instances:" + testInstances.numInstances());
+		for (int i = 0; i < testInstances.numInstances(); i++){
+			double predClass = classifier.classifyInstance(testInstances.instance(i));
+			String c = testInstances.instance(i).attribute(classIndex).value((int) predClass);
+			double[] prediction_distribution =  classifier.distributionForInstance(testInstances.instance(i));
+			this.prediction_scores.add(prediction_distribution[1]);
+			predictions.add(c);
+		}
+		stitch();
+		return predictions;
+	}
 	
-	
-	// Predicting with Weka
+	// Predicting Gold with Weka
 	/**
 	 * This method assigns the score to each mention instance, in the testing dataset. 
 	 * Here we used a Pairwise coreference function pc (a,m), which is the output of the logistic regression classifier. 
@@ -506,24 +783,35 @@ public class CorefBaseline implements PipelineStage{
 		System.out.flush();
 		// temporary training/testing
 		ArrayList<ACEAnnotation> train_split = new ArrayList<ACEAnnotation>();
-		ArrayList<ACEAnnotation> test_split = new ArrayList<ACEAnnotation>();
+		List<ACEAnnotation> test_split = new ArrayList<ACEAnnotation>();
 		for (int i = 0; i < splits.size()-1; i++){
-			train_split.addAll( splits.get(i));
+			train_split.addAll(splits.get(i));
 		}
 		test_split.addAll(splits.get(splits.size()-1));
 		
 		System.out.println("training documents size:" + train_split.size());
 		System.out.println("testing documents size" + test_split.size());
 		
-		CorefBaseline cb = new CorefBaseline(train_split, test_split);
+//		//gold data
+		CorefBaseline cb = new CorefBaseline();
+		cb.trainModel(train_split);
+		cb.test(test_split);
+
+		//pipeline
+//        NERBaseline ner = new NERBaseline();
+//        ner.test(test_split);
+//		CorefBaseline cb = new CorefBaseline();
+//		cb.trainModel(train_split);
+//		cb.testPipeline(test_split);
 		
-		cb.learn();
 		
-		try {
-			cb.predictGold();
-		} catch (Exception e) {
-			e.printStackTrace();
-		}
+//		CorefBaseline cb = new CorefBaseline(train_split, test_split);
+//		cb.learn();
+//		try {
+//			cb.predictGold();
+//		} catch (Exception e) {
+//			e.printStackTrace();
+//		}
 
 	}
 }
