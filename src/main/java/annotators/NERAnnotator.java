@@ -21,8 +21,8 @@ public class NERAnnotator extends Annotator {
 
     private boolean isCoarse;
 
-    public NERAnnotator(boolean isCoarse) {
-        super(ACEReader.ENTITYVIEW, new String[] {ViewNames.POS, ViewNames.LEMMA, ViewNames.PARSE_STANFORD});
+    public NERAnnotator(boolean isCoarse, String viewName) {
+        super(viewName, new String[] {ViewNames.POS, ViewNames.LEMMA, ViewNames.PARSE_STANFORD});
         this.isCoarse = isCoarse;
     }
 
@@ -41,16 +41,5 @@ public class NERAnnotator extends Annotator {
 
         //As long as your code adds the NER, coreference, or relation information to the ACEAnnotation document, the
         //correct information will be automatically added to the TextAnnotation!
-    }
-
-    public static void main(String[] argv) throws IOException {
-        Annotator annotator = new NERAnnotator(true);
-
-        //The second number in the ServerPreferences constructor is the number of TextAnnotations sent at a time to
-        //be annotated. Because of the slow speed of NER labeling, this was set to 1; setting it to 50 (as listed in
-        //the documentation) caused the connection to time out.
-        Server server = new Server(5757, new ServerPreferences(0, 50), annotator);
-
-        fi.iki.elonen.util.ServerRunner.executeInstance(server);
     }
 }
