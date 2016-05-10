@@ -2,7 +2,10 @@
 *.iml
 
 ner_mallet_features
-ner_model
+ner_coarse_model_head
+ner_fine_model_head
+
+
 
 target/
 pom.xml.tag

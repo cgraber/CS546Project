@@ -19,8 +19,11 @@ import java.util.List;
  */
 public class NERAnnotator extends Annotator {
 
-    public NERAnnotator() {
+    private boolean isCoarse;
+
+    public NERAnnotator(boolean isCoarse) {
         super(ACEReader.ENTITYVIEW, new String[] {ViewNames.POS, ViewNames.LEMMA, ViewNames.PARSE_STANFORD});
+        this.isCoarse = isCoarse;
     }
 
     @Override
@@ -31,7 +34,7 @@ public class NERAnnotator extends Annotator {
         ACEAnnotation doc = new ACEAnnotation(ta);
 
         //All you have to do now is run your test code on this ACEAnnotation
-        NERBaseline ner = new NERBaseline();
+        NERBaseline ner = new NERBaseline(isCoarse);
         List<ACEAnnotation> arg = new ArrayList<>();
         arg.add(doc);
         ner.test(arg);
@@ -41,7 +44,7 @@ public class NERAnnotator extends Annotator {
     }
 
     public static void main(String[] argv) throws IOException {
-        Annotator annotator = new NERAnnotator();
+        Annotator annotator = new NERAnnotator(true);
 
         //The second number in the ServerPreferences constructor is the number of TextAnnotations sent at a time to
         //be annotated. Because of the slow speed of NER labeling, this was set to 1; setting it to 50 (as listed in

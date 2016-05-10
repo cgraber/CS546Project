@@ -35,9 +35,9 @@ public class CoreferenceEdge implements Serializable {
 
     // Note that coreference is symmetric - argument order doesn't matter
     public boolean equals(CoreferenceEdge other) {
-        if (this.e1.equals(other.e1) && this.e2.equals(other.e2)) {
+        if (this.e1.equalsCoarseExtent(other.e1) && this.e2.equalsCoarseExtent(other.e2)) {
             return true;
-        } else if (this.e2.equals(other.e1) && this.e1.equals(other.e2)) {
+        } else if (this.e2.equalsCoarseExtent(other.e1) && this.e1.equalsCoarseExtent(other.e2)) {
             return true;
         } else {
             return false;

@@ -472,12 +472,12 @@ public class FeatureGenerator {
 		
 		if (FeatureGenerator.STRINGFEATURES){
 			// Alias, need to check that e1 and e2 refer to the same named entity
-			if (e1.entityType.compareTo(e2.entityType) == 0){
+			if (e1.coarseEntityType.compareTo(e2.coarseEntityType) == 0){
 				// person named entity 
-				if (e1.entityType.compareTo("PER") == 0 ){
+				if (e1.coarseEntityType.compareTo("PER") == 0 ){
 					instance.setValue(attribute_dict.get("aliasPER"), FeatureGenerator.getPersonAlias(e1, e2));
 				}
-				if (e1.entityType.compareTo("ORG") == 0) {
+				if (e1.coarseEntityType.compareTo("ORG") == 0) {
 					instance.setValue(attribute_dict.get("aliasORG"), FeatureGenerator.getOrganizationAlias(e1, e2));
 				}
 			}

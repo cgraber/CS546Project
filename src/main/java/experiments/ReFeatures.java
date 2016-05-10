@@ -121,9 +121,9 @@ public class ReFeatures {
         List<String> lemmas = document.getLemmas();
         List<String> pos_tags = document.getPOSTags();
 
-        fea_vec.addBinaryFeature("E1_E_type:" + left.getEntityType());
-        fea_vec.addBinaryFeature("E2_E_type:" + right.getEntityType());
-        fea_vec.addBinaryFeature("type_concat:" + left.getEntityType() + right.getEntityType());
+        fea_vec.addBinaryFeature("E1_E_type:" + left.getCoarseEntityType());
+        fea_vec.addBinaryFeature("E2_E_type:" + right.getCoarseEntityType());
+        fea_vec.addBinaryFeature("type_concat:" + left.getCoarseEntityType() + right.getCoarseEntityType());
 
         fea_vec.addBinaryFeature("E1_head:" + lemmas.get(left.getExtentEndOffset() - 1));
         fea_vec.addBinaryFeature("E2_head:" + lemmas.get(right.getExtentEndOffset() - 1));

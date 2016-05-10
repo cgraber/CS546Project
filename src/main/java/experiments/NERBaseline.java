@@ -31,16 +31,25 @@ public class NERBaseline implements PipelineStage {
     private static final String HEAD_FEATURE_FILE = "ner_mallet_head_features";
     private static final String EXTENT_FEATURE_FILE = "ner_mallet_extent_features";
     private static final String EXTENT_FEATURE_FILE_VECTORS = "ner_mallet_extent_feature_vectors";
-    private static final String NER_HEAD_MODEL_FILE = "ner_model_head";
-    private static final String NER_EXTENT_MODEL_FILE = "ner_model_extent";
+    private static final String NER_COARSE_HEAD_MODEL_FILE = "ner_coarse_model_head";
+    private static final String NER_COARSE_EXTENT_MODEL_FILE = "ner_coarse_model_extent";
+    private static final String NER_FINE_HEAD_MODEL_FILE = "ner_fine_model_head";
+    private static final String NER_FINE_EXTENT_MODEL_FILE = "ner_fine_model_extent";
+
 
     private static final String POS = "POS";
     private static final String NEG = "NEG";
 
+    private boolean isCoarse;
+
+    public NERBaseline(boolean isCoarse) {
+        super();
+        this.isCoarse = isCoarse;
+    }
 
     public void trainModel(List<ACEAnnotation> data) {
-        //buildHeadFeatureFile(data, true);
-        //runMalletTrainHead();
+        buildHeadFeatureFile(data, true);
+        runMalletTrainHead();
         trainExtentClassifier(data);
     }
 
@@ -64,7 +73,7 @@ public class NERBaseline implements PipelineStage {
                     if (tag.startsWith(Consts.BIO_B)) {
                         if (currentType != null) {
                             //IntPair extent = doc.findMentionExtent(currentStart, currentEnd);
-                            doc.addEntityMention(currentType, currentStart, currentEnd, currentStart, currentEnd, false);
+                            doc.addCoarseExtentEntityMention(currentType, currentStart, currentEnd, currentStart, currentEnd, false);
                             //System.out.println("Adding entity of type " + currentType + ", (" + currentStart + ", " + currentEnd + ")");
 
                             currentStart = currentEnd;
@@ -75,19 +84,19 @@ public class NERBaseline implements PipelineStage {
                         currentType = tag.split("_")[1];
                         if (tagLabelInd == doc.getSentence(sentInd).size() - 1) {
                             //Case when unit-sized mention at end of sentence
-                            doc.addEntityMention(currentType, currentStart, currentEnd, currentStart, currentEnd, false);
+                            doc.addCoarseExtentEntityMention(currentType, currentStart, currentEnd, currentStart, currentEnd, false);
                         }
                     } else if (tag.startsWith(Consts.BIO_I)) {
                         currentEnd++;
                         if (tagLabelInd == doc.getSentence(sentInd).size() - 1) {
                             //Case when mention boundary is end of sentence
-                            doc.addEntityMention(currentType, currentStart, currentEnd, currentStart, currentEnd, false);
+                            doc.addCoarseExtentEntityMention(currentType, currentStart, currentEnd, currentStart, currentEnd, false);
                         }
                     } else {
                         if (currentType != null) {
 
                             //IntPair extent = doc.findMentionExtent(currentStart, currentEnd);
-                            doc.addEntityMention(currentType, currentStart, currentEnd, currentStart, currentEnd, false);
+                            doc.addCoarseExtentEntityMention(currentType, currentStart, currentEnd, currentStart, currentEnd, false);
                             //System.out.println("Adding entity of type " + currentType + ", (" + currentStart + ", " + currentEnd + ")");
 
                             currentType = null;
@@ -148,7 +157,7 @@ public class NERBaseline implements PipelineStage {
                         extentEnd++;
                     }   
                 }
-                doc.addEntityMention(e.getEntityType(), extentStart, extentEnd, e.getHeadStartOffset(), e.getHeadEndOffset(), true);
+                doc.addCoarseExtentEntityMention(e.getCoarseEntityType(), extentStart, extentEnd, e.getHeadStartOffset(), e.getHeadEndOffset(), true);
                 listOffset += sentence.size() - (e.getHeadEndOffset() - e.getHeadStartOffset());
             }
         }
@@ -176,7 +185,11 @@ public class NERBaseline implements PipelineStage {
         StringBuilder result = new StringBuilder();
         List<List<String>> bioLabels = null;
         if (isTrain) {
-            bioLabels = doc.getGoldBIOEncoding();
+            if (isCoarse) {
+                bioLabels = doc.getGoldCoarseBIOEncoding();
+            } else {
+                bioLabels = doc.getGoldFineBIOEncoding();
+            }
         }
         List<List<String>> posTags = doc.getPOSTagsBySentence();
         int sentenceOffset = 0;
@@ -260,9 +273,14 @@ public class NERBaseline implements PipelineStage {
         Runtime rt = Runtime.getRuntime();
         List<String> results = new ArrayList<String>();
         try {
-
+            String modelFile;
+            if (isCoarse) {
+                modelFile = NER_COARSE_EXTENT_MODEL_FILE;
+            } else {
+                modelFile = NER_FINE_EXTENT_MODEL_FILE;
+            }
             String[] toExecute = new String[]{"java", "-cp", ".:lib/mallet.jar:lib/mallet-deps.jar", "cc.mallet.classify.tui.Csv2Classify",
-                    "--input", EXTENT_FEATURE_FILE, "--output", "-", "--classifier", NER_EXTENT_MODEL_FILE};
+                    "--input", EXTENT_FEATURE_FILE, "--output", "-", "--classifier", modelFile};
             Process pr = rt.exec(toExecute);
             BufferedReader input = new BufferedReader(new InputStreamReader(pr.getInputStream()));
 
@@ -296,9 +314,14 @@ public class NERBaseline implements PipelineStage {
     private void runMalletTrainHead() {
         Runtime rt = Runtime.getRuntime();
         try {
-
+            String modelFile;
+            if (isCoarse) {
+                modelFile = NER_COARSE_HEAD_MODEL_FILE;
+            } else {
+                modelFile = NER_FINE_HEAD_MODEL_FILE;
+            }
             String [] toExecute = new String[] {"java", "-cp", ".:lib/mallet.jar:lib/mallet-deps.jar", "cc.mallet.fst.SimpleTagger",
-                    "--train", "true", "--model-file", NER_HEAD_MODEL_FILE, HEAD_FEATURE_FILE};
+                    "--train", "true", "--model-file", modelFile, HEAD_FEATURE_FILE};
             System.out.println(toExecute);
             Process pr = rt.exec(toExecute);
             BufferedReader input = new BufferedReader(new InputStreamReader(pr.getErrorStream()));
@@ -332,9 +355,14 @@ public class NERBaseline implements PipelineStage {
                 System.out.println(line);
             }
             System.out.println("Exit code: " + pr.waitFor());
-
+            String modelFile;
+            if (isCoarse) {
+                modelFile = NER_COARSE_EXTENT_MODEL_FILE;
+            } else {
+                modelFile = NER_FINE_EXTENT_MODEL_FILE;
+            }
             toExecute = new String[] {"java", "-cp", ".:lib/mallet.jar:lib/mallet-deps.jar", "cc.mallet.classify.tui.Vectors2Classify",
-                    "--input", EXTENT_FEATURE_FILE_VECTORS, "--output-classifier", NER_EXTENT_MODEL_FILE};
+                    "--input", EXTENT_FEATURE_FILE_VECTORS, "--output-classifier", modelFile};
             pr = rt.exec(toExecute);
             input = new BufferedReader(new InputStreamReader(pr.getErrorStream()));
 
@@ -357,8 +385,14 @@ public class NERBaseline implements PipelineStage {
         try {
             String[] toExecute = null;
 
+            String modelFile;
+            if (isCoarse) {
+                modelFile = NER_COARSE_HEAD_MODEL_FILE;
+            } else {
+                modelFile = NER_FINE_HEAD_MODEL_FILE;
+            }
             toExecute = new String[]{"java", "-cp", ".:lib/mallet.jar:lib/mallet-deps.jar", "cc.mallet.fst.SimpleTagger",
-                        "--model-file", NER_HEAD_MODEL_FILE, HEAD_FEATURE_FILE};
+                        "--model-file", modelFile, HEAD_FEATURE_FILE};
 
 
             Process pr = rt.exec(toExecute);
@@ -392,13 +426,23 @@ public class NERBaseline implements PipelineStage {
         double precisionCorrectCount = 0;
         int recallCount = 0;
         double recallCorrectCount = 0;
+        IntPair counts;
         for (ACEAnnotation doc: docs) {
-            IntPair counts = doc.getNERExtentPrecisionInfo();
-            precisionCorrectCount += counts.getFirst();
-            precisionCount += counts.getSecond();
-            counts = doc.getNERExtentRecallInfo();
-            recallCorrectCount += counts.getFirst();
-            recallCount += counts.getSecond();
+            if (isCoarse) {
+                counts = doc.getNERCoarseExtentPrecisionInfo();
+                precisionCorrectCount += counts.getFirst();
+                precisionCount += counts.getSecond();
+                counts = doc.getNERCoarseExtentRecallInfo();
+                recallCorrectCount += counts.getFirst();
+                recallCount += counts.getSecond();
+            } else {
+                counts = doc.getNERFineExtentPrecisionInfo();
+                precisionCorrectCount += counts.getFirst();
+                precisionCount += counts.getSecond();
+                counts = doc.getNERFineExtentRecallInfo();
+                recallCorrectCount += counts.getFirst();
+                recallCount += counts.getSecond();
+            }
         }
         return new Pair<>(precisionCorrectCount/precisionCount, recallCorrectCount/recallCount);
     }
@@ -408,13 +452,23 @@ public class NERBaseline implements PipelineStage {
         double precisionCorrectCount = 0;
         int recallCount = 0;
         double recallCorrectCount = 0;
+        IntPair counts;
         for (ACEAnnotation doc: docs) {
-            IntPair counts = doc.getNERHeadPrecisionInfo();
-            precisionCorrectCount += counts.getFirst();
-            precisionCount += counts.getSecond();
-            counts = doc.getNERHeadRecallInfo();
-            recallCorrectCount += counts.getFirst();
-            recallCount += counts.getSecond();
+            if (isCoarse) {
+                counts = doc.getNERCoarseHeadPrecisionInfo();
+                precisionCorrectCount += counts.getFirst();
+                precisionCount += counts.getSecond();
+                counts = doc.getNERCoarseHeadRecallInfo();
+                recallCorrectCount += counts.getFirst();
+                recallCount += counts.getSecond();
+            } else {
+                counts = doc.getNERFineHeadPrecisionInfo();
+                precisionCorrectCount += counts.getFirst();
+                precisionCount += counts.getSecond();
+                counts = doc.getNERFineHeadRecallInfo();
+                recallCorrectCount += counts.getFirst();
+                recallCount += counts.getSecond();
+            }
         }
         return new Pair<>(precisionCorrectCount/precisionCount, recallCorrectCount/recallCount);
     }
@@ -506,7 +560,8 @@ public class NERBaseline implements PipelineStage {
             System.exit(1);
         }
         List<Feature> result = new ArrayList<>();
-        result.addAll(FeatureUtilities.conjoin(features,features));
+        //result.addAll(FeatureUtilities.conjoin(features,features));
+        result.addAll(features);
         return result;
     }
 
