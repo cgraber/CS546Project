@@ -73,7 +73,11 @@ public class NERBaseline implements PipelineStage {
                     if (tag.startsWith(Consts.BIO_B)) {
                         if (currentType != null) {
                             //IntPair extent = doc.findMentionExtent(currentStart, currentEnd);
-                            doc.addCoarseExtentEntityMention(currentType, currentStart, currentEnd, currentStart, currentEnd, false);
+                            if (isCoarse) {
+                                doc.addCoarseHeadEntityMention(currentType, currentStart, currentEnd, currentStart, currentEnd, true);
+                            } else {
+                                doc.addFineHeadEntityMention(currentType, currentStart, currentEnd, currentStart, currentEnd, true);
+                            }
                             //System.out.println("Adding entity of type " + currentType + ", (" + currentStart + ", " + currentEnd + ")");
 
                             currentStart = currentEnd;
@@ -84,19 +88,31 @@ public class NERBaseline implements PipelineStage {
                         currentType = tag.split("_")[1];
                         if (tagLabelInd == doc.getSentence(sentInd).size() - 1) {
                             //Case when unit-sized mention at end of sentence
-                            doc.addCoarseExtentEntityMention(currentType, currentStart, currentEnd, currentStart, currentEnd, false);
+                            if (isCoarse) {
+                                doc.addCoarseHeadEntityMention(currentType, currentStart, currentEnd, currentStart, currentEnd, true);
+                            } else {
+                                doc.addFineHeadEntityMention(currentType, currentStart, currentEnd, currentStart, currentEnd, true);
+                            }
                         }
                     } else if (tag.startsWith(Consts.BIO_I)) {
                         currentEnd++;
                         if (tagLabelInd == doc.getSentence(sentInd).size() - 1) {
                             //Case when mention boundary is end of sentence
-                            doc.addCoarseExtentEntityMention(currentType, currentStart, currentEnd, currentStart, currentEnd, false);
+                            if (isCoarse) {
+                                doc.addCoarseHeadEntityMention(currentType, currentStart, currentEnd, currentStart, currentEnd, true);
+                            } else {
+                                doc.addFineHeadEntityMention(currentType, currentStart, currentEnd, currentStart, currentEnd, true);
+                            }
                         }
                     } else {
                         if (currentType != null) {
 
                             //IntPair extent = doc.findMentionExtent(currentStart, currentEnd);
-                            doc.addCoarseExtentEntityMention(currentType, currentStart, currentEnd, currentStart, currentEnd, false);
+                            if (isCoarse) {
+                                doc.addCoarseHeadEntityMention(currentType, currentStart, currentEnd, currentStart, currentEnd, true);
+                            } else {
+                                doc.addFineHeadEntityMention(currentType, currentStart, currentEnd, currentStart, currentEnd, true);
+                            }
                             //System.out.println("Adding entity of type " + currentType + ", (" + currentStart + ", " + currentEnd + ")");
 
                             currentType = null;
@@ -157,7 +173,11 @@ public class NERBaseline implements PipelineStage {
                         extentEnd++;
                     }   
                 }
-                doc.addCoarseExtentEntityMention(e.getCoarseEntityType(), extentStart, extentEnd, e.getHeadStartOffset(), e.getHeadEndOffset(), true);
+                if (isCoarse) {
+                    doc.addCoarseExtentEntityMention(e.getCoarseEntityType(), extentStart, extentEnd, e.getHeadStartOffset(), e.getHeadEndOffset(), true);
+                } else {
+                    doc.addFineExtentEntityMention(e.getCoarseEntityType(), extentStart, extentEnd, e.getHeadStartOffset(), e.getHeadEndOffset(), true);
+                }
                 listOffset += sentence.size() - (e.getHeadEndOffset() - e.getHeadStartOffset());
             }
         }
