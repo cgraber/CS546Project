@@ -91,20 +91,8 @@ public class ACEAnnotation implements Serializable {
 
         ta = taBuilder.createTextAnnotation(null, id, doc.contentRemovingTags);
         int count=0;
-        Pipeline.addAllViews(ta);
-        coarseExtentEntityView = new SpanLabelView(ViewNames.NER_ACE_COARSE_EXTENT, ACEAnnotation.class.getCanonicalName(), ta, 1.0f, true);
-        ta.addView(ACEReader.ENTITYVIEW, coarseExtentEntityView);
-        fineExtentEntityView = new SpanLabelView(ViewNames.NER_ACE_FINE_EXTENT, ACEAnnotation.class.getCanonicalName(), ta, 1.0f, true);
-        ta.addView(ACEReader.ENTITYVIEW, fineExtentEntityView);
-        coarseHeadEntityView = new SpanLabelView(ViewNames.NER_ACE_COARSE_HEAD, ACEAnnotation.class.getCanonicalName(), ta, 1.0f, true);
-        ta.addView(ACEReader.ENTITYVIEW, coarseHeadEntityView);
-        fineHeadEntityView = new SpanLabelView(ViewNames.NER_ACE_FINE_HEAD, ACEAnnotation.class.getCanonicalName(), ta, 1.0f, true);
-        ta.addView(ACEReader.ENTITYVIEW, fineHeadEntityView);
-        corefView = new CoreferenceView(ViewNames.COREF, ACEAnnotation.class.getCanonicalName(), ta, 1.0f);
-        ta.addView(ViewNames.COREF, corefView);
-        relationView = new PredicateArgumentView(ACEReader.RELATIONVIEW, ACEAnnotation.class.getCanonicalName(), ta, 1.0f);
-        ta.addView(ACEReader.RELATIONVIEW, relationView);
 
+        initializeViews();
         for (Sentence sentence: ta.sentences()) {
             List<String> sentenceArray=Arrays.asList(sentence.getTokens());
             sentenceTokens.add(sentenceArray);
@@ -181,10 +169,6 @@ public class ACEAnnotation implements Serializable {
         }
     }
 
-    public void clearTestEntityMentions() {
-        testEntityMentions = new ArrayList<>();
-        testEntityMentionsBySpan = new HashMap<>();
-    }
 
     /**
      * This Constructor is meant to be used at test time
@@ -192,8 +176,28 @@ public class ACEAnnotation implements Serializable {
      */
     public ACEAnnotation(TextAnnotation ta) {
         this.ta = ta;
-        Pipeline.addAllViews(ta);
+        initializeViews();
 
+    }
+    private void initializeViews() {
+        Pipeline.addAllViews(ta);
+        coarseExtentEntityView = new SpanLabelView(ViewNames.NER_ACE_COARSE_EXTENT, ACEAnnotation.class.getCanonicalName(), ta, 1.0f, true);
+        ta.addView(ACEReader.ENTITYVIEW, coarseExtentEntityView);
+        fineExtentEntityView = new SpanLabelView(ViewNames.NER_ACE_FINE_EXTENT, ACEAnnotation.class.getCanonicalName(), ta, 1.0f, true);
+        ta.addView(ACEReader.ENTITYVIEW, fineExtentEntityView);
+        coarseHeadEntityView = new SpanLabelView(ViewNames.NER_ACE_COARSE_HEAD, ACEAnnotation.class.getCanonicalName(), ta, 1.0f, true);
+        ta.addView(ACEReader.ENTITYVIEW, coarseHeadEntityView);
+        fineHeadEntityView = new SpanLabelView(ViewNames.NER_ACE_FINE_HEAD, ACEAnnotation.class.getCanonicalName(), ta, 1.0f, true);
+        ta.addView(ACEReader.ENTITYVIEW, fineHeadEntityView);
+        corefView = new CoreferenceView(ViewNames.COREF, ACEAnnotation.class.getCanonicalName(), ta, 1.0f);
+        ta.addView(ViewNames.COREF, corefView);
+        relationView = new PredicateArgumentView(ACEReader.RELATIONVIEW, ACEAnnotation.class.getCanonicalName(), ta, 1.0f);
+        ta.addView(ACEReader.RELATIONVIEW, relationView);
+    }
+
+    public void clearTestEntityMentions() {
+        testEntityMentions = new ArrayList<>();
+        testEntityMentionsBySpan = new HashMap<>();
     }
 
     private int findSentenceIndex(int start){
