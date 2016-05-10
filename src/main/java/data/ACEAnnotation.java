@@ -365,7 +365,7 @@ public class ACEAnnotation implements Serializable {
             }
         }
 
-        return coarseBIOencoding;
+        return fineBIOencoding;
     }
 
 
