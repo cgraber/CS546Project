@@ -486,7 +486,7 @@ public class ACEAnnotation implements Serializable {
         testEntityMentionsBySpan.put(new IntPair(headStartOffset, headEndOffset), e);
 
         if (addTAInfo) {
-            Constituent entityConstituent = createCoarseHeadEntityConstituent(coarseType, headStartOffset, headEndOffset);
+            Constituent entityConstituent = createCoarseHeadEntityConstituent(coarseType, headStartOffset, headEndOffset, headStartOffset, headEndOffset);
             coarseExtentEntityView.addConstituent(entityConstituent);
             e.setConstituent(entityConstituent);
         }
@@ -498,7 +498,7 @@ public class ACEAnnotation implements Serializable {
         testEntityMentionsBySpan.put(new IntPair(headStartOffset, headEndOffset), e);
 
         if (addTAInfo) {
-            Constituent entityConstituent = createFineHeadEntityConstituent(fineType, headStartOffset, headEndOffset);
+            Constituent entityConstituent = createFineHeadEntityConstituent(fineType, extentStartOffset, extentEndOffset, headStartOffset, headEndOffset);
             fineExtentEntityView.addConstituent(entityConstituent);
 
             e.setConstituent(entityConstituent);
@@ -523,20 +523,20 @@ public class ACEAnnotation implements Serializable {
         return entityConstituent;
     }
 
-    public Constituent createCoarseHeadEntityConstituent(String type, int headStartOffset, int headEndOffset) {
-        Constituent entityConstituent = new Constituent(type, ViewNames.NER_ACE_COARSE_HEAD, ta, headStartOffset, headEndOffset);
-        //entityConstituent.addAttribute(ACEReader.EntityHeadStartCharOffset, ta.getTokenCharacterOffset(headStartOffset).getFirst() + "");
+    public Constituent createCoarseHeadEntityConstituent(String type, int extentStartOffset, int extentEndOffset, int headStartOffset, int headEndOffset) {
+        Constituent entityConstituent = new Constituent(type, ViewNames.NER_ACE_COARSE_HEAD, ta, extentStartOffset, extentEndOffset);
+        entityConstituent.addAttribute(ACEReader.EntityHeadStartCharOffset, ta.getTokenCharacterOffset(headStartOffset).getFirst() + "");
         //TODO: check that these offsets are correct
-        //entityConstituent.addAttribute(ACEReader.EntityHeadEndCharOffset, ta.getTokenCharacterOffset(headEndOffset - 1).getSecond() + "");
+        entityConstituent.addAttribute(ACEReader.EntityHeadEndCharOffset, ta.getTokenCharacterOffset(headEndOffset - 1).getSecond() + "");
         entityConstituent.addAttribute(ACEReader.EntityTypeAttribute, type);
         return entityConstituent;
     }
 
-    public Constituent createFineHeadEntityConstituent(String type, int headStartOffset, int headEndOffset) {
-        Constituent entityConstituent = new Constituent(type, ViewNames.NER_ACE_FINE_HEAD, ta, headStartOffset, headEndOffset);
-        //entityConstituent.addAttribute(ACEReader.EntityHeadStartCharOffset, ta.getTokenCharacterOffset(headStartOffset).getFirst() + "");
+    public Constituent createFineHeadEntityConstituent(String type, int extentStartOffset, int extentEndOffset, int headStartOffset, int headEndOffset) {
+        Constituent entityConstituent = new Constituent(type, ViewNames.NER_ACE_FINE_HEAD, ta, extentStartOffset, extentEndOffset);
+        entityConstituent.addAttribute(ACEReader.EntityHeadStartCharOffset, ta.getTokenCharacterOffset(headStartOffset).getFirst() + "");
         //TODO: check that these offsets are correct
-        //entityConstituent.addAttribute(ACEReader.EntityHeadEndCharOffset, ta.getTokenCharacterOffset(headEndOffset - 1).getSecond() + "");
+        entityConstituent.addAttribute(ACEReader.EntityHeadEndCharOffset, ta.getTokenCharacterOffset(headEndOffset - 1).getSecond() + "");
         entityConstituent.addAttribute(ACEReader.EntityTypeAttribute, type);
         return entityConstituent;
     }
