@@ -182,13 +182,13 @@ public class ACEAnnotation implements Serializable {
     private void initializeViews() {
         Pipeline.addAllViews(ta);
         coarseExtentEntityView = new SpanLabelView(ViewNames.NER_ACE_COARSE_EXTENT, ACEAnnotation.class.getCanonicalName(), ta, 1.0f, true);
-        ta.addView(ACEReader.ENTITYVIEW, coarseExtentEntityView);
+        ta.addView(ViewNames.NER_ACE_COARSE_EXTENT, coarseExtentEntityView);
         fineExtentEntityView = new SpanLabelView(ViewNames.NER_ACE_FINE_EXTENT, ACEAnnotation.class.getCanonicalName(), ta, 1.0f, true);
-        ta.addView(ACEReader.ENTITYVIEW, fineExtentEntityView);
+        ta.addView(ViewNames.NER_ACE_FINE_EXTENT, fineExtentEntityView);
         coarseHeadEntityView = new SpanLabelView(ViewNames.NER_ACE_COARSE_HEAD, ACEAnnotation.class.getCanonicalName(), ta, 1.0f, true);
-        ta.addView(ACEReader.ENTITYVIEW, coarseHeadEntityView);
+        ta.addView(ViewNames.NER_ACE_COARSE_HEAD, coarseHeadEntityView);
         fineHeadEntityView = new SpanLabelView(ViewNames.NER_ACE_FINE_HEAD, ACEAnnotation.class.getCanonicalName(), ta, 1.0f, true);
-        ta.addView(ACEReader.ENTITYVIEW, fineHeadEntityView);
+        ta.addView(ViewNames.NER_ACE_FINE_HEAD, fineHeadEntityView);
         corefView = new CoreferenceView(ViewNames.COREF, ACEAnnotation.class.getCanonicalName(), ta, 1.0f);
         ta.addView(ViewNames.COREF, corefView);
         relationView = new PredicateArgumentView(ACEReader.RELATIONVIEW, ACEAnnotation.class.getCanonicalName(), ta, 1.0f);
