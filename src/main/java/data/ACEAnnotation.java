@@ -90,17 +90,8 @@ public class ACEAnnotation implements Serializable {
         id = doc.aceAnnotation.id;
 
         ta = taBuilder.createTextAnnotation(null, id, doc.contentRemovingTags);
-        int count=0;
 
-        initializeViews();
-        for (Sentence sentence: ta.sentences()) {
-            List<String> sentenceArray=Arrays.asList(sentence.getTokens());
-            sentenceTokens.add(sentenceArray);
-            tokens.addAll(sentenceArray);
-            sentenceIndex.add(count);
-            count+=sentenceArray.size();
-        }
-        sentenceIndex.add(count);
+        initializeTA();
 
         // And now we pull all of the gold data out of the ACEDocumentAnnotation wrapper
         relationList = doc.aceAnnotation.relationList;
@@ -176,10 +167,10 @@ public class ACEAnnotation implements Serializable {
      */
     public ACEAnnotation(TextAnnotation ta) {
         this.ta = ta;
-        initializeViews();
+        initializeTA();
 
     }
-    private void initializeViews() {
+    private void initializeTA() {
         Pipeline.addAllViews(ta);
         coarseExtentEntityView = new SpanLabelView(ViewNames.NER_ACE_COARSE_EXTENT, ACEAnnotation.class.getCanonicalName(), ta, 1.0f, true);
         ta.addView(ViewNames.NER_ACE_COARSE_EXTENT, coarseExtentEntityView);
@@ -193,6 +184,16 @@ public class ACEAnnotation implements Serializable {
         ta.addView(ViewNames.COREF, corefView);
         relationView = new PredicateArgumentView(ACEReader.RELATIONVIEW, ACEAnnotation.class.getCanonicalName(), ta, 1.0f);
         ta.addView(ACEReader.RELATIONVIEW, relationView);
+
+        int count = 0;
+        for (Sentence sentence: ta.sentences()) {
+            List<String> sentenceArray=Arrays.asList(sentence.getTokens());
+            sentenceTokens.add(sentenceArray);
+            tokens.addAll(sentenceArray);
+            sentenceIndex.add(count);
+            count+=sentenceArray.size();
+        }
+        sentenceIndex.add(count);
     }
 
     public void clearTestEntityMentions() {
@@ -487,7 +488,7 @@ public class ACEAnnotation implements Serializable {
 
         if (addTAInfo) {
             Constituent entityConstituent = createCoarseHeadEntityConstituent(coarseType, headStartOffset, headEndOffset, headStartOffset, headEndOffset);
-            coarseExtentEntityView.addConstituent(entityConstituent);
+            coarseHeadEntityView.addConstituent(entityConstituent);
             e.setConstituent(entityConstituent);
         }
     }
@@ -499,7 +500,7 @@ public class ACEAnnotation implements Serializable {
 
         if (addTAInfo) {
             Constituent entityConstituent = createFineHeadEntityConstituent(fineType, extentStartOffset, extentEndOffset, headStartOffset, headEndOffset);
-            fineExtentEntityView.addConstituent(entityConstituent);
+            fineHeadEntityView.addConstituent(entityConstituent);
 
             e.setConstituent(entityConstituent);
         }

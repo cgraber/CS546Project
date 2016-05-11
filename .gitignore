@@ -1,9 +1,8 @@
 .idea
 *.iml
+*.swp
 
 ner_mallet_features
-ner_coarse_model_head
-ner_fine_model_head
 
 
 

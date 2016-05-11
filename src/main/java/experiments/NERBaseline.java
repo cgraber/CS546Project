@@ -133,7 +133,6 @@ public class NERBaseline implements PipelineStage {
         for (ACEAnnotation doc: data) {
             System.out.println("\ttest extent info for doc " + (ind++));
             List<EntityMention> mentions = doc.getTestEntityMentions();
-
             doc.clearTestEntityMentions();
             int entityInd = 0;
             List<List<Feature>> features = new ArrayList<>();
@@ -147,9 +146,13 @@ public class NERBaseline implements PipelineStage {
                     features.add(extractExtentFeatures(doc.getTA(), i, e.getHeadStartOffset(), e.getHeadEndOffset()));
                 }
             }
+            System.out.println("\t\tGetting extent labels");
             List<String> labels = getExtentTestLabels(features);
+            System.out.println("\t\tFinding extent boundaries");
             int listOffset = 0;
+            int count = 0;
             for (EntityMention e: mentions) {
+                System.out.println("\t\t\tMention "+ (++count) +" out of "+mentions.size());
                 List<String> sentence = doc.getSentence(e.getSentenceOffset());
                 int sentenceOffset = doc.getSentenceIndex(e.getSentenceOffset());
                 boolean foundStart = false;

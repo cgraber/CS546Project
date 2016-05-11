@@ -19,7 +19,7 @@ public class Baseline {
             System.exit(1);
         }
         
-
+	/*
         List<List<ACEAnnotation>> splits = DataUtils.loadDataSplits(argv[0]);
 
         try {
@@ -29,8 +29,8 @@ public class Baseline {
             System.exit(1);
         }
         System.exit(0);
-
-        //List<List<ACEAnnotation>> splits = null;
+*/
+        List<List<ACEAnnotation>> splits = null;
         try {
             splits = ACEAnnotation.readAllFromFile();
         } catch (IOException e) {
@@ -40,7 +40,7 @@ public class Baseline {
 
 
 
-        NERBaseline ner = new NERBaseline(true);
+        NERBaseline ner = new NERBaseline(false);
         List<ACEAnnotation> train = new ArrayList<ACEAnnotation>();
         for (int i = 0; i < splits.size() - 1; i++) {
             train.addAll(splits.get(i));
@@ -48,14 +48,14 @@ public class Baseline {
         List<ACEAnnotation> test = splits.get(splits.size() - 1);
         ner.trainModel(train);
         ner.test(test);
-        Pair<Double,Double> results = ner.evaluateHead(train);
+        Pair<Double,Double> results = ner.evaluateHead(test);
         System.out.println("HEAD PRECISION: "+results.getFirst());
         System.out.println("HEAD RECALL: " + results.getSecond());
         double headF1 = 2*results.getSecond()*results.getFirst()/(results.getFirst()+results.getSecond());
         System.out.println("HEAD F1: "+headF1);
         System.out.println("");
 
-        results = ner.evaluateExtent(train);
+        results = ner.evaluateExtent(test);
         System.out.println("EXTENT PRECISION: "+results.getFirst());
         System.out.println("EXTENT RECALL: "+results.getSecond());
         double extentF1 = 2*results.getSecond()*results.getFirst()/(results.getFirst()+results.getSecond());
