@@ -79,7 +79,7 @@ public class DataDemonstration {
             //Since we're treating NER as a sequence labeling task, the training code will need the gold sequence labels.
             //This methods gives them to you (note that this is in "sentence form", since sequence labeling tasks tend
             //to process one sentence at a time
-            List<List<String>> goldBIOTags = document.getGoldBIOEncoding();
+            List<List<String>> goldBIOTags = document.getGoldCoarseBIOEncoding();
 
             //You'll probably also want to have access to all of the possible sequence labels - here they are!
             Set<String> possibleLabels = ACEAnnotation.getBIOLabels();
@@ -89,7 +89,7 @@ public class DataDemonstration {
             //than constructing something new and returning it. Hence, for each task, there is a method that allows you
             //to add a label. For NER, it looks like this:
             //                        MENTION TYPE    START INDEX   END INDEX+1
-            document.addEntityMention("[TYPE]",            0,           2,           0,            2, true);
+            document.addCoarseExtentEntityMention("[TYPE]", 0, 2, 0, 2, true);
             //NOTE: there are two important facts about the span arguments:
             //      1) These indices are global, not per-sentence. So, for example, if you are adding a mention in the second
             //         sentence, you need to make sure that the indices you pass in here are not the indices within that sentence

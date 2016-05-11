@@ -93,15 +93,15 @@ public class Relation implements Serializable {
             return false;
         } else if (type.equals(Consts.NO_REL)) {
             // The only symmetric relation is the "No relation" relation
-            if (e1.equals(other.e1) && e2.equals(other.e2)) {
+            if (e1.equalsCoarseExtent(other.e1) && e2.equalsCoarseExtent(other.e2)) {
                 return true;
-            } else if (e1.equals(other.e2) && e2.equals(other.e1)) {
+            } else if (e1.equalsCoarseExtent(other.e2) && e2.equalsCoarseExtent(other.e1)) {
                 return true;
             } else {
                 return false;
             }
         } else {
-            if (e1.equals(other.e1) && e2.equals(other.e2)) {
+            if (e1.equalsCoarseExtent(other.e1) && e2.equalsCoarseExtent(other.e2)) {
                 return true;
             } else {
                 return false;

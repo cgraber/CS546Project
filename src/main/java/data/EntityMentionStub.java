@@ -9,7 +9,7 @@ import java.util.List;
  */
 public class EntityMentionStub extends EntityMention {
     public EntityMentionStub(int id) {
-        super("", "", id, id + 1, id, id + 1, 0, null);
+        super("", "", "", id, id + 1, id, id + 1, 0, null);
     }
 
     @Override

@@ -15,7 +15,8 @@ public class EntityMention implements Serializable {
     private static final long serialVersionUID = 3L;
 
 
-    public String entityType;
+    public String coarseEntityType;
+    public String fineEntityType;
     public String mentionType;
 
     public int extentStartOffset;
@@ -31,8 +32,9 @@ public class EntityMention implements Serializable {
 
 
 
-    protected EntityMention(String entityType, String mentionType, int extentStartOffset, int extentEndOffset, int headStartOffset, int headEndOffset, int sentenceOffset, ACEAnnotation annotation) {
-        this.entityType = entityType;
+    protected EntityMention(String coarseEntityType, String fineEntityType, String mentionType, int extentStartOffset, int extentEndOffset, int headStartOffset, int headEndOffset, int sentenceOffset, ACEAnnotation annotation) {
+        this.coarseEntityType = coarseEntityType;
+        this.fineEntityType = fineEntityType;
         this.mentionType = mentionType;
         this.extentStartOffset = extentStartOffset;
         this.extentEndOffset = extentEndOffset;
@@ -43,8 +45,12 @@ public class EntityMention implements Serializable {
         this.corefGroupIndex=-1;
     }
 
-    public String getEntityType() {
-        return entityType;
+    public String getCoarseEntityType() {
+        return coarseEntityType;
+    }
+
+    public String getFineEntityType() {
+        return fineEntityType;
     }
 
     public String getMentionType() {
@@ -78,8 +84,19 @@ public class EntityMention implements Serializable {
         return annotation.getExtent(headStartOffset, headEndOffset);
     }
 
-    public boolean equals(EntityMention other) {
-        if (this.entityType.equals(other.entityType) &&
+    public boolean equalsCoarseExtent(EntityMention other) {
+        if (this.coarseEntityType.equals(other.coarseEntityType) &&
+                this.extentStartOffset == other.extentStartOffset &&
+                this.extentEndOffset == other.extentEndOffset &&
+                this.annotation == other.annotation) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public boolean equalsFineExtent(EntityMention other) {
+        if (this.fineEntityType.equals(other.fineEntityType) &&
                 this.extentStartOffset == other.extentStartOffset &&
                 this.extentEndOffset == other.extentEndOffset &&
                 this.headStartOffset == other.headStartOffset &&
@@ -91,8 +108,21 @@ public class EntityMention implements Serializable {
         }
     }
 
-    public boolean equalsHead(EntityMention other) {
-        if (this.entityType.equals(other.entityType) &&
+
+
+    public boolean equalsCoarseHead(EntityMention other) {
+        if (this.coarseEntityType.equals(other.coarseEntityType) &&
+                this.headStartOffset == other.headStartOffset &&
+                this.headEndOffset == other.headEndOffset &&
+                this.annotation == other.annotation) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    public boolean equalsFineHead(EntityMention other) {
+        if (this.fineEntityType.equals(other.fineEntityType) &&
                 this.headStartOffset == other.headStartOffset &&
                 this.headEndOffset == other.headEndOffset &&
                 this.annotation == other.annotation) {

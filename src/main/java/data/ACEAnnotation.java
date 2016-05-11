@@ -8,16 +8,14 @@ import edu.illinois.cs.cogcomp.core.datastructures.textannotation.Constituent;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.Sentence;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.TextAnnotation;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.View;
-import edu.illinois.cs.cogcomp.core.datastructures.trees.Tree;
-import edu.illinois.cs.cogcomp.edison.features.helpers.ParseHelper;
 import edu.illinois.cs.cogcomp.nlp.tokenizer.IllinoisTokenizer;
 import edu.illinois.cs.cogcomp.core.datastructures.textannotation.*;
 import edu.illinois.cs.cogcomp.nlp.corpusreaders.ACEReader;
 import edu.illinois.cs.cogcomp.nlp.corpusreaders.aceReader.annotationStructure.*;
-import edu.illinois.cs.cogcomp.nlp.tokenizer.IllinoisTokenizer;
 import edu.illinois.cs.cogcomp.nlp.utility.TokenizerTextAnnotationBuilder;
 import utils.Consts;
 import utils.Pipeline;
+import edu.illinois.cs.cogcomp.nlp.corpusreaders.ACEReader;
 
 import java.io.*;
 import java.util.*;
@@ -36,14 +34,16 @@ public class ACEAnnotation implements Serializable {
 
     // The following two lists hold all of the relation types/subtypes seen
     private static Set<String> relationTypes;
-    private static Set<String> entityTypes;
+    private static Set<String> coarseEntityTypes;
+    private static Set<String> fineEntityTypes;
     private static Set<String> mentionTypes;
     private static Set<String> bioLabels;
 
     static {
         relationTypes = new HashSet<>();
         relationTypes.add(Consts.NO_REL);
-        entityTypes = new HashSet<>();
+        coarseEntityTypes = new HashSet<>();
+        fineEntityTypes = new HashSet<>();
         mentionTypes = new HashSet<>();
 
         taBuilder = new TokenizerTextAnnotationBuilder(new IllinoisTokenizer());
@@ -52,7 +52,11 @@ public class ACEAnnotation implements Serializable {
 
     private String id;
     private TextAnnotation ta;
-    private SpanLabelView entityView;
+    private SpanLabelView coarseExtentEntityView;
+    private SpanLabelView fineExtentEntityView;
+    private SpanLabelView coarseHeadEntityView;
+    private SpanLabelView fineHeadEntityView;
+
     private CoreferenceView corefView;
     private PredicateArgumentView relationView;
 
@@ -81,42 +85,29 @@ public class ACEAnnotation implements Serializable {
 
 
     // Annotation info
-    private List<List<String>> BIOencoding = null;
+    private List<List<String>> coarseBIOencoding = null;
+    private List<List<String>> fineBIOencoding = null;
+
 
     public ACEAnnotation(ACEDocument doc) {
         id = doc.aceAnnotation.id;
 
         ta = taBuilder.createTextAnnotation(null, id, doc.contentRemovingTags);
-        int count=0;
-        Pipeline.addAllViews(ta);
-        entityView = new SpanLabelView(ACEReader.ENTITYVIEW, ACEAnnotation.class.getCanonicalName(), ta, 1.0f, true);
-        ta.addView(ACEReader.ENTITYVIEW, entityView);
-        corefView = new CoreferenceView(ViewNames.COREF, ACEAnnotation.class.getCanonicalName(), ta, 1.0f);
-        ta.addView(ViewNames.COREF, corefView);
-        relationView = new PredicateArgumentView(ACEReader.RELATIONVIEW, ACEAnnotation.class.getCanonicalName(), ta, 1.0f);
-        ta.addView(ACEReader.RELATIONVIEW, relationView);
-
-        for (Sentence sentence: ta.sentences()) {
-            List<String> sentenceArray=Arrays.asList(sentence.getTokens());
-            sentenceTokens.add(sentenceArray);
-            tokens.addAll(sentenceArray);
-            sentenceIndex.add(count);
-            count+=sentenceArray.size();
-        }
-        sentenceIndex.add(count);
+        initializeTA();
 
         // And now we pull all of the gold data out of the ACEDocumentAnnotation wrapper
         relationList = doc.aceAnnotation.relationList;
 
 
         for (ACEEntity entity: doc.aceAnnotation.entityList) {
-            entityTypes.add(entity.type);
+            coarseEntityTypes.add(entity.type);
+            fineEntityTypes.add(entity.subtype);
             //entitySubtypes.add(entity.subtype);
             List<EntityMention> coreferentEntities = new ArrayList<>();
             goldCoreferentEntities.add(coreferentEntities);
             for (ACEEntityMention mention: entity.entityMentionList) {
                 mentionTypes.add(mention.type);
-                EntityMention e = makeEntityMention(mention, entity.type);
+                EntityMention e = makeEntityMention(mention, entity.type, entity.subtype);
                 goldEntityMentions.add(e);
                 coreferentEntities.add(e);
                 goldEntityMentionsByID.put(mention.id, e);
@@ -172,10 +163,6 @@ public class ACEAnnotation implements Serializable {
         }
     }
 
-    public void clearTestEntityMentions() {
-        testEntityMentions = new ArrayList<>();
-        testEntityMentionsBySpan = new HashMap<>();
-    }
 
     /**
      * This Constructor is meant to be used at test time
@@ -183,8 +170,38 @@ public class ACEAnnotation implements Serializable {
      */
     public ACEAnnotation(TextAnnotation ta) {
         this.ta = ta;
-        Pipeline.addAllViews(ta);
+        initializeTA();
 
+    }
+    private void initializeTA() {
+        Pipeline.addAllViews(ta);
+        coarseExtentEntityView = new SpanLabelView(ViewNames.NER_ACE_COARSE_EXTENT, ACEAnnotation.class.getCanonicalName(), ta, 1.0f, true);
+        ta.addView(ViewNames.NER_ACE_COARSE_EXTENT, coarseExtentEntityView);
+        fineExtentEntityView = new SpanLabelView(ViewNames.NER_ACE_FINE_EXTENT, ACEAnnotation.class.getCanonicalName(), ta, 1.0f, true);
+        ta.addView(ViewNames.NER_ACE_FINE_EXTENT, fineExtentEntityView);
+        coarseHeadEntityView = new SpanLabelView(ViewNames.NER_ACE_COARSE_HEAD, ACEAnnotation.class.getCanonicalName(), ta, 1.0f, true);
+        ta.addView(ViewNames.NER_ACE_COARSE_HEAD, coarseHeadEntityView);
+        fineHeadEntityView = new SpanLabelView(ViewNames.NER_ACE_FINE_HEAD, ACEAnnotation.class.getCanonicalName(), ta, 1.0f, true);
+        ta.addView(ViewNames.NER_ACE_FINE_HEAD, fineHeadEntityView);
+        corefView = new CoreferenceView(ViewNames.COREF, ACEAnnotation.class.getCanonicalName(), ta, 1.0f);
+        ta.addView(ViewNames.COREF, corefView);
+        relationView = new PredicateArgumentView(ViewNames.RELATION_ACE_COARSE_HEAD, ACEAnnotation.class.getCanonicalName(), ta, 1.0f);
+        ta.addView(ViewNames.RELATION_ACE_COARSE_HEAD, relationView);
+
+        int count = 0;
+        for (Sentence sentence: ta.sentences()) {
+            List<String> sentenceArray=Arrays.asList(sentence.getTokens());
+            sentenceTokens.add(sentenceArray);
+            tokens.addAll(sentenceArray);
+            sentenceIndex.add(count);
+            count+=sentenceArray.size();
+        }
+        sentenceIndex.add(count);
+    }
+
+    public void clearTestEntityMentions() {
+        testEntityMentions = new ArrayList<>();
+        testEntityMentionsBySpan = new HashMap<>();
     }
 
     private int findSentenceIndex(int start){
@@ -204,7 +221,7 @@ public class ACEAnnotation implements Serializable {
 
     //NOTE: because of the (incorrect) tokenization, this introduces a bit of inaccuracy into the gold labels -
     // for the time being, we can't get around this.
-    private EntityMention makeEntityMention(ACEEntityMention mention, String type) {
+    private EntityMention makeEntityMention(ACEEntityMention mention, String coarseType, String fineType) {
         IntPair extentOffsets = findTokenOffsets(mention.extentStart, mention.extentEnd);
         IntPair headOffsets = findTokenOffsets(mention.headStart, mention.headEnd);
         if (headOffsets.getFirst() >= headOffsets.getSecond()) {
@@ -216,8 +233,8 @@ public class ACEAnnotation implements Serializable {
         }
 
         int sentenceOffset= findSentenceIndex(extentOffsets.getFirst());
-        EntityMention result = new EntityMention(type, mention.type, extentOffsets.getFirst(), extentOffsets.getSecond(), headOffsets.getFirst(), headOffsets.getSecond(), sentenceOffset, this);
-        Constituent entityConst = createEntityConstituent(type, extentOffsets.getFirst(), extentOffsets.getSecond(), headOffsets.getFirst(), headOffsets.getSecond());
+        EntityMention result = new EntityMention(coarseType, fineType, mention.type, extentOffsets.getFirst(), extentOffsets.getSecond(), headOffsets.getFirst(), headOffsets.getSecond(), sentenceOffset, this);
+        Constituent entityConst = createCoarseExtentEntityConstituent(coarseType, extentOffsets.getFirst(), extentOffsets.getSecond(), headOffsets.getFirst(), headOffsets.getSecond());
         result.setConstituent(entityConst);
         return result;
     }
@@ -273,16 +290,13 @@ public class ACEAnnotation implements Serializable {
         }
     }
 
-    /**
-     * NOTE: Using BIO assumes that the entity spans are non-overlapping, which isn't true in this entire dataset.
-     * @return The Encodings, represented as a list of encodings per sentence
-     */
-    public List<List<String>> getGoldBIOEncoding() {
-        if (BIOencoding != null) {
-            return BIOencoding;
+
+    public List<List<String>> getGoldCoarseBIOEncoding() {
+        if (coarseBIOencoding != null) {
+            return coarseBIOencoding;
         }
 
-        BIOencoding = new ArrayList<List<String>>();
+        coarseBIOencoding = new ArrayList<List<String>>();
         Collections.sort(goldEntityMentions, new Comparator<EntityMention>() {
             @Override
             public int compare(EntityMention e1, EntityMention e2) {
@@ -298,7 +312,7 @@ public class ACEAnnotation implements Serializable {
         int tokenInd = 0;
         for (List<String> sentence: sentenceTokens) {
             List<String> labelList = new ArrayList<>();
-            BIOencoding.add(labelList);
+            coarseBIOencoding.add(labelList);
             for (String word: sentence) {
                 if (currentLabel != null && tokenInd == currentLabel.getHeadEndOffset()) {
                     while (currentLabel != null && currentLabel.getHeadStartOffset() < tokenInd) {
@@ -308,9 +322,9 @@ public class ACEAnnotation implements Serializable {
                 if (currentLabel == null || tokenInd < currentLabel.getHeadStartOffset()) {
                     labelList.add(Consts.BIO_O);
                 } else if (tokenInd == currentLabel.getHeadStartOffset()) {
-                    labelList.add(Consts.BIO_B + currentLabel.getEntityType());
+                    labelList.add(Consts.BIO_B + currentLabel.getCoarseEntityType());
                 } else if (tokenInd > currentLabel.getHeadStartOffset() && tokenInd < currentLabel.getHeadEndOffset()) {
-                    labelList.add(Consts.BIO_I + currentLabel.getEntityType());
+                    labelList.add(Consts.BIO_I + currentLabel.getCoarseEntityType());
                 } else {
                     System.err.println("PROBLEM - current ind is "+tokenInd + ", offset is "+currentLabel.getHeadStartOffset());
                 }
@@ -318,34 +332,51 @@ public class ACEAnnotation implements Serializable {
             }
         }
 
-        return BIOencoding;
+        return coarseBIOencoding;
     }
 
-    public List<List<List<String>>> getGoldNERExtentBIOEncoding() {
-        List<List<List<String>>> result = new ArrayList<>();
-        List<List<EntityMention>> entitiesPerSentence = splitMentionBySentence(goldEntityMentions);
-        int sentenceOffset = 0;
-        for (int i = 0; i < entitiesPerSentence.size(); i++) {
-            List<String> sentence = sentenceTokens.get(i);
-            List<List<String>> bioPerSentence = new ArrayList<>();
-            result.add(bioPerSentence);
-            for (EntityMention e: entitiesPerSentence.get(i)) {
-                List<String> labelList = new ArrayList<>();
-                bioPerSentence.add(labelList);
-                for (int ind = sentenceOffset; ind < sentenceOffset + sentence.size(); ind++) {
-                    if (ind == e.getExtentStartOffset()) {
-                        labelList.add(Consts.BIO_B + e.getEntityType());
-                    } else if (ind > e.getExtentStartOffset() && ind < e.getHeadEndOffset()) {
-                        labelList.add(Consts.BIO_I + e.getEntityType());
-                    } else {
-                        labelList.add(Consts.BIO_O);
+    public List<List<String>> getGoldFineBIOEncoding() {
+        if (fineBIOencoding != null) {
+            return fineBIOencoding;
+        }
+
+        fineBIOencoding = new ArrayList<List<String>>();
+        Collections.sort(goldEntityMentions, new Comparator<EntityMention>() {
+            @Override
+            public int compare(EntityMention e1, EntityMention e2) {
+                return e1.getHeadStartOffset() - e2.getHeadStartOffset();
+            }
+        });
+
+        Iterator<EntityMention> labelItr = goldEntityMentions.iterator();
+        EntityMention currentLabel = labelItr.next();
+        int tokenInd = 0;
+        for (List<String> sentence: sentenceTokens) {
+            List<String> labelList = new ArrayList<>();
+            fineBIOencoding.add(labelList);
+            for (String word: sentence) {
+                if (currentLabel != null && tokenInd == currentLabel.getHeadEndOffset()) {
+                    while (currentLabel != null && currentLabel.getHeadStartOffset() < tokenInd) {
+                        currentLabel = labelItr.hasNext() ? labelItr.next() : null;
                     }
                 }
+                if (currentLabel == null || tokenInd < currentLabel.getHeadStartOffset()) {
+                    labelList.add(Consts.BIO_O);
+                } else if (tokenInd == currentLabel.getHeadStartOffset()) {
+                    labelList.add(Consts.BIO_B + currentLabel.getFineEntityType());
+                } else if (tokenInd > currentLabel.getHeadStartOffset() && tokenInd < currentLabel.getHeadEndOffset()) {
+                    labelList.add(Consts.BIO_I + currentLabel.getFineEntityType());
+                } else {
+                    System.err.println("PROBLEM - current ind is "+tokenInd + ", offset is "+currentLabel.getHeadStartOffset());
+                }
+                tokenInd++;
             }
-            sentenceOffset += sentence.size();
         }
-        return result;
+
+        return fineBIOencoding;
     }
+
+
     /**
      *
      * @return A list of lists - each of these representing a sentence - of POS tags (representing the tag per
@@ -418,118 +449,83 @@ public class ACEAnnotation implements Serializable {
         return result;
     }
 
-    public IntPair findMentionExtent(int headStartOffset, int headEndOffset) {
-        System.out.println("CHECKING ("+headStartOffset+", "+headEndOffset+")");
-        return new IntPair(headStartOffset, headEndOffset);
-        /*
-        int sentenceInd = findSentenceIndex(headStartOffset);
-        int sentenceOffset = getSentenceIndex(sentenceInd);
-        System.out.println("SENTENCE OFFSET: "+sentenceOffset);
-        Tree<String> tree = ParseHelper.getParseTree(ViewNames.PARSE_STANFORD, ta, sentenceInd);
-        System.out.println(tree);
-        Tree<Pair<String, IntPair>> prev = ParseHelper.getTokenIndexedTreeCovering(tree, headStartOffset-sentenceOffset, headEndOffset-sentenceOffset);
-        System.out.println(prev);
-        Tree<Pair<String, IntPair>> parent = prev.getParent();
-        while (parent != null && !parent.getLabel().getFirst().equals("S") && !parent.getLabel().getFirst().startsWith("VP")){ //&& !parent.getLabel().getFirst().startsWith("NP")) {
-            prev = parent;
-            parent = parent.getParent();
-        }
-        if (parent == null || parent.getLabel().getFirst().equals("S") || parent.getLabel().getFirst().startsWith("VP")) {
-            //System.out.println("RETURNING PREV");
-            //System.out.println(prev);
-            IntPair temp = prev.getLabel().getSecond();
-            System.out.println("RESULT: ("+(sentenceOffset+temp.getFirst())+", "+ (sentenceOffset+temp.getSecond())+")");
-            System.out.println(prev);
-            return new IntPair(sentenceOffset+temp.getFirst(), sentenceOffset+temp.getSecond());
-        } else {
-            /*
-            while (parent != null && parent.getLabel().getFirst().startsWith("NP")) {
-                prev = parent;
-                parent = parent.getParent();
-            }
-            //System.out.println("RETURNING PARENT");
-            //System.out.println(parent);
-            IntPair temp = parent.getLabel().getSecond();
-            System.out.println("RESULT: ("+(sentenceOffset+temp.getFirst())+", "+ (sentenceOffset+temp.getSecond())+")");
-            System.out.println(prev);
-            return new IntPair(sentenceOffset+temp.getFirst(), sentenceOffset+temp.getSecond());
-        }*/
-    }
 
-    public String getParseRootCovering(int token, int headStartOffset, int headEndOffset) {
-        int sentenceInd = findSentenceIndex(headStartOffset);
-        int sentenceOffset = getSentenceIndex(sentenceInd);
-        Tree<String> tree = ParseHelper.getParseTree(ViewNames.PARSE_STANFORD, ta, sentenceInd);
 
-        int start = headStartOffset - sentenceOffset;
-        int end = headEndOffset - sentenceOffset;
-        if (token < headStartOffset) {
-            start = token - sentenceOffset;
-        } else {
-            end = token + 1 - sentenceOffset;
-        }
-        Tree<Pair<String,IntPair>> coveringTree = ParseHelper.getTokenIndexedTreeCovering(tree, start, end);
-        return coveringTree.getLabel().getFirst();
-    }
-
-    public String getSiblingParseLabel(int token, int headStartOffset, int headEndOffset) {
-        int sentenceInd = findSentenceIndex(headStartOffset);
-        int sentenceOffset = getSentenceIndex(sentenceInd);
-        Tree<String> tree = ParseHelper.getParseTree(ViewNames.PARSE_STANFORD, ta, sentenceInd);
-        Tree<Pair<String,IntPair>> coveringTree = ParseHelper.getTokenIndexedTreeCovering(tree, headStartOffset, headEndOffset);
-        IntPair span = coveringTree.getLabel().getSecond();
-        if (token >= span.getFirst() && token < span.getSecond()) {
-            return Consts.IN_SAME_SUBTREE;
-        } else if (coveringTree.isRoot()) {
-            return null;
-        }else if (token < headStartOffset) {
-            if (coveringTree.getPositionAmongParentsChildren() == 0) {
-                return null;
-            }
-            Tree<Pair<String,IntPair>> sibling = coveringTree.getParent().getChild(coveringTree.getPositionAmongParentsChildren()-1);
-            span = sibling.getLabel().getSecond();
-            if (token >= span.getFirst() && token < span.getSecond()) {
-                return sibling.getLabel().getFirst();
-            }
-        } else {
-            if (coveringTree.getPositionAmongParentsChildren() == coveringTree.getParent().getChildren().size()-1) {
-                return null;
-            }
-            Tree<Pair<String,IntPair>> sibling = coveringTree.getParent().getChild(coveringTree.getPositionAmongParentsChildren()+1);
-            span = sibling.getLabel().getSecond();
-            if (token >= span.getFirst() && token < span.getSecond()) {
-                return sibling.getLabel().getFirst();
-            }
-        }
-        return null;
-    }
 
     /**
      * This is the function that should be called by the NER system to add an entity mention to the test labels
      *
-     * @param type The type of the entity
+     * @param coarseType The coarseType of the entity
      * @param extentStartOffset The index of the first token of the span containing the entity
      * @param extentEndOffset The index of the last token + 1 (e.g. if the last token is #3, the value here should be 4)
      */
-    public void addEntityMention(String type, int extentStartOffset, int extentEndOffset, int headStartOffset, int headEndOffset, boolean addTAInfo) {
-        EntityMention e = new EntityMention(type, null, extentStartOffset, extentEndOffset, headStartOffset, headEndOffset, findSentenceIndex(extentStartOffset), this);
+    public void addCoarseExtentEntityMention(String coarseType, int extentStartOffset, int extentEndOffset, int headStartOffset, int headEndOffset, boolean addTAInfo) {
+        EntityMention e = new EntityMention(coarseType, null, null, extentStartOffset, extentEndOffset, headStartOffset, headEndOffset, findSentenceIndex(extentStartOffset), this);
         testEntityMentions.add(e);
         testEntityMentionsBySpan.put(new IntPair(headStartOffset, headEndOffset), e);
 
         if (addTAInfo) {
-            Constituent entityConstituent = createEntityConstituent(type, extentStartOffset, extentEndOffset, headStartOffset, headEndOffset);
-
-            entityView.addConstituent(entityConstituent);
+            Constituent entityConstituent = createCoarseExtentEntityConstituent(coarseType, extentStartOffset, extentEndOffset, headStartOffset, headEndOffset);
+            coarseExtentEntityView.addConstituent(entityConstituent);
             e.setConstituent(entityConstituent);
         }
     }
 
-    public Constituent createEntityConstituent(String type, int extentStartOffset, int extentEndOffset, int headStartOffset, int headEndOffset) {
-        Constituent entityConstituent = new Constituent(type, ACEReader.ENTITYVIEW, ta, extentStartOffset, extentEndOffset);
-        entityConstituent.addAttribute(ACEReader.EntityHeadStartCharOffset, ta.getTokenCharacterOffset(headStartOffset).getFirst() + "");
-        //TODO: check that these offsets are correct
-        entityConstituent.addAttribute(ACEReader.EntityHeadEndCharOffset, ta.getTokenCharacterOffset(headEndOffset - 1).getSecond() + "");
-        entityConstituent.addAttribute(ACEReader.EntityTypeAttribute, type);
+    public void addFineExtentEntityMention(String fineType, int extentStartOffset, int extentEndOffset, int headStartOffset, int headEndOffset, boolean addTAInfo) {
+        EntityMention e = new EntityMention(null, fineType, null, extentStartOffset, extentEndOffset, headStartOffset, headEndOffset, findSentenceIndex(extentStartOffset), this);
+        testEntityMentions.add(e);
+        testEntityMentionsBySpan.put(new IntPair(headStartOffset, headEndOffset), e);
+
+        if (addTAInfo) {
+            Constituent entityConstituent = createFineExtentEntityConstituent(fineType, extentStartOffset, extentEndOffset, headStartOffset, headEndOffset);
+            fineExtentEntityView.addConstituent(entityConstituent);
+
+            e.setConstituent(entityConstituent);
+        }
+    }
+
+    public void addCoarseHeadEntityMention(String coarseType, int extentStartOffset, int extentEndOffset, int headStartOffset, int headEndOffset, boolean addTAInfo) {
+        EntityMention e = new EntityMention(coarseType, null, null, extentStartOffset, extentEndOffset, headStartOffset, headEndOffset, findSentenceIndex(extentStartOffset), this);
+        testEntityMentions.add(e);
+        testEntityMentionsBySpan.put(new IntPair(headStartOffset, headEndOffset), e);
+
+        if (addTAInfo) {
+            Constituent entityConstituent = createCoarseHeadEntityConstituent(coarseType, headStartOffset, headEndOffset, headStartOffset, headEndOffset);
+            coarseHeadEntityView.addConstituent(entityConstituent);
+            e.setConstituent(entityConstituent);
+        }
+    }
+
+    public void addFineHeadEntityMention(String fineType, int extentStartOffset, int extentEndOffset, int headStartOffset, int headEndOffset, boolean addTAInfo) {
+        EntityMention e = new EntityMention(null, fineType, null, extentStartOffset, extentEndOffset, headStartOffset, headEndOffset, findSentenceIndex(extentStartOffset), this);
+        testEntityMentions.add(e);
+        testEntityMentionsBySpan.put(new IntPair(headStartOffset, headEndOffset), e);
+
+        if (addTAInfo) {
+            Constituent entityConstituent = createFineHeadEntityConstituent(fineType, extentStartOffset, extentEndOffset, headStartOffset, headEndOffset);
+            fineHeadEntityView.addConstituent(entityConstituent);
+
+            e.setConstituent(entityConstituent);
+        }
+    }
+
+    public Constituent createCoarseExtentEntityConstituent(String type, int extentStartOffset, int extentEndOffset, int headStartOffset, int headEndOffset) {
+        Constituent entityConstituent = new Constituent(type, ViewNames.NER_ACE_COARSE_EXTENT, ta, extentStartOffset, extentEndOffset);
+        return entityConstituent;
+    }
+
+    public Constituent createFineExtentEntityConstituent(String type, int extentStartOffset, int extentEndOffset, int headStartOffset, int headEndOffset) {
+        Constituent entityConstituent = new Constituent(type, ViewNames.NER_ACE_FINE_EXTENT, ta, extentStartOffset, extentEndOffset);
+        return entityConstituent;
+    }
+
+    public Constituent createCoarseHeadEntityConstituent(String type, int extentStartOffset, int extentEndOffset, int headStartOffset, int headEndOffset) {
+        Constituent entityConstituent = new Constituent(type, ViewNames.NER_ACE_COARSE_HEAD, ta, headStartOffset, headEndOffset);
+        return entityConstituent;
+    }
+
+    public Constituent createFineHeadEntityConstituent(String type, int extentStartOffset, int extentEndOffset, int headStartOffset, int headEndOffset) {
+        Constituent entityConstituent = new Constituent(type, ViewNames.NER_ACE_FINE_HEAD, ta, headStartOffset, headEndOffset);
         return entityConstituent;
     }
     /**
@@ -540,17 +536,17 @@ public class ACEAnnotation implements Serializable {
      */
     public void addRelation(String type, EntityMention e1, EntityMention e2) {
         testRelations.add(new Relation(type, e1, e2));
-        Constituent arg1 = e1.getConstituent().cloneForNewView(ACEReader.RELATIONVIEW);
+        Constituent arg1 = e1.getConstituent().cloneForNewView(ViewNames.RELATION_ACE_COARSE_HEAD);
         arg1.addAttribute(ACEReader.RelationMentionArgumentRoleAttribute, Consts.ARG_1);
         arg1.addAttribute(ACEReader.RelationTypeAttribute, type);
 
-        Constituent arg2 = e2.getConstituent().cloneForNewView(ACEReader.RELATIONVIEW);
+        Constituent arg2 = e2.getConstituent().cloneForNewView(ViewNames.RELATION_ACE_COARSE_HEAD);
         arg2.addAttribute(ACEReader.RelationMentionArgumentRoleAttribute, Consts.ARG_2);
         arg2.addAttribute(ACEReader.RelationTypeAttribute, type);
 
 
         //TODO: in the reader, the String array argument uses subtype - do we need to do this as well?
-        relationView.addPredicateArguments(arg1, Collections.singletonList(arg2), new String[] {type}, new double[] {1.0f});
+        relationView.addPredicateArguments(arg1, Collections.singletonList(arg2), new String[]{type}, new double[]{1.0f});
     }
 
     public void addCoreferenceEdge(EntityMention e1, EntityMention e2) {
@@ -640,7 +636,7 @@ public class ACEAnnotation implements Serializable {
             Collections.sort(l, new Comparator<EntityMention>() {
                 @Override
                 public int compare(EntityMention o1, EntityMention o2) {
-                    return o1.getExtentStartOffset()-o2.getExtentStartOffset();
+                    return o1.getExtentStartOffset() - o2.getExtentStartOffset();
                 }
             });
 
@@ -812,39 +808,39 @@ public class ACEAnnotation implements Serializable {
         return Arrays.asList(ta.getTokensInSpan(start, end));
     }
 
-    public IntPair getNERHeadPrecisionInfo() {
+    public IntPair getNERCoarseHeadPrecisionInfo() {
         //precision: out of the predicted mentions, which ones are correct?
         int correct = 0;
         for (EntityMention testEntity: testEntityMentions) {
             IntPair testSpan = new IntPair(testEntity.getHeadStartOffset(), testEntity.getHeadEndOffset());
             if (goldEntityMentionsByHeadSpan.containsKey(testSpan) &&
-                    goldEntityMentionsByHeadSpan.get(testSpan).equalsHead(testEntity)) {
+                    goldEntityMentionsByHeadSpan.get(testSpan).equalsCoarseHead(testEntity)) {
                 correct++;
             }
         }
         return new IntPair(correct, testEntityMentions.size());
     }
 
-    public IntPair getNERExtentPrecisionInfo() {
+    public IntPair getNERCoarseExtentPrecisionInfo() {
         //precision: out of the predicted mentions, which ones are correct?
         int correct = 0;
         for (EntityMention testEntity: testEntityMentions) {
             IntPair testSpan = new IntPair(testEntity.getHeadStartOffset(), testEntity.getHeadEndOffset());
             if (goldEntityMentionsByHeadSpan.containsKey(testSpan) &&
-                    goldEntityMentionsByHeadSpan.get(testSpan).equals(testEntity)) {
+                    goldEntityMentionsByHeadSpan.get(testSpan).equalsCoarseExtent(testEntity)) {
                 correct++;
             }
         }
         return new IntPair(correct, testEntityMentions.size());
     }
 
-    public IntPair getNERHeadRecallInfo() {
+    public IntPair getNERCoarseHeadRecallInfo() {
         //Next, recall: out of the correct mentions, how many were predicted?
         int correct = 0;
         for (EntityMention goldEntity: goldEntityMentions) {
             IntPair goldSpan = new IntPair(goldEntity.getHeadStartOffset(), goldEntity.getHeadEndOffset());
             if (testEntityMentionsBySpan.containsKey(goldSpan) &&
-                    testEntityMentionsBySpan.get(goldSpan).equalsHead(goldEntity)) {
+                    testEntityMentionsBySpan.get(goldSpan).equalsCoarseHead(goldEntity)) {
                 correct++;
             }
         }
@@ -852,13 +848,67 @@ public class ACEAnnotation implements Serializable {
 
     }
 
-    public IntPair getNERExtentRecallInfo() {
+    public IntPair getNERCoarseExtentRecallInfo() {
         //Next, recall: out of the correct mentions, how many were predicted?
         int correct = 0;
         for (EntityMention goldEntity: goldEntityMentions) {
             IntPair goldSpan = new IntPair(goldEntity.getHeadStartOffset(), goldEntity.getHeadEndOffset());
             if (testEntityMentionsBySpan.containsKey(goldSpan) &&
-                    testEntityMentionsBySpan.get(goldSpan).equals(goldEntity)) {
+                    testEntityMentionsBySpan.get(goldSpan).equalsCoarseExtent(goldEntity)) {
+                correct++;
+            }
+        }
+        return new IntPair(correct, goldEntityMentions.size());
+
+    }
+
+    public IntPair getNERFineHeadPrecisionInfo() {
+        //precision: out of the predicted mentions, which ones are correct?
+        int correct = 0;
+        for (EntityMention testEntity: testEntityMentions) {
+            IntPair testSpan = new IntPair(testEntity.getHeadStartOffset(), testEntity.getHeadEndOffset());
+            if (goldEntityMentionsByHeadSpan.containsKey(testSpan) &&
+                    goldEntityMentionsByHeadSpan.get(testSpan).equalsFineHead(testEntity)) {
+                correct++;
+            }
+        }
+        return new IntPair(correct, testEntityMentions.size());
+    }
+
+    public IntPair getNERFineExtentPrecisionInfo() {
+        //precision: out of the predicted mentions, which ones are correct?
+        int correct = 0;
+        for (EntityMention testEntity: testEntityMentions) {
+            IntPair testSpan = new IntPair(testEntity.getHeadStartOffset(), testEntity.getHeadEndOffset());
+            if (goldEntityMentionsByHeadSpan.containsKey(testSpan) &&
+                    goldEntityMentionsByHeadSpan.get(testSpan).equalsFineExtent(testEntity)) {
+                correct++;
+            }
+        }
+        return new IntPair(correct, testEntityMentions.size());
+    }
+
+    public IntPair getNERFineHeadRecallInfo() {
+        //Next, recall: out of the correct mentions, how many were predicted?
+        int correct = 0;
+        for (EntityMention goldEntity: goldEntityMentions) {
+            IntPair goldSpan = new IntPair(goldEntity.getHeadStartOffset(), goldEntity.getHeadEndOffset());
+            if (testEntityMentionsBySpan.containsKey(goldSpan) &&
+                    testEntityMentionsBySpan.get(goldSpan).equalsFineHead(goldEntity)) {
+                correct++;
+            }
+        }
+        return new IntPair(correct, goldEntityMentions.size());
+
+    }
+
+    public IntPair getNERFineExtentRecallInfo() {
+        //Next, recall: out of the correct mentions, how many were predicted?
+        int correct = 0;
+        for (EntityMention goldEntity: goldEntityMentions) {
+            IntPair goldSpan = new IntPair(goldEntity.getHeadStartOffset(), goldEntity.getHeadEndOffset());
+            if (testEntityMentionsBySpan.containsKey(goldSpan) &&
+                    testEntityMentionsBySpan.get(goldSpan).equalsFineExtent(goldEntity)) {
                 correct++;
             }
         }
@@ -894,8 +944,12 @@ public class ACEAnnotation implements Serializable {
         return relationTypes;
     }
 
-    public static Set<String> getEntityTypes() {
-        return entityTypes;
+    public static Set<String> getCoarseEntityTypes() {
+        return coarseEntityTypes;
+    }
+
+    public static Set<String> getFineEntityTypes() {
+        return fineEntityTypes;
     }
 
     public static Set<String> getMentionTypes() {
@@ -909,7 +963,7 @@ public class ACEAnnotation implements Serializable {
         bioLabels = new HashSet<String>();
 
         bioLabels.add(Consts.BIO_O);
-        for (String type: getEntityTypes()) {
+        for (String type: getCoarseEntityTypes()) {
             bioLabels.add(Consts.BIO_B + type);
             bioLabels.add(Consts.BIO_I + type);
         }
@@ -945,7 +999,8 @@ public class ACEAnnotation implements Serializable {
             relationTypes.add(relation.getType());
         }
         for (EntityMention e: result.goldEntityMentions) {
-            entityTypes.add(e.getEntityType());
+            coarseEntityTypes.add(e.getCoarseEntityType());
+            fineEntityTypes.add(e.getFineEntityType());
             mentionTypes.add(e.getMentionType());
         }
         return result;
