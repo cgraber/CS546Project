@@ -15,6 +15,7 @@ import edu.illinois.cs.cogcomp.nlp.corpusreaders.aceReader.annotationStructure.*
 import edu.illinois.cs.cogcomp.nlp.utility.TokenizerTextAnnotationBuilder;
 import utils.Consts;
 import utils.Pipeline;
+import edu.illinois.cs.cogcomp.nlp.corpusreaders.ACEReader;
 
 import java.io.*;
 import java.util.*;
@@ -90,7 +91,6 @@ public class ACEAnnotation implements Serializable {
         id = doc.aceAnnotation.id;
 
         ta = taBuilder.createTextAnnotation(null, id, doc.contentRemovingTags);
-
         initializeTA();
 
         // And now we pull all of the gold data out of the ACEDocumentAnnotation wrapper
@@ -182,8 +182,8 @@ public class ACEAnnotation implements Serializable {
         ta.addView(ViewNames.NER_ACE_FINE_HEAD, fineHeadEntityView);
         corefView = new CoreferenceView(ViewNames.COREF, ACEAnnotation.class.getCanonicalName(), ta, 1.0f);
         ta.addView(ViewNames.COREF, corefView);
-        relationView = new PredicateArgumentView(ACEReader.RELATIONVIEW, ACEAnnotation.class.getCanonicalName(), ta, 1.0f);
-        ta.addView(ACEReader.RELATIONVIEW, relationView);
+        relationView = new PredicateArgumentView(ViewNames.RELATION_ACE_COARSE_HEAD, ACEAnnotation.class.getCanonicalName(), ta, 1.0f);
+        ta.addView(ViewNames.RELATION_ACE_COARSE_HEAD, relationView);
 
         int count = 0;
         for (Sentence sentence: ta.sentences()) {
@@ -508,37 +508,21 @@ public class ACEAnnotation implements Serializable {
 
     public Constituent createCoarseExtentEntityConstituent(String type, int extentStartOffset, int extentEndOffset, int headStartOffset, int headEndOffset) {
         Constituent entityConstituent = new Constituent(type, ViewNames.NER_ACE_COARSE_EXTENT, ta, extentStartOffset, extentEndOffset);
-        entityConstituent.addAttribute(ACEReader.EntityHeadStartCharOffset, ta.getTokenCharacterOffset(headStartOffset).getFirst() + "");
-        //TODO: check that these offsets are correct
-        entityConstituent.addAttribute(ACEReader.EntityHeadEndCharOffset, ta.getTokenCharacterOffset(headEndOffset - 1).getSecond() + "");
-        entityConstituent.addAttribute(ACEReader.EntityTypeAttribute, type);
         return entityConstituent;
     }
 
     public Constituent createFineExtentEntityConstituent(String type, int extentStartOffset, int extentEndOffset, int headStartOffset, int headEndOffset) {
         Constituent entityConstituent = new Constituent(type, ViewNames.NER_ACE_FINE_EXTENT, ta, extentStartOffset, extentEndOffset);
-        entityConstituent.addAttribute(ACEReader.EntityHeadStartCharOffset, ta.getTokenCharacterOffset(headStartOffset).getFirst() + "");
-        //TODO: check that these offsets are correct
-        entityConstituent.addAttribute(ACEReader.EntityHeadEndCharOffset, ta.getTokenCharacterOffset(headEndOffset - 1).getSecond() + "");
-        entityConstituent.addAttribute(ACEReader.EntityTypeAttribute, type);
         return entityConstituent;
     }
 
     public Constituent createCoarseHeadEntityConstituent(String type, int extentStartOffset, int extentEndOffset, int headStartOffset, int headEndOffset) {
-        Constituent entityConstituent = new Constituent(type, ViewNames.NER_ACE_COARSE_HEAD, ta, extentStartOffset, extentEndOffset);
-        entityConstituent.addAttribute(ACEReader.EntityHeadStartCharOffset, ta.getTokenCharacterOffset(headStartOffset).getFirst() + "");
-        //TODO: check that these offsets are correct
-        entityConstituent.addAttribute(ACEReader.EntityHeadEndCharOffset, ta.getTokenCharacterOffset(headEndOffset - 1).getSecond() + "");
-        entityConstituent.addAttribute(ACEReader.EntityTypeAttribute, type);
+        Constituent entityConstituent = new Constituent(type, ViewNames.NER_ACE_COARSE_HEAD, ta, headStartOffset, headEndOffset);
         return entityConstituent;
     }
 
     public Constituent createFineHeadEntityConstituent(String type, int extentStartOffset, int extentEndOffset, int headStartOffset, int headEndOffset) {
-        Constituent entityConstituent = new Constituent(type, ViewNames.NER_ACE_FINE_HEAD, ta, extentStartOffset, extentEndOffset);
-        entityConstituent.addAttribute(ACEReader.EntityHeadStartCharOffset, ta.getTokenCharacterOffset(headStartOffset).getFirst() + "");
-        //TODO: check that these offsets are correct
-        entityConstituent.addAttribute(ACEReader.EntityHeadEndCharOffset, ta.getTokenCharacterOffset(headEndOffset - 1).getSecond() + "");
-        entityConstituent.addAttribute(ACEReader.EntityTypeAttribute, type);
+        Constituent entityConstituent = new Constituent(type, ViewNames.NER_ACE_FINE_HEAD, ta, headStartOffset, headEndOffset);
         return entityConstituent;
     }
     /**
@@ -549,11 +533,11 @@ public class ACEAnnotation implements Serializable {
      */
     public void addRelation(String type, EntityMention e1, EntityMention e2) {
         testRelations.add(new Relation(type, e1, e2));
-        Constituent arg1 = e1.getConstituent().cloneForNewView(ACEReader.RELATIONVIEW);
+        Constituent arg1 = e1.getConstituent().cloneForNewView(ViewNames.RELATION_ACE_COARSE_HEAD);
         arg1.addAttribute(ACEReader.RelationMentionArgumentRoleAttribute, Consts.ARG_1);
         arg1.addAttribute(ACEReader.RelationTypeAttribute, type);
 
-        Constituent arg2 = e2.getConstituent().cloneForNewView(ACEReader.RELATIONVIEW);
+        Constituent arg2 = e2.getConstituent().cloneForNewView(ViewNames.RELATION_ACE_COARSE_HEAD);
         arg2.addAttribute(ACEReader.RelationMentionArgumentRoleAttribute, Consts.ARG_2);
         arg2.addAttribute(ACEReader.RelationTypeAttribute, type);
 

@@ -29,8 +29,7 @@ public class NERAnnotator extends Annotator {
     @Override
     public void addView(TextAnnotation ta) throws AnnotatorException {
         System.out.println("Starting with doc!");
-//int count = 0;
-//while (count< 1000){}
+
         //When writing an annotator for our system, there are two main steps:
         //First, you need to make an ACEAnnotation from the text annotation. There's a constructor to do this:
         ACEAnnotation doc = new ACEAnnotation(ta);
@@ -40,7 +39,6 @@ public class NERAnnotator extends Annotator {
         List<ACEAnnotation> arg = new ArrayList<>();
         arg.add(doc);
         ner.test(arg);
-        System.out.println(doc.getAllPairsPipelineCoreferenceEdges());
         System.out.println("Done with doc!");
         //As long as your code adds the NER, coreference, or relation information to the ACEAnnotation document, the
         //correct information will be automatically added to the TextAnnotation!

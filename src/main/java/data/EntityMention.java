@@ -88,8 +88,6 @@ public class EntityMention implements Serializable {
         if (this.coarseEntityType.equals(other.coarseEntityType) &&
                 this.extentStartOffset == other.extentStartOffset &&
                 this.extentEndOffset == other.extentEndOffset &&
-                this.headStartOffset == other.headStartOffset &&
-                this.headEndOffset == other.headEndOffset &&
                 this.annotation == other.annotation) {
             return true;
         } else {
