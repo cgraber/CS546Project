@@ -73,6 +73,7 @@ public class ACEAnnotation implements Serializable {
 
     private List<CoreferenceEdge> goldCoreferenceEdges = new ArrayList<>();
     private Map<Pair<EntityMention,EntityMention>,CoreferenceEdge> goldCoreferenceEdgesByEntities = new HashMap<>();
+    private List<List<EntityMention>> goldCoreferentEntities = new ArrayList<>();
     private List<CoreferenceEdge> testCoreferenceEdges = new ArrayList<>();
     private List<List<EntityMention>> testCoreferentEntities = new ArrayList<>();
     private List<ACERelation> relationList;
@@ -112,6 +113,7 @@ public class ACEAnnotation implements Serializable {
             entityTypes.add(entity.type);
             //entitySubtypes.add(entity.subtype);
             List<EntityMention> coreferentEntities = new ArrayList<>();
+            goldCoreferentEntities.add(coreferentEntities);
             for (ACEEntityMention mention: entity.entityMentionList) {
                 mentionTypes.add(mention.type);
                 EntityMention e = makeEntityMention(mention, entity.type);
@@ -569,6 +571,10 @@ public class ACEAnnotation implements Serializable {
         }
         testCoreferentEntities.add(ref);
         corefView.addCorefEdges(canonical, constituents);
+    }
+
+    public List<List<EntityMention>> getGoldCoreferentEntities() {
+        return goldCoreferentEntities;
     }
 
     public List<List<EntityMention>> getTestCoreferentEntities() {
