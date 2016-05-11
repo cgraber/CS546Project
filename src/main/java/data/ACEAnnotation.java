@@ -766,12 +766,24 @@ public class ACEAnnotation implements Serializable {
             for (int e2Ind = e1Ind - 1; e2Ind >= 0; e2Ind--) {
                 EntityMention e1 = testEntityMentions.get(e1Ind);
                 EntityMention e2 = testEntityMentions.get(e2Ind);
-                if (!(e2.getMentionType().equals(Consts.PRONOUN) && !e1.getMentionType().equals(Consts.PRONOUN))){
+                if (!(isPronoun(e2) && !isPronoun(e1))){
                     result.add(new CoreferenceEdge(e2, e1));
                 }
             }
         }
         return result;
+    }
+
+    public boolean isPronoun(EntityMention e) {
+        if (e.getHead().size() != 1) {
+            return false;
+        }
+        String tag = getPOSTags().get(e.getHeadStartOffset());
+        if (tag.equals("PRP") || tag.equals("PRP$") || tag.equals("WP") || tag.equals("WP$")) {
+            return true;
+        } else {
+            return false;
+        }
     }
 
     public List<CoreferenceEdge> getGoldCoreferenceEdges() {
