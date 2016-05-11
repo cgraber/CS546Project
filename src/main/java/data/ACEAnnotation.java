@@ -74,6 +74,7 @@ public class ACEAnnotation implements Serializable {
     private List<CoreferenceEdge> goldCoreferenceEdges = new ArrayList<>();
     private Map<Pair<EntityMention,EntityMention>,CoreferenceEdge> goldCoreferenceEdgesByEntities = new HashMap<>();
     private List<CoreferenceEdge> testCoreferenceEdges = new ArrayList<>();
+    private List<List<EntityMention>> testCoreferentEntities = new ArrayList<>();
     private List<ACERelation> relationList;
     private List<Integer> sentenceIndex = new ArrayList<>();
 
@@ -558,13 +559,20 @@ public class ACEAnnotation implements Serializable {
         //Find canonical mention - according to the reader, this is the one with the longest span
         Constituent canonical = null;
         List<Constituent> constituents = new ArrayList<>();
+        List<EntityMention> ref = new ArrayList<>();
         for (EntityMention e: mentions) {
+            ref.add(e);
             if (canonical == null || canonical.getSurfaceForm().length() < e.getConstituent().getSurfaceForm().length()) {
                 canonical = e.getConstituent();
             }
             constituents.add(e.getConstituent());
         }
+        testCoreferentEntities.add(ref);
         corefView.addCorefEdges(canonical, constituents);
+    }
+
+    public List<List<EntityMention>> getTestCoreferentEntities() {
+        return testCoreferentEntities;
     }
 
     public List<EntityMention> getGoldEntityMentions() {
@@ -792,10 +800,6 @@ public class ACEAnnotation implements Serializable {
 
     public Map<Pair<EntityMention,EntityMention>, CoreferenceEdge> getGoldCoreferenceEdgesByEntities() {
         return goldCoreferenceEdgesByEntities;
-    }
-
-    public List<CoreferenceEdge> getTestCoreferenceEdges() {
-        return testCoreferenceEdges;
     }
 
     public List<String> getExtent(int start, int end) {
