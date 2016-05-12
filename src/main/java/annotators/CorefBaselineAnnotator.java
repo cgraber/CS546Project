@@ -30,6 +30,11 @@ public class CorefBaselineAnnotator extends Annotator {
             e.printStackTrace();
             System.exit(1);
         }
+//        System.out.println( "coref:" +  ViewNames.COREF );
+//        System.out.println( "pos:" +  ViewNames.POS );
+//        System.out.println( "lemma:" +  ViewNames.LEMMA );
+//        System.out.println( "parse:" +  ViewNames.PARSE_STANFORD );
+        
         // temporary training
 		ArrayList<ACEAnnotation> train_split = new ArrayList<ACEAnnotation>();
 		for (int i = 0; i < splits.size()-1; i++){
@@ -40,8 +45,8 @@ public class CorefBaselineAnnotator extends Annotator {
     
     @Override
     public void addView(TextAnnotation ta) throws AnnotatorException {
-        //When writing an annotator for our system, there are two main steps:
-        //First, you need to make an ACEAnnotation from the text annotation. There's a constructor to do this:
+        // When writing an annotator for our system, there are two main steps:
+        // First, you need to make an ACEAnnotation from the text annotation. There's a constructor to do this:
         ACEAnnotation doc = new ACEAnnotation(ta);
         
         // All you have to do now is run your test code on this ACEAnnotation
@@ -49,7 +54,14 @@ public class CorefBaselineAnnotator extends Annotator {
         
         // can predict and add is coreferent but it will it make sense ??
         arg.add(doc);
+        
+        System.out.println( "test size pipe:" + doc.getAllPairsPipelineCoreferenceEdges());
+        System.out.println( "test size g0: " + doc.getGoldCoreferenceEdges().size() );
+        System.out.println( "test size g1: "  + doc.getAllPairsGoldCoreferenceEdges().getFirst().size() );
+        System.out.println( "test size g2: "  + doc.getAllPairsGoldCoreferenceEdges().getFirst().size() );
+
         this.cb.test(arg);
+        
     }
     
     public static void main(String[] argv) throws IOException {
@@ -57,7 +69,7 @@ public class CorefBaselineAnnotator extends Annotator {
         //The second number in the ServerPreferences constructor is the number of TextAnnotations sent at a time to
         //be annotated. Because of the slow speed of NER labeling, this was set to 1; setting it to 50 (as listed in
         //the documentation) caused the connection to time out.
-        Server server = new Server(5757, new ServerPreferences(0, 1), annotator);
+        Server server = new Server(5757, new ServerPreferences(0, 60), annotator);
         fi.iki.elonen.util.ServerRunner.executeInstance(server);
     }
     

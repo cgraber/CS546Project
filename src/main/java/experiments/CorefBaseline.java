@@ -21,8 +21,13 @@ import weka.classifiers.functions.Logistic;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
+import java.io.Writer;
 
 /**
  * The baseline coreference class using simple features and binary classification setup.
@@ -37,6 +42,8 @@ public class CorefBaseline implements PipelineStage{
 	//Weka
 	private Logistic classifier;
 	public static final boolean DEBUG=false;
+	public static final String RCSDir="rcsTestfiles";
+	public static final double STHOLD=0.15;
 	
 	public CorefBaseline(){
 		this.train = null;
@@ -223,28 +230,51 @@ public class CorefBaseline implements PipelineStage{
 		}
 	}
 	
-	// old stitch method for testing data.
-	private Map<EntityMention, CoreferenceEdge> stitch2(){
+	// here we need to match the entities
+	private Map<EntityMention, CoreferenceEdge> stitchPipeline(){
+		System.out.println("Stitching Pipeline...");
 		int index = 0;
-		Map <EntityMention, CoreferenceEdge > candidate_map = new HashMap<EntityMention, CoreferenceEdge>();
-		Map <EntityMention, Double > candidate_best = new HashMap<EntityMention, Double>();
+		int jj = 0;
+		Map <EntityMention, CoreferenceEdge > candidate_map = null;
+		Map <EntityMention, Double > candidate_best = null;
 		
 		// first need to find all of the possible mapping? and the best mapping
 		for (ACEAnnotation a : this.test){
+			// candidate map should be different for each ace annotation
+			candidate_map = new HashMap<EntityMention, CoreferenceEdge>();
+			candidate_best = new HashMap<EntityMention, Double>();
+			
 			// Following standard that we are not relating a later entity mention to an earlier entityMention??
-			List<CoreferenceEdge> examples = a.getAllPairsPipelineCoreferenceEdges();
-		
-			//ap += temp.getFirst().size();
+			List<CoreferenceEdge> pipe_edges  = a.getAllPairsPipelineCoreferenceEdges();
+			//List<CoreferenceEdge> gold_edges = a.getTestCoreferenceEdges();
 			
+			EntityMention em1 = null;
 			EntityMention em2 = null;
-			
-			for ( CoreferenceEdge item : examples){
-				Pair<EntityMention, EntityMention> mentions_pair = item.getEntityMentions();
-				if (mentions_pair.getFirst().getExtentStartOffset() < mentions_pair.getSecond().getExtentStartOffset() ){
+			Pair<EntityMention, EntityMention> mentions_pair = null;
+			for ( CoreferenceEdge item : pipe_edges){
+				mentions_pair = item.getEntityMentions();
+				if (mentions_pair.getFirst().getHeadStartOffset() < mentions_pair.getSecond().getHeadStartOffset() ){
+					em1 = mentions_pair.getFirst();
 					em2 = mentions_pair.getSecond();
 				}
 				else{
+					if( CorefBaseline.DEBUG ){
+						System.out.println("ERROR: shouldn't have em1 > em2");
+						System.out.println("current example first head: " + mentions_pair.getFirst().getHeadStartOffset() + " first extent: " 
+								+ mentions_pair.getFirst().getExtentStartOffset()+ " second: " + mentions_pair.getSecond().getHeadStartOffset()
+								 + " second extent: " + mentions_pair.getSecond().getExtentStartOffset());
+					}
+							
 					em2 = mentions_pair.getFirst();
+					em1 = mentions_pair.getSecond();
+				}
+				// Need to check if there is an analouge entity mention in the gold set?
+				
+				// threshold
+				if ( this.prediction_scores.get(index) < CorefBaseline.STHOLD){
+					//System.out.println(this.prediction_scores.get(index));
+					index++;
+					continue;
 				}
 				
 				if( candidate_best.containsKey(em2) ){
@@ -256,8 +286,138 @@ public class CorefBaseline implements PipelineStage{
 					candidate_best.put(em2, this.prediction_scores.get(index));
 					candidate_map.put(em2, item);
 				}
-				index++;
+				index++;	
 			}
+			
+			List<CoreferenceEdge> pred_edges = new ArrayList<CoreferenceEdge>();
+			// Before sorting
+			for ( CoreferenceEdge predicted_positive: candidate_map.values()){
+				pred_edges.add(predicted_positive);
+			}
+			
+			//sort the candidate edges in each sentence by start offset
+            Collections.sort(pred_edges, new Comparator<CoreferenceEdge>() {
+                @Override
+                public int compare(CoreferenceEdge o1, CoreferenceEdge o2) {
+                	// first compare entity mention e1, unless they are the same then look at e2.
+                	if ( o1.e1.getHeadStartOffset() - o2.e1.getHeadStartOffset() == 0 ){
+                		return o1.e2.getHeadStartOffset() - o2.e2.getHeadStartOffset();
+                	}
+                    return o1.e1.getHeadStartOffset() - o2.e1.getHeadStartOffset();
+                }
+            });
+			
+            // After sorting
+            if (CorefBaseline.DEBUG){
+            	System.out.println("Sorted coreference list");
+            	for (  CoreferenceEdge pp: pred_edges){
+            		System.out.println(pp.e1.getHeadStartOffset() + ":" + pp.e1.getConstituent()+ " " + pp.e2.getHeadStartOffset() + ":" + pp.e1.getConstituent());
+            	}
+            }
+            
+            // inverted index of mentions
+			// then need to assign if its coreferent or not.
+			// up to here we don't assume that we know the labels
+			ArrayList < List<EntityMention> > equivalence_classes = new ArrayList< List<EntityMention> >();
+			for ( CoreferenceEdge predicted_positive: pred_edges){
+				// constructing equivalence classes
+				Boolean found = false;
+				mentions_pair = predicted_positive.getEntityMentions();
+				if ( mentions_pair.getFirst().getHeadStartOffset() < mentions_pair.getSecond().getHeadStartOffset() ){
+					em1 = mentions_pair.getFirst();
+					em2 = mentions_pair.getSecond();
+				}
+				else{
+					if (CorefBaseline.DEBUG){
+						System.out.println("ERROR: shouldn't have em1 > em2");
+						System.out.println("current example first head: " + mentions_pair.getFirst().getHeadStartOffset() + " first extent: " 
+								+ mentions_pair.getFirst().getExtentStartOffset()+ " second: " + mentions_pair.getSecond().getHeadStartOffset()
+								 + " second extent: " + mentions_pair.getSecond().getExtentStartOffset());
+					}
+					em2 = mentions_pair.getFirst();
+					em1 = mentions_pair.getSecond();
+				}
+				
+				int eq_index = 0;
+				for ( List<EntityMention> ec : equivalence_classes){
+					if (ec.contains(em1)){
+						if (!ec.contains(em2)){
+							ec.add(em2);
+							if (CorefBaseline.DEBUG){
+								System.out.println("found [em1] ( "+em1.getHeadStartOffset()  + ") adding (" + em2.getHeadStartOffset() + "):" + em2.getConstituent() + " \t to ec: " + eq_index);
+							}
+						}
+						found = true;
+						break;
+					}
+					else if (ec.contains(em2)){
+						if (!ec.contains(em1)){
+							ec.add(em1);
+							if (CorefBaseline.DEBUG){
+								System.out.println("found [em2] ( "+em2.getHeadStartOffset()  + ") adding (" + em1.getHeadStartOffset() + "):"  + em1.getConstituent() + " \t to ec: " + eq_index);
+							}
+						}
+						found = true;
+						break;
+					}
+					eq_index++;
+				}
+				
+				if (!found){
+					if (CorefBaseline.DEBUG){
+						System.out.println("not found (" + em1.getHeadStartOffset() + "):" + em1.getConstituent() + " or (" + em2.getHeadStartOffset() + "):" + em2.getConstituent());
+					}
+					List<EntityMention> ec = new ArrayList<EntityMention>();
+					ec.add(em1);
+					ec.add(em2);
+					equivalence_classes.add(ec);
+				}
+			}
+			
+			if (CorefBaseline.DEBUG){
+				int len = 0;
+				for (List<String> sentence :a.getSentences()){
+					System.out.print(len + ":");
+					for ( String word : sentence){
+						System.out.print(word + " ");
+					}
+					System.out.println();
+					len += sentence.size();
+				}
+				System.out.println();
+			}
+			
+			// add the equivalence classes
+			int k = 0;
+			for ( List<EntityMention> ec : equivalence_classes){
+				if (CorefBaseline.DEBUG){
+					System.out.print("equivilence classes:");
+					System.out.println("ec:" + k++ );
+					for (EntityMention em :ec){
+						System.out.print(em.getHeadStartOffset() + ": ");
+						for (String word : em.getHead()){
+							System.out.print(word + " ");
+						}
+						// printing candidate map
+						if ( candidate_map.containsKey(em)){
+							System.out.print( "\t\t (" + candidate_map.get(em).e1.getHeadStartOffset() + " " + candidate_map.get(em).e2.getHeadStartOffset() + ")" );
+							System.out.print("\t\t score: " + this.prediction_scores.get(index - pipe_edges.indexOf(candidate_map.get(em)) - 1));
+						}
+						else{
+							System.out.print("\t\t");
+						}
+						
+						System.out.println("\t\t constituent:" + em.getConstituent());
+					}
+					System.out.println();
+				}
+				// adding the equivalence classes
+				//a.addCoreferentEntity(ec);
+				
+			}
+			// Collect all ACE annotations?
+			CorefBaseline.write2file( a.getSentences(), equivalence_classes, "test-file-"+jj+".response" , jj);
+			jj++;
 		}
 		return candidate_map;
 	}
@@ -276,6 +436,7 @@ public class CorefBaseline implements PipelineStage{
 			
 			// Following standard that we are not relating a later entity mention to an earlier entityMention??
 			List<CoreferenceEdge> examples  = a.getAllPairsPipelineCoreferenceEdges();
+			//List<CoreferenceEdge> examples = a.getTestCoreferenceEdges();
 			
 			EntityMention em1 = null;
 			EntityMention em2 = null;
@@ -299,7 +460,7 @@ public class CorefBaseline implements PipelineStage{
 				}
 				
 				// threshold
-				if ( this.prediction_scores.get(index) < 0.10){
+				if ( this.prediction_scores.get(index) < CorefBaseline.STHOLD){
 					//System.out.println(this.prediction_scores.get(index));
 					index++;
 					continue;
@@ -462,6 +623,7 @@ public class CorefBaseline implements PipelineStage{
 		int ap = 0;
 		int tp = 0;
 		int fp = 0;
+		int jj = 0;
 		
 		// first need to find all of the possible mapping? and the best mapping
 		for (ACEAnnotation a : this.test){
@@ -492,13 +654,12 @@ public class CorefBaseline implements PipelineStage{
 								+ mentions_pair.getFirst().getExtentStartOffset()+ " second: " + mentions_pair.getSecond().getHeadStartOffset()
 								 + " second extent: " + mentions_pair.getSecond().getExtentStartOffset());
 					}
-							
 					em2 = mentions_pair.getFirst();
 					em1 = mentions_pair.getSecond();
 				}
 				
 				// threshold
-				if ( this.prediction_scores.get(index) < 0.10){
+				if ( this.prediction_scores.get(index) < CorefBaseline.STHOLD){
 					//System.out.println(this.prediction_scores.get(index));
 					index++;
 					continue;
@@ -650,11 +811,13 @@ public class CorefBaseline implements PipelineStage{
 					}
 					System.out.println();
 				}
-				a.addCoreferentEntity(ec);
-				
+				//a.addCoreferentEntity(ec);
 			}
-			
+			// writing to file
+			CorefBaseline.write2file( a.getSentences(), equivalence_classes, "test-file-"+jj+".response" , jj);
+			jj++;
 		}
+		
 		double precision = tp/(double)(tp+fp);
 		double recall = tp /(double)ap;
 		double f1 = 2*(precision*recall)/(precision+ recall);
@@ -704,7 +867,7 @@ public class CorefBaseline implements PipelineStage{
 			this.prediction_scores.add(prediction_distribution[1]);
 			predictions.add(c);
 		}
-		stitch();
+		stitchPipeline();
 		return predictions;
 	}
 	
@@ -757,6 +920,74 @@ public class CorefBaseline implements PipelineStage{
 		return predictions;
 	}
 	
+	private static void write2file(List<List<String>> sentences, List<List<EntityMention>> ec, String outputName, int docId){
+		System.out.println(CorefBaseline.RCSDir +"/" + outputName);
+		
+		// word index to equvilance class
+		HashMap<Integer, String> mymap= new HashMap<Integer, String>();
+		int ec_number = 0;
+		
+		// initialize hashmap: 
+		// is there a better way to do this?
+		int index = 0;
+		for ( List<String> sentence : sentences){
+			for (String word: sentence){
+				mymap.put(index, "-");
+				index++;
+			}
+		}
+		
+		// add the code for the hash map?
+		for (List<EntityMention> eclass: ec){
+			for (EntityMention em: eclass){
+				String code = "";
+				for (int i = em.getHeadStartOffset(); i < em.getHeadEndOffset(); i++){
+					if ( em.getHeadEndOffset() - em.getHeadStartOffset() == 1){
+						code = "("+ec_number+")";
+					} else if (i == em.getHeadStartOffset() ){
+						code = "("+ec_number;
+					} else if (i == em.getHeadEndOffset()-1){
+						code = ""+ec_number +")";
+					} else {
+						code = "-";
+					}
+					mymap.put(i, code);
+				}
+			}
+			ec_number++;
+		}
+		
+		int i = 0;
+		index = 0;
+		
+		try (Writer writer = new BufferedWriter(new OutputStreamWriter( new FileOutputStream(CorefBaseline.RCSDir +"/" + outputName), "utf-8"))) {
+			writer.write("#begin document (GoldTestCase);\n");
+			for ( List<String> sentence : sentences){
+				int j = 0;
+				for (String word: sentence){
+					//System.out.println();
+					writer.write("test" + i + "\t"+docId+"\t" + j + "\t" +  word + "\t" + mymap.get(index) + "\n");
+					j++;
+					index++;
+				}
+				writer.write("\n");
+				i++;
+			}
+			writer.write("#end document\n");
+		} catch (UnsupportedEncodingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (FileNotFoundException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+	
+	
 	public static void main( String[] argv ){
         System.out.println("Running CorefBaseline..");
 		
@@ -768,7 +999,7 @@ public class CorefBaseline implements PipelineStage{
 //            e.printStackTrace();
 //            System.exit(1);
 //        }
-//        //System.exit(0);
+//        System.exit(0);
         
         // loading processed data
         List<List<ACEAnnotation>> splits = null;
@@ -783,35 +1014,43 @@ public class CorefBaseline implements PipelineStage{
 		System.out.flush();
 		// temporary training/testing
 		ArrayList<ACEAnnotation> train_split = new ArrayList<ACEAnnotation>();
-		List<ACEAnnotation> test_split = new ArrayList<ACEAnnotation>();
+		ArrayList<ACEAnnotation> test_split = new ArrayList<ACEAnnotation>();
 		for (int i = 0; i < splits.size()-1; i++){
 			train_split.addAll(splits.get(i));
 		}
 		test_split.addAll(splits.get(splits.size()-1));
 		
 		System.out.println("training documents size:" + train_split.size());
-		System.out.println("testing documents size" + test_split.size());
+		System.out.println("testing documents size:" + test_split.size());
 		
-//		//gold data
-		CorefBaseline cb = new CorefBaseline();
-		cb.trainModel(train_split);
-		cb.test(test_split);
+		// Saving the test output
+//		for (int i = 0; i < test_split.size(); i++){
+//			//System.out.println(train_split.get(i).getGoldCoreferentEntities());
+//			if ( test_split.get(i).getGoldCoreferentEntities() != null)
+//				CorefBaseline.write2file(test_split.get(i).getSentences(), test_split.get(i).getGoldCoreferentEntities(), "gold-file-"+i+".key", i);
+//		}
+		
+//		// gold data
+//		CorefBaseline cb = new CorefBaseline();
+//		cb.trainModel(train_split);
+//		cb.test(test_split);
 
-		//pipeline
-//        NERBaseline ner = new NERBaseline();
-//        ner.test(test_split);
+		// pipeline
+//		NERBaseline ner = new NERBaseline(true);
+//		ner.test(test_split);
+//		
 //		CorefBaseline cb = new CorefBaseline();
 //		cb.trainModel(train_split);
 //		cb.testPipeline(test_split);
 		
-		
-//		CorefBaseline cb = new CorefBaseline(train_split, test_split);
-//		cb.learn();
-//		try {
-//			cb.predictGold();
-//		} catch (Exception e) {
-//			e.printStackTrace();
-//		}
+		// evaluating
+		CorefBaseline cb = new CorefBaseline(train_split, test_split);
+		cb.learn();
+		try {
+			cb.predictGold();
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 
 	}
 }

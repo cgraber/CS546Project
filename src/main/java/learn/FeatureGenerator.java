@@ -53,7 +53,8 @@ public class FeatureGenerator {
 		if(FeatureGenerator.MENTIONFEATURES){
 			String attr_name_prefix = "mentionsType1-";
 			System.out.println("ACEAnnotation size:" +  ACEAnnotation.getMentionTypes().size());
-			for (String entityType: ACEAnnotation.getMentionTypes()){
+			//for (String entityType: ACEAnnotation.getMentionTypes()){
+			for (String entityType: ACEAnnotation.getCoarseEntityTypes()){
 				System.out.println(m++ + ": "+ attr_name_prefix + entityType);
 				a = new Attribute(attr_name_prefix + entityType, zeroOne);
 				attribute_dict.put(attr_name_prefix + entityType, a);
@@ -61,7 +62,9 @@ public class FeatureGenerator {
 			}
 			
 			attr_name_prefix = "mentionsType2-";
-			for (String entityType: ACEAnnotation.getMentionTypes()){
+			//for (String entityType: ACEAnnotation.getMentionTypes()){
+			for (String entityType: ACEAnnotation.getCoarseEntityTypes()){
+					
 				System.out.println(m++ + ": "+ attr_name_prefix + entityType);
 				a = new Attribute(attr_name_prefix + entityType, zeroOne);
 				attribute_dict.put(attr_name_prefix + entityType, a);
@@ -69,7 +72,8 @@ public class FeatureGenerator {
 			}
 			
 			attr_name_prefix = "mentionTypePAIR-";
-			for (String entityType: ACEAnnotation.getMentionTypes()){
+			//for (String entityType: ACEAnnotation.getMentionTypes()){
+			for (String entityType: ACEAnnotation.getCoarseEntityTypes()){
 				a = new Attribute(attr_name_prefix + entityType, zeroOne);
 				System.out.println(m++ + ": "+ attr_name_prefix + entityType);
 				attribute_dict.put(attr_name_prefix + entityType, a);
@@ -211,15 +215,18 @@ public class FeatureGenerator {
 		// here we can encode the one-hot features
 		if(FeatureGenerator.MENTIONFEATURES){
 			String attr_name_prefix = "mentionsType1-";
-			for (String entityType: ACEAnnotation.getMentionTypes()){
+			//for (String entityType: ACEAnnotation.getMentionTypes()){
+			for (String entityType: ACEAnnotation.getCoarseEntityTypes()){
 				instance.setValue(attribute_dict.get(attr_name_prefix + entityType), "0");
 			}
 			attr_name_prefix = "mentionsType2-";
-			for (String entityType: ACEAnnotation.getMentionTypes()){
+			//for (String entityType: ACEAnnotation.getMentionTypes()){
+			for (String entityType: ACEAnnotation.getCoarseEntityTypes()){
 				instance.setValue(attribute_dict.get(attr_name_prefix + entityType), "0");
 			}
 			attr_name_prefix = "mentionTypePAIR-";
-			for (String entityType: ACEAnnotation.getMentionTypes()){
+			//for (String entityType: ACEAnnotation.getMentionTypes()){
+			for (String entityType: ACEAnnotation.getCoarseEntityTypes()){
 				instance.setValue(attribute_dict.get(attr_name_prefix + entityType), "0");
 			}
 		}
@@ -264,7 +271,9 @@ public class FeatureGenerator {
     	}
     	// Testing with gold labels.
 		else if (gold){
-			Pair<List<CoreferenceEdge>, List<CoreferenceEdge>> myLabels = entry.getAllPairsGoldCoreferenceEdges();
+			
+			//Pair<List<CoreferenceEdge>, List<CoreferenceEdge>> myLabels = entry.getAllPairsGoldCoreferenceEdges();
+			Pair<List<CoreferenceEdge>, List<CoreferenceEdge>> myLabels = entry.getSampledGoldCoreferenceEdges();
 	    	// Positive Labels only
 	    	temp.addAll(myLabels.getFirst());
 	    	int positive_count = myLabels.getFirst().size();
@@ -283,7 +292,6 @@ public class FeatureGenerator {
 	    	//System.out.println("all testing examples" + temp.size() );
     	} else { // testing with pipeline
     		//temp.addAll( entry.getAllPairsTestCoreferenceEdges() );
-    		
     		temp.addAll(entry.getAllPairsPipelineCoreferenceEdges());
     		System.out.println("testing entry with " + temp.size() + " Coreference Edges");
     	}
@@ -321,7 +329,10 @@ public class FeatureGenerator {
     	if (labeled){
     		//if ( gold ){
 	    	// only for training
-	    	// Pair<List<CoreferenceEdge>, List<CoreferenceEdge>> myLabels = entry.getAllPairsGoldCoreferenceEdges();
+    		// based on 2008 paper
+	    	//Pair<List<CoreferenceEdge>, List<CoreferenceEdge>> myLabels = entry.getAllPairsGoldCoreferenceEdges();
+    		
+    		// based on old paper
 	    	Pair<List<CoreferenceEdge>, List<CoreferenceEdge>> myLabels = entry.getSampledGoldCoreferenceEdges();
 	    	
 	    	entry.getAllPairsPipelineCoreferenceEdges();
@@ -458,26 +469,34 @@ public class FeatureGenerator {
 		if(FeatureGenerator.MENTIONFEATURES){
 			String attr_name_prefix = "mentionsType1-";
 			//System.out.println("features:" + attr_name_prefix + e1.getMentionType());
-			instance.setValue(attribute_dict.get(attr_name_prefix + e1.getMentionType()), "1");
+			//System.out.println("features:" + attr_name_prefix + e1.getCoarseEntityType());
+			//instance.setValue(attribute_dict.get(attr_name_prefix + e1.getMentionType()), "1");
+			instance.setValue(attribute_dict.get(attr_name_prefix + e1.getCoarseEntityType()), "1");
 			attr_name_prefix = "mentionsType2-";
-			instance.setValue(attribute_dict.get(attr_name_prefix + e2.getMentionType()), "1");
+			//instance.setValue(attribute_dict.get(attr_name_prefix + e2.getMentionType()), "1");
+			instance.setValue(attribute_dict.get(attr_name_prefix + e2.getCoarseEntityType()), "1");
 			
 			attr_name_prefix = "mentionTypePAIR-";
-    		String val = e1.getMentionType().compareTo(e2.getMentionType()) == 0  ? "1" : "0"; 
+    		//String val = e1.getMentionType().compareTo(e2.getMentionType()) == 0  ? "1" : "0"; 
+			String val = e1.getCoarseEntityType().compareTo(e2.getCoarseEntityType()) == 0  ? "1" : "0";
     		
     		if (val.compareTo("1") == 0)
-    			instance.setValue(attribute_dict.get(attr_name_prefix + e1.getMentionType()), val);
+    			//instance.setValue(attribute_dict.get(attr_name_prefix + e1.getMentionType()), val);
+    			instance.setValue(attribute_dict.get(attr_name_prefix + e1.getCoarseEntityType()), val);
     		
 		}
 		
 		if (FeatureGenerator.STRINGFEATURES){
 			// Alias, need to check that e1 and e2 refer to the same named entity
-			if (e1.coarseEntityType.compareTo(e2.coarseEntityType) == 0){
+			//if (e1.getMentionType().compareTo(e2.getMentionType()) == 0){
+			if (e1.getCoarseEntityType().compareTo(e2.getCoarseEntityType()) == 0){
 				// person named entity 
-				if (e1.coarseEntityType.compareTo("PER") == 0 ){
+				//if (e1.getMentionType().compareTo("PER") == 0 ){
+				if (e1.getCoarseEntityType().compareTo("PER") == 0 ){
 					instance.setValue(attribute_dict.get("aliasPER"), FeatureGenerator.getPersonAlias(e1, e2));
 				}
-				if (e1.coarseEntityType.compareTo("ORG") == 0) {
+				//if (e1.getMentionType().compareTo("ORG") == 0) {
+				if (e1.getCoarseEntityType().compareTo("ORG") == 0 ){
 					instance.setValue(attribute_dict.get("aliasORG"), FeatureGenerator.getOrganizationAlias(e1, e2));
 				}
 			}
@@ -548,7 +567,8 @@ public class FeatureGenerator {
 			instance.setValue( attribute_dict.get(key), detectMentionSentence(somePair.getFirst(), somePair.getSecond(), entry.getSentences() ) );
 			
 			key = "mentionRelativePronoun";
-			if (instance.stringValue(attribute_dict.get("mentionApposition1-")).compareTo("1") == 0 && e2.getMentionType().compareTo(Consts.PRONOUN) == 0) 
+			//if (instance.stringValue(attribute_dict.get("mentionApposition1-")).compareTo("1") == 0 && e2.getMentionType().compareTo(Consts.PRONOUN) == 0) 
+			if (instance.stringValue(attribute_dict.get("mentionApposition1-")).compareTo("1") == 0 && e2.getCoarseEntityType().compareTo(Consts.PRONOUN) == 0)
 				instance.setValue( attribute_dict.get(key), "1" );
 		}
 		return instance;
