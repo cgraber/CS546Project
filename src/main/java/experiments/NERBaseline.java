@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.Map;
 import java.util.HashMap;
+import java.util.Collections;
 
 /**
  * Created by Colin Graber on 3/29/16.
@@ -48,8 +49,8 @@ public class NERBaseline implements PipelineStage {
     }
 
     public void trainModel(List<ACEAnnotation> data) {
-        buildHeadFeatureFile(data, true);
-        runMalletTrainHead();
+        //buildHeadFeatureFile(data, true);
+        //runMalletTrainHead();
         trainExtentClassifier(data);
     }
 
@@ -140,10 +141,10 @@ public class NERBaseline implements PipelineStage {
                 List<String> sentence = doc.getSentence(e.getSentenceOffset());
                 int sentenceOffset = doc.getSentenceIndex(e.getSentenceOffset());
                 for (int i = sentenceOffset; i < e.getHeadStartOffset(); i++) {
-                    features.add(extractExtentFeatures(doc.getTA(), i, e.getHeadStartOffset(), e.getHeadEndOffset()));
+                    features.add(extractExtentFeatures(doc.getTA(), i, e.getHeadStartOffset(), e.getHeadEndOffset(), i > sentenceOffset, i < sentenceOffset+sentence.size()-1));
                 }
                 for (int i = e.getHeadEndOffset(); i < sentenceOffset + sentence.size(); i++) {
-                    features.add(extractExtentFeatures(doc.getTA(), i, e.getHeadStartOffset(), e.getHeadEndOffset()));
+                    features.add(extractExtentFeatures(doc.getTA(), i, e.getHeadStartOffset(), e.getHeadEndOffset(), i > sentenceOffset, i < sentenceOffset+sentence.size()-1));
                 }
             }
             System.out.println("\t\tGetting extent labels");
@@ -244,16 +245,16 @@ public class NERBaseline implements PipelineStage {
                 List<String> sentence = doc.getSentence(e.getSentenceOffset());
                 int sentenceOffset = doc.getSentenceIndex(e.getSentenceOffset());
                 for (int i = e.getHeadEndOffset(); i < e.getExtentEndOffset(); i++) {
-                    examples.add(new Pair(extractExtentFeatures(doc.getTA(), i, e.getHeadStartOffset(), e.getHeadEndOffset()), true));
+                    examples.add(new Pair(extractExtentFeatures(doc.getTA(), i, e.getHeadStartOffset(), e.getHeadEndOffset(), i > sentenceOffset, i < sentenceOffset+sentence.size()-1), true));
                 }
                 if (e.getExtentEndOffset() < sentenceOffset + sentence.size()) {
-                    examples.add(new Pair(extractExtentFeatures(doc.getTA(), e.getExtentEndOffset(), e.getHeadStartOffset(), e.getHeadEndOffset()), false));
+                    examples.add(new Pair(extractExtentFeatures(doc.getTA(), e.getExtentEndOffset(), e.getHeadStartOffset(), e.getHeadEndOffset(), e.getExtentEndOffset() > sentenceOffset, e.getExtentEndOffset() < sentenceOffset+sentence.size()-1), false));
                 }
                 for (int i = e.getHeadStartOffset() - 1; i >= e.getExtentStartOffset(); i--) {
-                    examples.add(new Pair(extractExtentFeatures(doc.getTA(), i, e.getHeadStartOffset(), e.getHeadEndOffset()), true));
+                    examples.add(new Pair(extractExtentFeatures(doc.getTA(), i, e.getHeadStartOffset(), e.getHeadEndOffset(), i > sentenceOffset, i < sentenceOffset+sentence.size()-1), true));
                 }
                 if (e.getExtentStartOffset() - 1 > sentenceOffset) {
-                    examples.add(new Pair(extractExtentFeatures(doc.getTA(), e.getExtentStartOffset()-1, e.getHeadStartOffset(), e.getHeadEndOffset()), false));
+                    examples.add(new Pair(extractExtentFeatures(doc.getTA(), e.getExtentStartOffset()-1, e.getHeadStartOffset(), e.getHeadEndOffset(), e.getExtentStartOffset() > sentenceOffset, e.getExtentStartOffset() < sentenceOffset+sentence.size()-1), false));
                 }
             }
         }
@@ -542,15 +543,15 @@ public class NERBaseline implements PipelineStage {
                 Constituent prevConst = ta.getView(ViewNames.TOKENS).getConstituentsCoveringToken(index-1).get(0);
                 previous.addAll(WordFeatureExtractorFactory.word.getWordFeatures(ta, index-1));
                 previous.addAll(WordFeatureExtractorFactory.wordCase.getWordFeatures(ta, index-1));
-                previous.addAll(WordFeatureExtractorFactory.dateMarker.getWordFeatures(ta, index-1));
-                previous.addAll(WordFeatureExtractorFactory.wordCase.getWordFeatures(ta, index-1));
+                //previous.addAll(WordFeatureExtractorFactory.dateMarker.getWordFeatures(ta, index-1));
+                //previous.addAll(WordFeatureExtractorFactory.wordCase.getWordFeatures(ta, index-1));
                 previous.addAll(WordFeatureExtractorFactory.capitalization.getWordFeatures(ta, index-1));
-                previous.addAll(WordFeatureExtractorFactory.conflatedPOS.getWordFeatures(ta, index-1));
-                previous.addAll(WordFeatureExtractorFactory.lemma.getWordFeatures(ta, index-1));
-                previous.addAll(WordFeatureExtractorFactory.numberNormalizer.getWordFeatures(ta, index-1));
+                //previous.addAll(WordFeatureExtractorFactory.conflatedPOS.getWordFeatures(ta, index-1));
+                //previous.addAll(WordFeatureExtractorFactory.lemma.getWordFeatures(ta, index-1));
+                //previous.addAll(WordFeatureExtractorFactory.numberNormalizer.getWordFeatures(ta, index-1));
                 previous.addAll(WordFeatureExtractorFactory.pos.getWordFeatures(ta, index-1));
-                previous.addAll(ListFeatureFactory.daysOfTheWeek.getFeatures(prevConst));
-                previous.addAll(ListFeatureFactory.months.getFeatures(prevConst));
+                //previous.addAll(ListFeatureFactory.daysOfTheWeek.getFeatures(prevConst));
+                //previous.addAll(ListFeatureFactory.months.getFeatures(prevConst));
                 previous.addAll(ListFeatureFactory.possessivePronouns.getFeatures(prevConst));
                 previous.addAll(gazetteers.getWordFeatures(ta, index-1));
                 for (Feature prevFeat: previous) {
@@ -563,15 +564,15 @@ public class NERBaseline implements PipelineStage {
                 Constituent nextConst = ta.getView(ViewNames.TOKENS).getConstituentsCoveringToken(index + 1).get(0);
                 next.addAll(WordFeatureExtractorFactory.word.getWordFeatures(ta, index + 1));
                 next.addAll(WordFeatureExtractorFactory.wordCase.getWordFeatures(ta, index + 1));
-                next.addAll(WordFeatureExtractorFactory.dateMarker.getWordFeatures(ta, index + 1));
-                next.addAll(WordFeatureExtractorFactory.wordCase.getWordFeatures(ta, index + 1));
+                //next.addAll(WordFeatureExtractorFactory.dateMarker.getWordFeatures(ta, index + 1));
+                //next.addAll(WordFeatureExtractorFactory.wordCase.getWordFeatures(ta, index + 1));
                 next.addAll(WordFeatureExtractorFactory.capitalization.getWordFeatures(ta, index + 1));
-                next.addAll(WordFeatureExtractorFactory.conflatedPOS.getWordFeatures(ta, index + 1));
-                next.addAll(WordFeatureExtractorFactory.lemma.getWordFeatures(ta, index + 1));
-                next.addAll(WordFeatureExtractorFactory.numberNormalizer.getWordFeatures(ta, index + 1));
+                //next.addAll(WordFeatureExtractorFactory.conflatedPOS.getWordFeatures(ta, index + 1));
+                //next.addAll(WordFeatureExtractorFactory.lemma.getWordFeatures(ta, index + 1));
+                //next.addAll(WordFeatureExtractorFactory.numberNormalizer.getWordFeatures(ta, index + 1));
                 next.addAll(WordFeatureExtractorFactory.pos.getWordFeatures(ta, index + 1));
-                next.addAll(ListFeatureFactory.daysOfTheWeek.getFeatures(nextConst));
-                next.addAll(ListFeatureFactory.months.getFeatures(nextConst));
+                //next.addAll(ListFeatureFactory.daysOfTheWeek.getFeatures(nextConst));
+                //next.addAll(ListFeatureFactory.months.getFeatures(nextConst));
                 next.addAll(ListFeatureFactory.possessivePronouns.getFeatures(nextConst));
                 next.addAll(gazetteers.getWordFeatures(ta, index + 1));
                 for (Feature nextFeat : next) {
@@ -588,7 +589,7 @@ public class NERBaseline implements PipelineStage {
         return result;
     }
 
-    public List<Feature> extractExtentFeatures(TextAnnotation ta, int index, int headStartOffset, int headEndOffset) {
+    public List<Feature> extractExtentFeatures(TextAnnotation ta, int index, int headStartOffset, int headEndOffset, boolean usePrev, boolean useNext) {
         List<Constituent> constituents = ta.getView(ViewNames.TOKENS).getConstituentsCoveringToken(index);
         assert(constituents.size() == 1);
         Constituent constituent = constituents.get(0);
@@ -596,16 +597,60 @@ public class NERBaseline implements PipelineStage {
         try {
             features.addAll(WordFeatureExtractorFactory.word.getWordFeatures(ta, index));
             features.addAll(WordFeatureExtractorFactory.wordCase.getWordFeatures(ta, index));
-            features.addAll(WordFeatureExtractorFactory.dateMarker.getWordFeatures(ta, index));
+            //features.addAll(WordFeatureExtractorFactory.dateMarker.getWordFeatures(ta, index));
             features.addAll(WordFeatureExtractorFactory.capitalization.getWordFeatures(ta, index));
-            features.addAll(WordFeatureExtractorFactory.lemma.getWordFeatures(ta, index));
+            //features.addAll(WordFeatureExtractorFactory.lemma.getWordFeatures(ta, index));
             features.addAll(WordFeatureExtractorFactory.numberNormalizer.getWordFeatures(ta, index));
             features.addAll(WordFeatureExtractorFactory.pos.getWordFeatures(ta, index));
-            features.addAll(ListFeatureFactory.daysOfTheWeek.getFeatures(constituent));
-            features.addAll(ListFeatureFactory.months.getFeatures(constituent));
+            //features.addAll(ListFeatureFactory.daysOfTheWeek.getFeatures(constituent));
+            //features.addAll(ListFeatureFactory.months.getFeatures(constituent));
             features.addAll(ListFeatureFactory.possessivePronouns.getFeatures(constituent));
             features.addAll(gazetteers.getWordFeatures(ta, index));
+            if (usePrev) {
+                String prefix = "__PREV__";
+                List<Feature> previous = new ArrayList<>();
+                Constituent prevConst = ta.getView(ViewNames.TOKENS).getConstituentsCoveringToken(index-1).get(0);
+                previous.addAll(WordFeatureExtractorFactory.word.getWordFeatures(ta, index-1));
+                previous.addAll(WordFeatureExtractorFactory.wordCase.getWordFeatures(ta, index-1));
+                //previous.addAll(WordFeatureExtractorFactory.dateMarker.getWordFeatures(ta, index-1));
+                //previous.addAll(WordFeatureExtractorFactory.wordCase.getWordFeatures(ta, index-1));
+                previous.addAll(WordFeatureExtractorFactory.capitalization.getWordFeatures(ta, index-1));
+                //previous.addAll(WordFeatureExtractorFactory.conflatedPOS.getWordFeatures(ta, index-1));
+                //previous.addAll(WordFeatureExtractorFactory.lemma.getWordFeatures(ta, index-1));
+                //previous.addAll(WordFeatureExtractorFactory.numberNormalizer.getWordFeatures(ta, index-1));
+                previous.addAll(WordFeatureExtractorFactory.pos.getWordFeatures(ta, index-1));
+                //previous.addAll(ListFeatureFactory.daysOfTheWeek.getFeatures(prevConst));
+                //previous.addAll(ListFeatureFactory.months.getFeatures(prevConst));
+                previous.addAll(ListFeatureFactory.possessivePronouns.getFeatures(prevConst));
+                previous.addAll(gazetteers.getWordFeatures(ta, index-1));
+                for (Feature prevFeat: previous) {
+                    features.add(prevFeat.prefixWith(prefix));
+                }
+            }
+            if (useNext) {
+                String prefix = "__NEXT__";
+                List<Feature> next = new ArrayList<>();
+                Constituent nextConst = ta.getView(ViewNames.TOKENS).getConstituentsCoveringToken(index + 1).get(0);
+                next.addAll(WordFeatureExtractorFactory.word.getWordFeatures(ta, index + 1));
+                next.addAll(WordFeatureExtractorFactory.wordCase.getWordFeatures(ta, index + 1));
+                //next.addAll(WordFeatureExtractorFactory.dateMarker.getWordFeatures(ta, index + 1));
+                //next.addAll(WordFeatureExtractorFactory.wordCase.getWordFeatures(ta, index + 1));
+                next.addAll(WordFeatureExtractorFactory.capitalization.getWordFeatures(ta, index + 1));
+                //next.addAll(WordFeatureExtractorFactory.conflatedPOS.getWordFeatures(ta, index + 1));
+                //next.addAll(WordFeatureExtractorFactory.lemma.getWordFeatures(ta, index + 1));
+                //next.addAll(WordFeatureExtractorFactory.numberNormalizer.getWordFeatures(ta, index + 1));
+                next.addAll(WordFeatureExtractorFactory.pos.getWordFeatures(ta, index + 1));
+                //next.addAll(ListFeatureFactory.daysOfTheWeek.getFeatures(nextConst));
+                //next.addAll(ListFeatureFactory.months.getFeatures(nextConst));
+                next.addAll(ListFeatureFactory.possessivePronouns.getFeatures(nextConst));
+                next.addAll(gazetteers.getWordFeatures(ta, index + 1));
+                for (Feature nextFeat : next) {
+                    features.add(nextFeat.prefixWith(prefix));
+                }
+            }
         } catch (EdisonException e) {
+	    e.printStackTrace();
+            System.exit(1);
         }
         
         Constituent headConst = new Constituent(null, null, ta, headStartOffset, headEndOffset);
