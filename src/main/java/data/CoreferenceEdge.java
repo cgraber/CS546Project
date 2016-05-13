@@ -14,6 +14,10 @@ public class CoreferenceEdge implements Serializable {
     public EntityMention e1;
     public EntityMention e2;
     public boolean isCoreferent;
+    public boolean newPrediction;
+
+    public double score;
+    public ACEAnnotation sourceDocument;
 
     public CoreferenceEdge(EntityMention e1, EntityMention e2) {
         this(e1, e2, true);

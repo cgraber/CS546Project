@@ -14,7 +14,7 @@ import java.util.Set;
  * Created by daeyun on 4/22/16.
  */
 public class EnergyMinimization {
-    private BalasHook zeroOneIlp;
+    private BalasHook zeroOneIlp;  // Should add slack value
     private int numVariables = 0;
     private int verbosity = ILPInference.VERBOSITY_HIGH;
 

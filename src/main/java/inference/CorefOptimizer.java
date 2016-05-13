@@ -54,11 +54,11 @@ public class CorefOptimizer extends EnergyMinimization {
      * Adds a coreference candidate. edge.isCoreferent() indicates a local prediction.
      */
     public void addCorefCandidate(CoreferenceEdge edge) {
-        boolean isCoreferent = edge.isCoreferent();
+        boolean isCoreferent = edge.isCoreferent();  // assumes this is 1 if probability > 0.5
         if (isCoreferent) {
-            addBinaryVariable(true, 0, 1);
+            addBinaryVariable(true, 0, edge.score);
         } else {
-            addBinaryVariable(false, 0, 1);
+            addBinaryVariable(false, 0, edge.score);
         }
         coreferences.add(edge);
     }
