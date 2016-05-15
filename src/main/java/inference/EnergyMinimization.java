@@ -2,6 +2,7 @@ package inference;
 
 import data.EntityMention;
 import data.EntityMentionStub;
+import edu.illinois.cs.cogcomp.lbjava.infer.OJalgoHook;
 import edu.illinois.cs.cogcomp.lbjava.infer.BalasHook;
 import edu.illinois.cs.cogcomp.lbjava.infer.ILPInference;
 import data.CoreferenceEdge;
@@ -14,12 +15,12 @@ import java.util.Set;
  * Created by daeyun on 4/22/16.
  */
 public class EnergyMinimization {
-    private BalasHook zeroOneIlp;  // Should add slack value
+    private OJalgoHook zeroOneIlp;
     private int numVariables = 0;
     private int verbosity = ILPInference.VERBOSITY_HIGH;
 
     public EnergyMinimization() {
-        zeroOneIlp = new BalasHook(verbosity);
+        zeroOneIlp = new OJalgoHook();
     }
 
     /**
@@ -59,13 +60,18 @@ public class EnergyMinimization {
     /**
      * Sets a constraint that if any two of x_i, x_j, x_k are 1, the other one must also be 1.
      */
-    public void setTransitivityConstraint(int i, int j, int k) {
+    public void setTransitivityConstraintUnordered(int i, int j, int k) {
         // If x_i=1 and x_j=1, x_k must be 1.
         zeroOneIlp.addLessThanConstraint(new int[]{2 * i + 1, 2 * j + 1, 2 * k + 1}, new double[]{1, 1, -1}, 1);
         // If x_j=1 and x_k=1, x_i must be 1.
         zeroOneIlp.addLessThanConstraint(new int[]{2 * j + 1, 2 * k + 1, 2 * i + 1}, new double[]{1, 1, -1}, 1);
         // If x_k=1 and x_i=1, x_j must be 1.
         zeroOneIlp.addLessThanConstraint(new int[]{2 * k + 1, 2 * i + 1, 2 * j + 1}, new double[]{1, 1, -1}, 1);
+    }
+
+    public void setTransitivityConstraint(int i, int j, int k) {
+        // If x_i=1 and x_j=1, x_k must be 1.
+        zeroOneIlp.addLessThanConstraint(new int[]{2 * i + 1, 2 * j + 1, 2 * k + 1}, new double[]{1, 1, -1}, 1);
     }
 
     /**
@@ -93,7 +99,7 @@ public class EnergyMinimization {
                 result[i] = 0;
             }
         }
-
+//        System.out.println("Objective value: " + zeroOneIlp.objectiveValue());
         return result;
     }
 

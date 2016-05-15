@@ -14,7 +14,10 @@ public class CoreferenceEdge implements Serializable {
     public EntityMention e1;
     public EntityMention e2;
     public boolean isCoreferent;
-    public boolean newPrediction;
+    public boolean isCoreferentLR = false;
+    public boolean isCoreferentStitched = false;
+    public boolean isCoreferentILP = false;
+    public boolean isCoreferentILPInput = false;
 
     public double score;
     public ACEAnnotation sourceDocument;
@@ -26,7 +29,7 @@ public class CoreferenceEdge implements Serializable {
     public CoreferenceEdge(EntityMention e1, EntityMention e2, boolean isCoreferent) {
         this.e1 = e1;
         this.e2 = e2;
-        this.isCoreferent = isCoreferent;
+        this.isCoreferentLR = isCoreferent;
     }
 
     public boolean isCoreferent() {

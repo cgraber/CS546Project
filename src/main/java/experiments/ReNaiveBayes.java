@@ -143,7 +143,7 @@ public class ReNaiveBayes {
             }
         }
 
-        //setting up score table for future prediction
+        //setting up score table for future isCoreferentLR
         for(int i=0; i<numLabels;i++){
             for(int j=0;j<features_count;j++){
                 double frequency_score=(float)(frequency_table[i][j]+1)*balance_factors[i];
@@ -192,7 +192,7 @@ public class ReNaiveBayes {
             FeatureVector f=testSet.get(i);
             final double [] score_class= new double [numLabels];
 
-            //prediction
+            //isCoreferentLR
             List<Integer> vector=f.getFeatures();
             for(int j=0;j<vector.size();j++){
                 if(vector.get(j)==1){

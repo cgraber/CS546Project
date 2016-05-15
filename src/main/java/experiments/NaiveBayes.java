@@ -86,7 +86,7 @@ public class NaiveBayes {
             }
         }
 
-        //setting up score table for future prediction + smoothing
+        //setting up score table for future isCoreferentLR + smoothing
         for(int i=0; i < labels_count;i++){
             for(int j=0;j<features_count;j++){
                 double frequency_score=(float)(frequency_table[i][j]+1)*balance_factors[i];
@@ -109,7 +109,7 @@ public class NaiveBayes {
         final double [] score_class= new double [labels_count];
         new_features_count=f.getFeatureCount();
 
-        //prediction
+        //isCoreferentLR
         List<Integer> vector=f.getFeatures();
         for(int j=0;j<vector.size();j++){
             //check if this is unseen features
@@ -155,7 +155,7 @@ public class NaiveBayes {
         final double [] score_class= new double [labels_count];
         new_features_count=f.getFeatureCount();
 
-        //prediction
+        //isCoreferentLR
         List<Integer> vector=f.getFeatures();
         for(int j=0;j<vector.size();j++){
             //check if this is unseen features
@@ -209,7 +209,7 @@ public class NaiveBayes {
         //use the pre-train classifier to get the score for each feature vector and then sum them up by class
         for(FeatureVector f: list_vec){
 
-            //prediction on a single feature vector
+            //isCoreferentLR on a single feature vector
             double [] score = clf.giveOptions(f);
 
             for(int i=0; i<labels_count; i++){
@@ -243,7 +243,7 @@ public class NaiveBayes {
 
 
     /**
-     * prediction on a list of instances, and report the result
+     * isCoreferentLR on a list of instances, and report the result
      */
 
     public void test(List<FeatureVector> data_set){
@@ -275,7 +275,7 @@ public class NaiveBayes {
             FeatureVector f=data_set.get(i);
             final double [] score_class= new double [labels_count];
 
-            //prediction
+            //isCoreferentLR
             List<Integer> vector=f.getFeatures();
             for(int j=0;j<vector.size();j++){
                 //check if this is unseen features

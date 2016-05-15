@@ -7,10 +7,8 @@ import learn.FeatureGenerator;
 import learn.PipelineStage;
 import data.ACEAnnotation;
 import data.CoreferenceEdge;
-import data.DataUtils;
 import data.EntityMention;
 import edu.illinois.cs.cogcomp.core.datastructures.Pair;
-import edu.illinois.cs.cogcomp.core.datastructures.textannotation.Constituent;
 import weka.classifiers.functions.Logistic;
 
 import java.io.BufferedWriter;
@@ -33,6 +31,7 @@ public class CorefBaseline implements PipelineStage {
     public ArrayList<ACEAnnotation> test;
     //private Map<EntityMention, List<CoreferenceEdge>> candidate_map;
     List<Double> prediction_scores;
+    public Map<ACEAnnotation, List<CoreferenceEdge>> allGoldTestEdgesByDocument;
     //Weka
     public Logistic classifier;
     public static final boolean DEBUG = false;
@@ -611,6 +610,7 @@ public class CorefBaseline implements PipelineStage {
         int index = 0;
         Map<EntityMention, CoreferenceEdge> candidate_map = null;
         Map<EntityMention, Double> candidate_best = null;
+        allGoldTestEdgesByDocument = new HashMap<>();
         int ap = 0;
         int tp = 0;
         int fp = 0;
@@ -630,6 +630,8 @@ public class CorefBaseline implements PipelineStage {
 
             ap += temp.getFirst().size();
             examples.addAll(temp.getSecond());
+
+            allGoldTestEdgesByDocument.put(a, examples);
 
             EntityMention em1 = null;
             EntityMention em2 = null;
@@ -703,6 +705,7 @@ public class CorefBaseline implements PipelineStage {
             ArrayList<List<EntityMention>> equivalence_classes = new ArrayList<List<EntityMention>>();
             for (CoreferenceEdge predicted_positive : pred_edges) {
                 positives.add(predicted_positive);
+                predicted_positive.isCoreferentStitched = true;
 
                 if (predicted_positive.isCoreferent()) {
                     tp++;
@@ -816,6 +819,10 @@ public class CorefBaseline implements PipelineStage {
         double precision = tp / (double) (tp + fp);
         double recall = tp / (double) ap;
         double f1 = 2 * (precision * recall) / (precision + recall);
+        System.out.println("tp:" + tp);
+        System.out.println("fp:" + fp);
+        System.out.println("ap:" + ap);
+
         System.out.println("precision:" + precision);
         System.out.println("recall:" + recall);
         System.out.println("f1 score:" + f1);
@@ -908,7 +915,7 @@ public class CorefBaseline implements PipelineStage {
             // int pred = Integer.parseInt(testInstances.instance(i).attribute(testInstances.instance(i).numAttributes()-1).value((int)predClass));
             String c = testInstances.instance(i).attribute(classIndex).value((int) predClass);
 
-            //System.out.println("prediction distribution label==0:" + prediction_distribution[0] + " label==1" + prediction_distribution[1]);
+            //System.out.println("isCoreferentLR distribution label==0:" + prediction_distribution[0] + " label==1" + prediction_distribution[1]);
             this.prediction_scores.add(prediction_distribution[1]);
             // assuming we have the labels
             predictions.add(c);
@@ -1001,7 +1008,8 @@ public class CorefBaseline implements PipelineStage {
         // loading processed data
         List<List<ACEAnnotation>> splits = null;
         try {
-            splits = ACEAnnotation.readAllFromFile();
+//            splits = ACEAnnotation.readAllFromFile();
+            splits = ACEAnnotation.readSubsetFromFile(0.05);
         } catch (IOException e) {
             e.printStackTrace();
             System.exit(1);

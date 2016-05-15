@@ -8,8 +8,7 @@ import java.util.List;
 /**
  * Created by Colin Graber on 3/18/16.
  */
-public class EntityMention implements Serializable {
-
+public class EntityMention implements Serializable, Comparable<EntityMention> {
 
 
     private static final long serialVersionUID = 3L;
@@ -31,7 +30,6 @@ public class EntityMention implements Serializable {
     public int corefGroupIndex;
 
 
-
     protected EntityMention(String coarseEntityType, String fineEntityType, String mentionType, int extentStartOffset, int extentEndOffset, int headStartOffset, int headEndOffset, int sentenceOffset, ACEAnnotation annotation) {
         this.coarseEntityType = coarseEntityType;
         this.fineEntityType = fineEntityType;
@@ -42,7 +40,7 @@ public class EntityMention implements Serializable {
         this.headEndOffset = headEndOffset;
         this.sentenceOffset = sentenceOffset;
         this.annotation = annotation;
-        this.corefGroupIndex=-1;
+        this.corefGroupIndex = -1;
     }
 
     public String getCoarseEntityType() {
@@ -69,7 +67,9 @@ public class EntityMention implements Serializable {
         return headEndOffset;
     }
 
-    public int getSentenceOffset() { return sentenceOffset; }
+    public int getSentenceOffset() {
+        return sentenceOffset;
+    }
 
     //NOTE THAT THIS RETURNS THE INDEX OF THE END TOKEN + 1
     public int getExtentEndOffset() {
@@ -109,7 +109,6 @@ public class EntityMention implements Serializable {
     }
 
 
-
     public boolean equalsCoarseHead(EntityMention other) {
         if (this.coarseEntityType.equals(other.coarseEntityType) &&
                 this.headStartOffset == other.headStartOffset &&
@@ -138,5 +137,17 @@ public class EntityMention implements Serializable {
 
     public Constituent getConstituent() {
         return constituent;
+    }
+
+    @Override
+    public int compareTo(EntityMention o) {
+        if (equalsFineExtent(o)) {
+            return 0;
+        }
+        if ((this.extentStartOffset < o.extentStartOffset) || (this.headStartOffset < o.headStartOffset)
+                || (this.extentEndOffset < o.extentEndOffset) || (this.headEndOffset < o.headEndOffset)) {
+            return -1;
+        }
+        return 1;
     }
 }

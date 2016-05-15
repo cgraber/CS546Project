@@ -17,10 +17,13 @@ public class CorefOptimizer extends EnergyMinimization {
     public static void main(String[] argv) throws Exception {
         // Populate coreferences with fake mentions.
         ArrayList<CoreferenceEdge> coreferenceCandidates = new ArrayList<>();
-        for (int i = 0; i < 10; i++) {
-            boolean localPrediction = true;
-            coreferenceCandidates.add(new CoreferenceEdge(
-                    new EntityMentionStub(i), new EntityMentionStub(i + 1), localPrediction));
+        int n = 20;
+        for (int i = 0; i < n; i++) {
+            boolean goldLabel = true;
+            CoreferenceEdge edge = new CoreferenceEdge(
+                    new EntityMentionStub(i), new EntityMentionStub(i + 1), goldLabel);
+            edge.score = n / 10.0 - i * 0.1;
+            coreferenceCandidates.add(edge);
         }
 
         // Example starts here.
@@ -28,7 +31,8 @@ public class CorefOptimizer extends EnergyMinimization {
         optimizer.addCorefCandidates(coreferenceCandidates);
 
         // If any two of these three are coreferent, the other one must also be coreferent.
-        optimizer.setTransitivityConstraint(2, 3, 4);
+        optimizer.setTransitivityConstraintUnordered(1, 2, 3);
+        optimizer.setTransitivityConstraintUnordered(2, 3, 4);
 
         // Limits the total number of coreferences.
         optimizer.setMaxPositiveCountConstraint(4);
@@ -37,7 +41,10 @@ public class CorefOptimizer extends EnergyMinimization {
 
         // Print results.
         for (int i = 0; i < optimizer.getCoreferences().size(); i++) {
-            System.out.println("x_" + i + " = " + optimizer.getCoreferences().get(i).isCoreferent());
+            System.out.println("x_" + i + " = " +
+                    optimizer.getCoreferences().get(i).isCoreferentLR + " -> "
+                    + optimizer.getCoreferences().get(i).isCoreferentILP
+                    + " (" + optimizer.getCoreferences().get(i).score + ")");
         }
     }
 
@@ -51,10 +58,10 @@ public class CorefOptimizer extends EnergyMinimization {
     }
 
     /**
-     * Adds a coreference candidate. edge.isCoreferent() indicates a local prediction.
+     * Adds a coreference candidate. edge.isCoreferent() indicates a local isCoreferentLR.
      */
     public void addCorefCandidate(CoreferenceEdge edge) {
-        boolean isCoreferent = edge.isCoreferent();  // assumes this is 1 if probability > 0.5
+        boolean isCoreferent = edge.isCoreferentILPInput;
         if (isCoreferent) {
             addBinaryVariable(true, 0, edge.score);
         } else {
@@ -73,10 +80,10 @@ public class CorefOptimizer extends EnergyMinimization {
 
         for (int i = 0; i < solution.length; i++) {
             if (solution[i] == 0) {
-                coreferences.get(i).isCoreferent = false;
+                coreferences.get(i).isCoreferentILP = false;
             }
             if (solution[i] == 1) {
-                coreferences.get(i).isCoreferent = true;
+                coreferences.get(i).isCoreferentILP = true;
             }
         }
         return solution;

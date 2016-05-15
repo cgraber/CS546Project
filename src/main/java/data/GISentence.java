@@ -209,7 +209,7 @@ public class GISentence {
      */
     public void assignPrediction(NaiveBayes clf, int mode){
 
-        //assign prediction without coref constraints
+        //assign isCoreferentLR without coref constraints
         for(Relation r: this.relations){
 
             EntityMention e1 = r.getArg1();

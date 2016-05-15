@@ -1043,6 +1043,27 @@ public class ACEAnnotation implements Serializable {
         return data;
     }
 
+    public static List<List<ACEAnnotation>> readSubsetFromFile(double p) throws IOException{
+
+        List<List<ACEAnnotation>> data = new ArrayList<>();
+        Random rand = new Random();
+        int count=0;
+        for(int i=0;i<5;i++){
+            List<ACEAnnotation> annotations = new ArrayList<>();
+            for(int j=0;j<65;j++){
+                if (j==0 || rand.nextDouble() < p) {
+                    annotations.add(ACEAnnotation.readFromFile("documents/file_" + count));
+                    System.out.println("#" + count + " load successfully");
+                }
+                count++;
+            }
+
+            data.add(annotations);
+        }
+
+        return data;
+    }
+
     public static List<ACEAnnotation> readAllFromFileFlat() throws IOException{
 
         List<ACEAnnotation> data = new ArrayList<>();
